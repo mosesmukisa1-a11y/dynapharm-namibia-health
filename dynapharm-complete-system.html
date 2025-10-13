@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -426,6 +430,196 @@
             font-size: 0.9rem;
             font-weight: 500;
         }
+
+        /* Mobile Responsive Design */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                margin: 10px auto;
+                border-radius: 10px;
+            }
+            .header {
+                padding: 20px 15px;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .tabs {
+                flex-wrap: wrap;
+            }
+            .tab-button {
+                font-size: 0.9rem;
+                padding: 12px 8px;
+                min-width: 120px;
+            }
+            .tab-content {
+                padding: 20px 15px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .form-section {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            .form-section h3 {
+                font-size: 1.1rem;
+            }
+            .branch-selector select {
+                width: 100%;
+                max-width: 300px;
+            }
+            .modal {
+                padding: 20px;
+            }
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                max-width: 500px;
+            }
+            .btn {
+                padding: 12px 20px;
+                font-size: 1rem;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .client-list, .user-list, .branch-list {
+                padding: 15px;
+            }
+            .client-item, .user-item, .branch-item {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .medicine-grid {
+                grid-template-columns: 1fr;
+            }
+            .prescription-item {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            .prescription-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .prescription-actions .btn {
+                width: 100%;
+            }
+            .analytics-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .analytics-card {
+                padding: 15px;
+            }
+            .symptom-checkbox {
+                font-size: 0.9rem;
+                padding: 8px;
+            }
+            .recommendation-item {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+            .signature-pad {
+                height: 150px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            .container {
+                margin: 5px auto;
+                border-radius: 8px;
+            }
+            .header {
+                padding: 15px 10px;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .tab-button {
+                font-size: 0.8rem;
+                padding: 10px 6px;
+                min-width: 100px;
+            }
+            .tab-content {
+                padding: 15px 10px;
+            }
+            .form-section {
+                padding: 12px;
+            }
+            .form-section h3 {
+                font-size: 1rem;
+            }
+            .modal-content {
+                width: 98%;
+                margin: 2% auto;
+            }
+            .btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+            .client-item, .user-item, .branch-item {
+                padding: 12px;
+            }
+            .prescription-item {
+                padding: 12px;
+            }
+            .analytics-card {
+                padding: 12px;
+            }
+            .symptom-checkbox {
+                font-size: 0.8rem;
+                padding: 6px;
+            }
+            .recommendation-item {
+                padding: 10px;
+            }
+            .signature-pad {
+                height: 120px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .tab-button, .btn, .symptom-checkbox, input[type="checkbox"], input[type="radio"] {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            .form-group input, .form-group select, .form-group textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 12px;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media screen and (max-width: 768px) and (orientation: landscape) {
+            .header {
+                padding: 15px;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .tabs {
+                flex-wrap: nowrap;
+            }
+            .tab-button {
+                font-size: 0.8rem;
+                padding: 8px 4px;
+            }
+            .tab-content {
+                padding: 15px;
+            }
+        }
+
         @media print {
             @page {
                 size: A4;
