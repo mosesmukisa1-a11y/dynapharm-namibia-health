@@ -3,18 +3,18 @@
   "name": "dynapharm-frontend",
   "builds": [
     {
-      "src": "dynapharm-complete-system.html",
+      "src": "index.html",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/",
-      "dest": "/dynapharm-complete-system.html"
+      "dest": "/index.html"
     },
     {
       "src": "/dynapharm",
-      "dest": "/dynapharm-complete-system.html"
+      "dest": "/index.html"
     },
     {
       "src": "/(.*)",

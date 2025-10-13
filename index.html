@@ -87,7 +87,7 @@
             </div>
             <div class="status-item">
                 <span class="status-label">Backend API:</span>
-                <span class="status-value">🚀 Railway</span>
+                <span class="status-value">🚀 Vercel Functions</span>
             </div>
             <div class="status-item">
                 <span class="status-label">Frontend:</span>
@@ -99,21 +99,16 @@
             </div>
         </div>
         
-        <a href="frontend/dynapharm-complete-system-cloud.html" class="btn">
+        <a href="frontend/index.html" class="btn">
             🚀 Launch Application
         </a>
         
-        <a href="backend/dynapharm_backend.py" class="btn" style="background: #28a745;">
-            📡 API Documentation
+        <a href="api/health" class="btn" style="background: #28a745;">
+            📡 API Health Check
         </a>
     </div>
     
     <script>
-        // Check if we're on GitHub Pages and redirect accordingly
-        if (window.location.hostname.includes('github.io')) {
-            console.log('Running on GitHub Pages');
-        }
-        
         // Add some interactivity
         document.querySelectorAll('.btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
