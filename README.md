@@ -2,7 +2,11 @@
 
 ## 🌐 Live Portal Access
 
-**Production Link:** [Click here to access the portal](https://mosesmukisa1-a11y.github.io/dynapharm-namibia-health/standalone.html)
+**Production Link:** [Click here to access the portal](https://mosesmukisa1-a11y.github.io/dynapharm-namibia-health/dynapharm-complete-system.html)
+
+**🔗 Short URL Options:**
+- [dynapharm-namibia-health](https://mosesmukisa1-a11y.github.io/dynapharm-namibia-health/) (auto-redirect)
+- [dynapharm-namibia-health](https://mosesmukisa1-a11y.github.io/dynapharm-namibia-health) (without slash)
 
 ## 📋 Features
 
