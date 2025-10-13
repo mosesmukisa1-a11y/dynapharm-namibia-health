@@ -1677,10 +1677,11 @@
                 </div>
                 <button type="submit" class="btn">Login</button>
                 <div style="margin-top: 15px; font-size: 0.85rem; color: #666; background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                    <p><strong>Default Test Accounts:</strong></p>
-                    <p>Admin: <code>admin</code> / <code>admin123</code></p>
-                    <p>Consultant: <code>consultant</code> / <code>consultant123</code></p>
-                    <p>Dispenser: <code>dispenser</code> / <code>dispenser123</code></p>
+                    <p><strong>Available Accounts:</strong></p>
+                    <p><strong>Admin:</strong> <code>admin</code> / <code>walker33</code></p>
+                    <p><strong>Consultant:</strong> <code>moses</code> / <code>walker33</code></p>
+                    <p><strong>Consultant:</strong> <code>Geneva</code> / <code>Pearl_11</code></p>
+                    <p><strong>Dispenser:</strong> <code>NAEM</code> / <code>PASSWORD</code></p>
                 </div>
             </form>
         </div>
@@ -3240,37 +3241,39 @@
             document.getElementById('password').value = '';
         }
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            
-            // Reload users from storage to get latest data
-            loadData();
-            
-            console.log('Login attempt:', username, 'for portal:', currentPortal);
-            console.log('Available users:', users.map(u => ({username: u.username, role: u.role})));
-            
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (!user) {
-                alert('Invalid username or password');
-                return;
-            }
-            
-            if (user.role !== currentPortal) {
-                alert(`This user is a ${user.role}, not a ${currentPortal}. Please use the correct portal.`);
-                return;
-            }
-            
-            // Login successful
-            currentUser = user;
-            closeModal('loginModal');
-            
-            document.getElementById(currentPortal + 'Auth').style.display = 'none';
-            document.getElementById(currentPortal + 'Content').style.display = 'block';
-            
-            // Start real-time synchronization
+        // Wait for DOM to be ready before attaching event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                // Reload users from storage to get latest data
+                await loadData();
+                
+                console.log('Login attempt:', username, 'for portal:', currentPortal);
+                console.log('Available users:', users.map(u => ({username: u.username, role: u.role})));
+                
+                const user = users.find(u => u.username === username && u.password === password);
+                
+                if (!user) {
+                    alert('Invalid username or password');
+                    return;
+                }
+                
+                if (user.role !== currentPortal) {
+                    alert(`This user is a ${user.role}, not a ${currentPortal}. Please use the correct portal.`);
+                    return;
+                }
+                
+                // Login successful
+                currentUser = user;
+                closeModal('loginModal');
+                
+                document.getElementById(currentPortal + 'Auth').style.display = 'none';
+                document.getElementById(currentPortal + 'Content').style.display = 'block';
+                
+                // Start real-time synchronization
             startAutoRefresh();
             showRealtimeStatus();
             
@@ -3300,7 +3303,8 @@
             }
             
             alert(`Welcome, ${user.fullName}! Real-time sync activated.`);
-        });
+            });
+        }); // End of DOMContentLoaded
 
         function logout() {
             currentUser = null;
