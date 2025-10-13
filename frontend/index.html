@@ -379,8 +379,8 @@
             const protocol = window.location.protocol;
             
             if (hostname.includes('vercel.app') || hostname.includes('netlify.app')) {
-                // Frontend is on Vercel/Netlify, backend should be on Railway
-                API_BASE = 'https://railwayweb-production-ffb82.up.railway.app/api';
+                // Frontend is on Vercel/Netlify, use Vercel API functions
+                API_BASE = '/api';
             } else if (hostname.includes('railway.app')) {
                 // Both frontend and backend on Railway
                 API_BASE = `${protocol}//${hostname}/api`;
