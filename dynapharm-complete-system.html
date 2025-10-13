@@ -1677,11 +1677,8 @@
                 </div>
                 <button type="submit" class="btn">Login</button>
                 <div style="margin-top: 15px; font-size: 0.85rem; color: #666; background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                    <p><strong>Available Accounts:</strong></p>
-                    <p><strong>Admin:</strong> <code>admin</code> / <code>walker33</code></p>
-                    <p><strong>Consultant:</strong> <code>moses</code> / <code>walker33</code></p>
-                    <p><strong>Consultant:</strong> <code>Geneva</code> / <code>Pearl_11</code></p>
-                    <p><strong>Dispenser:</strong> <code>NAEM</code> / <code>PASSWORD</code></p>
+                    <p><strong>🔐 Secure Login Required</strong></p>
+                    <p>Please contact your administrator for login credentials.</p>
                 </div>
             </form>
         </div>
@@ -2708,6 +2705,24 @@
             console.log('Data saved via API calls');
         }
 
+        // Barcode generation function
+        function generateBarcode(text) {
+            // Simple barcode using Code 128 pattern (for demonstration)
+            // In production, you'd use a proper barcode library like JsBarcode
+            const barcodeData = text.replace(/[^A-Za-z0-9]/g, '');
+            const barcode = barcodeData.split('').map((char, index) => {
+                const code = char.charCodeAt(0);
+                return (code % 2 === 0 ? '█' : '▌').repeat(2);
+            }).join('');
+            
+            return `
+                <div style="text-align: center; margin: 10px 0; font-family: monospace; font-size: 12px;">
+                    <div style="background: #000; color: #fff; padding: 5px; letter-spacing: 2px;">${barcode}</div>
+                    <div style="margin-top: 5px; font-size: 10px;">${text}</div>
+                </div>
+            `;
+        }
+
         // Global refresh function to update all portals
         async function refreshAllData() {
             const previousHash = lastDataHash;
@@ -3037,6 +3052,7 @@
                         <p>${branchName}</p>
                         <p>CLIENT REGISTRATION FORM</p>
                         <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
+                        ${generateBarcode(formData.get('nbNumber') || 'CLIENT-' + Date.now())}
                     </div>
                     
                     <div class="section">
@@ -6083,6 +6099,7 @@
                     <div class="header">
                         <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
                         <div class="subtitle">SUMMARY ANALYTIC REPORT CARD</div>
+                        ${generateBarcode(reportId || client.referenceNumber)}
                         <div class="branch-info">${branchName}</div>
                         <div class="branch-info">${branchAddress}</div>
                         <div class="report-date">Report Date: ${new Date().toLocaleDateString('en-GB')}</div>
@@ -7963,6 +7980,7 @@
                         <p>${branchName}</p>
                         <p>PRESCRIPTION RECEIPT</p>
                         <p>${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'})}</p>
+                        ${generateBarcode(report.id)}
                     </div>
                     
                     <!-- Client Details -->
@@ -8576,6 +8594,7 @@
                         <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
                         <p>DAILY DISPENSING STATEMENT</p>
                         <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
+                        ${generateBarcode('DAILY-' + new Date().toISOString().split('T')[0])}
                     </div>
                     
                     <!-- Summary Statistics -->
@@ -9275,6 +9294,7 @@
                         <div style="font-size: 12pt;">DYNAPHARM NAMIBIA</div>
                         <div style="font-size: 9pt;">PAYMENT RECEIPT</div>
                         <div style="font-size: 8pt;">${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'})}</div>
+                        ${generateBarcode(report.id + '-' + medicine.name)}
                     </div>
                     
                     <div style="margin: 8px 0; font-size: 9pt;">
