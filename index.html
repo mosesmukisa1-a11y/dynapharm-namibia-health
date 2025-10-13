@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynapharm Namibia Health - Cloud System</title>
+    <title>Dynapharm Namibia Health - Redirecting...</title>
+    <script>
+        // Redirect to standalone version immediately
+        window.location.href = './standalone.html';
+    </script>
+    <meta http-equiv="refresh" content="0; url=./standalone.html">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -21,7 +26,7 @@
             padding: 40px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 600px;
+            max-width: 500px;
             margin: 20px;
         }
         .logo {
@@ -30,94 +35,27 @@
             color: #667eea;
             margin-bottom: 10px;
         }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.2em;
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
-        .btn {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-weight: bold;
-            margin: 10px;
-            transition: transform 0.3s ease;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        .status {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .status-item:last-child {
-            border-bottom: none;
-        }
-        .status-label {
-            font-weight: bold;
-            color: #333;
-        }
-        .status-value {
-            color: #28a745;
-            font-weight: bold;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">🏥 Dynapharm Namibia</div>
-        <div class="subtitle">Cloud Health Management System</div>
-        
-        <div class="status">
-            <div class="status-item">
-                <span class="status-label">System Status:</span>
-                <span class="status-value">✅ Online</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Backend API:</span>
-                <span class="status-value">🚀 Vercel Functions</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Frontend:</span>
-                <span class="status-value">🌐 Vercel</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Last Updated:</span>
-                <span class="status-value">Oct 13, 2025</span>
-            </div>
-        </div>
-        
-        <a href="frontend/index.html" class="btn">
-            🚀 Launch Application
-        </a>
-        
-        <a href="api/health" class="btn" style="background: #28a745;">
-            📡 API Health Check
-        </a>
+        <p>Redirecting to Health Management Portal...</p>
+        <div class="spinner"></div>
+        <p><a href="./standalone.html" style="color: #667eea; text-decoration: none;">Click here if not redirected automatically</a></p>
     </div>
-    
-    <script>
-        // Add some interactivity
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-            });
-        });
-    </script>
 </body>
 </html>
