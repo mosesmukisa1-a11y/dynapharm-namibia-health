@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Dynapharm International Namibia - Cloud v2.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .logo {
+            text-align: center;
+            padding: 20px;
+            background: white;
+        }
+        .header {
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .branch-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .branch-selector select {
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: none;
+            width: 300px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 10px; }
+        .tabs {
+            display: flex;
+            background: #ecf0f1;
+            border-bottom: 3px solid #c41e3a;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .tab-button.active { background: white; color: #c41e3a; font-weight: bold; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .form-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #c41e3a;
+        }
+        .form-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #c41e3a;
+            padding-bottom: 10px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #c41e3a;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { background: #c41e3a; color: white; }
+        .btn-primary:hover { background: #8b0000; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #e67e22; }
+        .btn-info { background: #3498db; color: white; }
+        .btn-info:hover { background: #2980b9; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: #000; }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online { background-color: #27ae60; }
+        .status-offline { background-color: #e74c3c; }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 15px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+            z-index: 999;
+        }
+
+        .cloud-badge {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container { margin: 10px; }
+            .tabs { flex-direction: column; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cloud-badge">☁️ CLOUD EDITION</div>
+    
+    <div class="connection-status" id="connectionStatus">
+        <span class="status-indicator status-offline"></span>
+        <span id="statusText">Checking connection...</span>
+    </div>
+
+    <div class="container">
+        <div class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiB2aWV3Qm94PSIwIDAgMjAwIDYwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjYzQxZTNhIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EWU5BUEhBUk08L3RleHQ+Cjwvc3ZnPgo=" alt="Dynapharm Logo">
+        </div>
+
+        <div class="header">
+            <h1>Dynapharm International Namibia</h1>
+            <p>Comprehensive Health Management System - Cloud Edition</p>
+            <p>📞 +264 61 300 877 | 📧 info@dynapharm.com.na</p>
+            
+            <div class="branch-selector">
+                <label for="branchSelect">Select Branch:</label>
+                <select id="branchSelect">
+                    <option value="townshop">TOWNSHOP (Head Office)</option>
+                    <option value="khomasdal">KHOMASDAL DPC</option>
+                    <option value="katima">KATIMA DPC</option>
+                    <option value="outapi">OUTAPI DPC</option>
+                    <option value="ondangwa">ONDANGWA DPC</option>
+                    <option value="okongo">OKONGO DPC</option>
+                    <option value="okahao">OKAHAO DPC</option>
+                    <option value="nkurenkuru">NKURENKURU DPC</option>
+                    <option value="swakopmund">SWAKOPMUND DPC</option>
+                    <option value="hochland-park">HOCHLAND PARK</option>
+                    <option value="rundu">RUNDU DPC</option>
+                    <option value="gobabis">GOBABIS</option>
+                    <option value="walvisbay">WALVISBAY</option>
+                    <option value="eenhana">EENHANA</option>
+                    <option value="otjiwarongo">OTJIWARONGO DPC</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('client-registration')">Client Registration</button>
+            <button class="tab-button" onclick="showTab('consultant-portal')">Consultant Portal</button>
+            <button class="tab-button" onclick="showTab('dispenser-portal')">Dispenser Portal</button>
+            <button class="tab-button" onclick="showTab('admin-portal')">Admin Portal</button>
+        </div>
+
+        <!-- Client Registration Tab -->
+        <div id="client-registration" class="tab-content active">
+            <h2>Client Registration Form</h2>
+            
+            <div class="form-section">
+                <h3>Personal Information</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth *</label>
+                        <input type="date" id="dateOfBirth" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender *</label>
+                        <select id="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number *</label>
+                        <input type="tel" id="phoneNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Address Information</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="address">Physical Address *</label>
+                        <textarea id="address" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City/Town *</label>
+                        <input type="text" id="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="postalCode">Postal Code</label>
+                        <input type="text" id="postalCode">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Health Information</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="medicalAid">Medical Aid Scheme</label>
+                        <input type="text" id="medicalAid">
+                    </div>
+                    <div class="form-group">
+                        <label for="medicalAidNumber">Medical Aid Number</label>
+                        <input type="text" id="medicalAidNumber">
+                    </div>
+                    <div class="form-group">
+                        <label for="allergies">Known Allergies</label>
+                        <textarea id="allergies" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="medications">Current Medications</label>
+                        <textarea id="medications" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <button class="btn btn-primary" onclick="registerClient()">Register Client</button>
+                <button class="btn btn-info" onclick="searchClient()">Search Existing Client</button>
+            </div>
+        </div>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('loginModal')">&times;</span>
+                <h2>Login Required</h2>
+                <p id="loginMessage">Please login to access this portal</p>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Consultant Portal Tab -->
+        <div id="consultant-portal" class="tab-content">
+            <h2>Consultant Portal</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access consultant portal</p>
+            <button class="btn btn-primary" onclick="openLoginModal('consultant')">Login as Consultant</button>
+        </div>
+
+        <!-- Dispenser Portal Tab -->
+        <div id="dispenser-portal" class="tab-content">
+            <h2>Dispenser Portal</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access dispenser portal</p>
+            <button class="btn btn-primary" onclick="openLoginModal('dispenser')">Login as Dispenser</button>
+        </div>
+
+        <!-- Admin Portal Tab -->
+        <div id="admin-portal" class="tab-content">
+            <h2>Admin Portal</h2>
+            <p>Please login to access admin portal</p>
+            <button class="btn btn-primary" onclick="openLoginModal('admin')">Login as Admin</button>
+        </div>
+    </div>
+
+    <script>
+        // Cloud API Configuration - Will be set dynamically based on deployment
+        let API_BASE = '';
+        let currentUser = null;
+        let currentPortal = null;
+        let clients = [];
+        let users = [];
+        let branches = [];
+        let reports = [];
+
+        // Auto-detect API endpoint
+        function detectApiEndpoint() {
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            
+            if (hostname.includes('vercel.app') || hostname.includes('netlify.app')) {
+                // Frontend is on Vercel/Netlify, backend should be on Railway
+                API_BASE = 'https://dynapharm-backend-production.up.railway.app/api';
+            } else if (hostname.includes('railway.app')) {
+                // Both frontend and backend on Railway
+                API_BASE = `${protocol}//${hostname}/api`;
+            } else {
+                // Local development or custom domain
+                API_BASE = 'http://localhost:8001/api';
+            }
+            
+            console.log('API Base URL:', API_BASE);
+            updateConnectionStatus();
+        }
+
+        // Check connection status
+        async function updateConnectionStatus() {
+            const statusElement = document.getElementById('statusText');
+            const indicator = document.querySelector('.status-indicator');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    statusElement.textContent = 'Connected to Cloud API';
+                    indicator.className = 'status-indicator status-online';
+                } else {
+                    throw new Error('Health check failed');
+                }
+            } catch (error) {
+                statusElement.textContent = 'API Offline - Using Local Mode';
+                indicator.className = 'status-indicator status-offline';
+            }
+        }
+
+        // API Request function
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            try {
+                const config = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    config.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, config);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API request failed:', error);
+                // Fallback to local storage
+                return getLocalData(endpoint);
+            }
+        }
+
+        // Local storage fallback
+        function getLocalData(endpoint) {
+            const key = endpoint.replace('/api/', '');
+            const data = localStorage.getItem(`dynapharm_${key}`);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveLocalData(endpoint, data) {
+            const key = endpoint.replace('/api/', '');
+            localStorage.setItem(`dynapharm_${key}`, JSON.stringify(data));
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Modal functions
+        function openLoginModal(portal) {
+            currentPortal = portal;
+            document.getElementById('loginMessage').textContent = `Please login to access ${portal} portal`;
+            document.getElementById('loginModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Simple authentication (replace with proper API call)
+            const validUsers = {
+                'admin': { password: 'admin123', role: 'admin' },
+                'consultant': { password: 'consultant123', role: 'consultant' },
+                'dispenser': { password: 'dispenser123', role: 'dispenser' }
+            };
+            
+            const user = validUsers[username];
+            
+            if (!user || user.password !== password) {
+                alert('Invalid username or password');
+                return;
+            }
+            
+            if (user.role !== currentPortal) {
+                alert(`This user is a ${user.role}, not a ${currentPortal}. Please use the correct portal.`);
+                return;
+            }
+            
+            currentUser = { username, role: user.role };
+            closeModal('loginModal');
+            
+            // Show success message
+            alert(`Welcome, ${username}! You are now logged in as ${user.role}.`);
+            
+            // Redirect to appropriate portal functionality
+            if (currentPortal === 'consultant') {
+                showConsultantPortal();
+            } else if (currentPortal === 'dispenser') {
+                showDispenserPortal();
+            } else if (currentPortal === 'admin') {
+                showAdminPortal();
+            }
+        });
+
+        function showConsultantPortal() {
+            document.getElementById('consultant-portal').innerHTML = `
+                <h2>Consultant Portal - Welcome ${currentUser.username}</h2>
+                <div class="form-section">
+                    <h3>Patient Consultation</h3>
+                    <button class="btn btn-primary">New Consultation</button>
+                    <button class="btn btn-info">View Patient History</button>
+                </div>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            `;
+        }
+
+        function showDispenserPortal() {
+            document.getElementById('dispenser-portal').innerHTML = `
+                <h2>Dispenser Portal - Welcome ${currentUser.username}</h2>
+                <div class="form-section">
+                    <h3>Prescription Management</h3>
+                    <button class="btn btn-primary">Dispense Medication</button>
+                    <button class="btn btn-info">View Prescriptions</button>
+                </div>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            `;
+        }
+
+        function showAdminPortal() {
+            document.getElementById('admin-portal').innerHTML = `
+                <h2>Admin Portal - Welcome ${currentUser.username}</h2>
+                <div class="form-section">
+                    <h3>System Management</h3>
+                    <button class="btn btn-primary">User Management</button>
+                    <button class="btn btn-success">Reports</button>
+                    <button class="btn btn-warning">System Settings</button>
+                </div>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            `;
+        }
+
+        function logout() {
+            currentUser = null;
+            location.reload();
+        }
+
+        // Client registration
+        function registerClient() {
+            const clientData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                dateOfBirth: document.getElementById('dateOfBirth').value,
+                gender: document.getElementById('gender').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                postalCode: document.getElementById('postalCode').value,
+                medicalAid: document.getElementById('medicalAid').value,
+                medicalAidNumber: document.getElementById('medicalAidNumber').value,
+                allergies: document.getElementById('allergies').value,
+                medications: document.getElementById('medications').value,
+                referenceNumber: 'CLI' + Date.now(),
+                registrationDate: new Date().toISOString(),
+                branch: document.getElementById('branchSelect').value
+            };
+
+            // Validate required fields
+            if (!clientData.firstName || !clientData.lastName || !clientData.dateOfBirth || 
+                !clientData.gender || !clientData.phoneNumber || !clientData.address || !clientData.city) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Save client (try API first, then local storage)
+            apiRequest('/clients', 'POST', clientData).then(() => {
+                alert('Client registered successfully! Reference Number: ' + clientData.referenceNumber);
+                // Clear form
+                document.querySelectorAll('input, select, textarea').forEach(field => {
+                    if (field.type !== 'button') field.value = '';
+                });
+            }).catch(error => {
+                console.error('Failed to save client:', error);
+                // Fallback to local storage
+                const clients = getLocalData('/clients');
+                clients.push(clientData);
+                saveLocalData('/clients', clients);
+                alert('Client registered locally! Reference Number: ' + clientData.referenceNumber);
+            });
+        }
+
+        function searchClient() {
+            const referenceNumber = prompt('Enter client reference number:');
+            if (referenceNumber) {
+                // Search for client (try API first, then local storage)
+                apiRequest('/clients').then(clients => {
+                    const client = clients.find(c => c.referenceNumber === referenceNumber);
+                    if (client) {
+                        alert(`Client found: ${client.firstName} ${client.lastName}`);
+                        // Populate form with client data
+                        populateClientForm(client);
+                    } else {
+                        alert('Client not found');
+                    }
+                }).catch(error => {
+                    console.error('Failed to search client:', error);
+                    // Fallback to local storage
+                    const clients = getLocalData('/clients');
+                    const client = clients.find(c => c.referenceNumber === referenceNumber);
+                    if (client) {
+                        alert(`Client found: ${client.firstName} ${client.lastName}`);
+                        populateClientForm(client);
+                    } else {
+                        alert('Client not found');
+                    }
+                });
+            }
+        }
+
+        function populateClientForm(client) {
+            document.getElementById('firstName').value = client.firstName || '';
+            document.getElementById('lastName').value = client.lastName || '';
+            document.getElementById('dateOfBirth').value = client.dateOfBirth || '';
+            document.getElementById('gender').value = client.gender || '';
+            document.getElementById('phoneNumber').value = client.phoneNumber || '';
+            document.getElementById('email').value = client.email || '';
+            document.getElementById('address').value = client.address || '';
+            document.getElementById('city').value = client.city || '';
+            document.getElementById('postalCode').value = client.postalCode || '';
+            document.getElementById('medicalAid').value = client.medicalAid || '';
+            document.getElementById('medicalAidNumber').value = client.medicalAidNumber || '';
+            document.getElementById('allergies').value = client.allergies || '';
+            document.getElementById('medications').value = client.medications || '';
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            detectApiEndpoint();
+            
+            // Check connection every 30 seconds
+            setInterval(updateConnectionStatus, 30000);
+            
+            console.log('Dynapharm Cloud Edition initialized');
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
