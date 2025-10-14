@@ -1063,6 +1063,10 @@
             <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
+            <div id="userInfo" style="display: none; margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <span style="color: white; font-size: 0.9rem;">👤 <span id="currentUserName"></span></span>
+                <button class="btn btn-secondary" onclick="logout()" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
+            </div>
         </div>
 
         <!-- Client Registration -->
@@ -3152,10 +3156,43 @@
         }
 
         function openTab(tabName) {
+            // Check if portal requires authentication
+            if (tabName === 'admin' || tabName === 'consultant' || tabName === 'dispenser') {
+                if (!currentUser) {
+                    showLogin(tabName);
+                    return;
+                }
+                
+                // Check if user has access to this portal
+                if (tabName === 'admin' && currentUser.role !== 'admin') {
+                    alert('❌ Admin access required');
+                    return;
+                }
+                if (tabName === 'consultant' && currentUser.role !== 'consultant') {
+                    alert('❌ Consultant access required');
+                    return;
+                }
+                if (tabName === 'dispenser' && currentUser.role !== 'dispenser') {
+                    alert('❌ Dispenser access required');
+                    return;
+                }
+            }
+            
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
+            
+            // Load portal-specific data
+            if (tabName === 'consultant' && currentUser) {
+                displayClients();
+                displayFollowUps();
+            } else if (tabName === 'dispenser' && currentUser) {
+                displayPrescriptions();
+            } else if (tabName === 'admin' && currentUser) {
+                loadUserList();
+                loadBranchListAdmin();
+            }
         }
 
         function calculateAge() {
@@ -10095,6 +10132,106 @@
                 console.error('Error saving report:', error);
                 alert('Error saving report. Please try again.');
             }
+        }
+
+        function showLogin(portal) {
+            currentPortal = portal;
+            document.getElementById('loginModal').style.display = 'block';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Find user in the users array
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                
+                // Check if user has access to the requested portal
+                if (currentPortal === 'admin' && user.role !== 'admin') {
+                    alert('❌ Admin access required');
+                    return;
+                }
+                
+                if (currentPortal === 'consultant' && user.role !== 'consultant') {
+                    alert('❌ Consultant access required');
+                    return;
+                }
+                
+                if (currentPortal === 'dispenser' && user.role !== 'dispenser') {
+                    alert('❌ Dispenser access required');
+                    return;
+                }
+                
+                // Hide login modal
+                closeModal('loginModal');
+                
+                // Show the appropriate portal
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
+                
+                if (currentPortal === 'admin') {
+                    document.getElementById('admin').classList.add('active');
+                    document.querySelector('button[onclick="openTab(\'admin\')"]').classList.add('active');
+                    document.getElementById('adminAuth').style.display = 'none';
+                    document.getElementById('adminContent').style.display = 'block';
+                    loadUserList();
+                    loadBranchListAdmin();
+                } else if (currentPortal === 'consultant') {
+                    document.getElementById('consultant').classList.add('active');
+                    document.querySelector('button[onclick="openTab(\'consultant\')"]').classList.add('active');
+                    await displayClients();
+                    await displayFollowUps();
+                } else if (currentPortal === 'dispenser') {
+                    document.getElementById('dispenser').classList.add('active');
+                    document.querySelector('button[onclick="openTab(\'dispenser\')"]').classList.add('active');
+                    await displayPrescriptions();
+                }
+                
+                // Show user info in header
+                document.getElementById('userInfo').style.display = 'flex';
+                document.getElementById('currentUserName').textContent = user.fullName;
+                
+                // Start auto-refresh
+                startAutoRefresh();
+                
+                alert(`✅ Welcome, ${user.fullName}!`);
+                
+            } else {
+                alert('❌ Invalid username or password');
+            }
+            
+            // Clear form
+            this.reset();
+        });
+
+        function logout() {
+            currentUser = null;
+            currentPortal = '';
+            
+            // Hide user info
+            document.getElementById('userInfo').style.display = 'none';
+            
+            // Stop auto-refresh
+            stopAutoRefresh();
+            
+            // Hide all portal content
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
+            
+            // Show login prompts
+            document.getElementById('adminAuth').style.display = 'block';
+            document.getElementById('adminContent').style.display = 'none';
+            
+            // Show client registration by default
+            document.getElementById('client').classList.add('active');
+            document.querySelector('button[onclick="openTab(\'client\')"]').classList.add('active');
+            
+            alert('👋 Logged out successfully');
         }
 
         function closeModal(modalId) {
