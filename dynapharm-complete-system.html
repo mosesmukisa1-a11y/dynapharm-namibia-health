@@ -2099,6 +2099,34 @@
     </div>
 
     <script>
+        // Global variables
+        let currentUser = null;
+        let currentClientId = null;
+        let currentBranch = '';
+        let currentPortal = '';
+        let autoRefreshInterval = null;
+        let lastDataHash = null;
+        let editingUserId = null;
+        let cashDrawer = {
+            isOpen: false,
+            openingBalance: 0,
+            currentBalance: 0,
+            drops: [],
+            expenses: []
+        };
+        
+        // API Configuration
+        const API_BASE = (() => {
+            const hostname = window.location.hostname;
+            if (hostname.includes('vercel.app') || hostname.includes('netlify.app')) {
+                return '/api';
+            } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return 'http://localhost:5000';
+            } else {
+                return 'http://localhost:5000';
+            }
+        })();
+        
         let clients = [
             {"referenceNumber": "CLT-NGHISHIDIMBWA-NB96061001371-1759828718144", "fullName": "Nghishidimbwa Mathias Nghipangelwa", "nbNumber": "NB96061001371", "email": "", "phone": "0816716038", "membershipStatus": "referred", "referralName": "mogan maria ", "referralNbNumber": "12345678", "memberId": "", "memberSince": "", "gender": "Male", "dob": "1996-06-10", "age": "28", "height": "175", "weight": "70", "occupation": "Teacher", "emergencyContact": "0812345678", "primaryReason": "General Health Check", "medicalHistory": "None", "currentMedications": "None", "supplements": "None", "familyHistory": ["None"], "waterIntake": "1-2 liters", "exerciseFreq": "1-2 times per week", "sleepHours": "6-7 hours", "stressLevel": "Moderate", "symptoms": ["None"], "signature": "Nghishidimbwa Mathias Nghipangelwa", "branch": "townshop", "timestamp": "2025-10-07T09:18:38.144Z", "lastUpdated": "2025-10-07T10:11:14.845Z", "updatedBy": "NAEM HANGULA", "allergies": ""},
             {"referenceNumber": "CLT-MWAREWANGEPO-NBN/A-1759832656098", "fullName": "Mwarewangepo Munyaradzi Gwinyayi", "nbNumber": "N/A", "email": "m.g.mwarewangepo@gmail.com", "phone": "0816432344", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "Nb008304", "memberId": "", "memberSince": "", "gender": "male", "dob": "1969-09-08", "age": "56", "height": "1", "weight": "101", "occupation": "teacher", "emergencyContact": "0857468102", "primaryReason": "check my well-being", "medicalHistory": ["highBloodPressure", "diabetes"], "currentMedications": "Yes", "supplements": "N/A", "familyHistory": ["hypertension"], "waterIntake": "2to3", "exerciseFreq": "3-4", "sleepHours": "5-6", "stressLevel": "1", "symptoms": ["none"], "signature": "Mwarewangepo Munyaradzi Gwinyayi", "branch": "townshop", "timestamp": "2025-10-07T10:24:16.098Z"},
@@ -2901,6 +2929,18 @@
                     parsedBranches.forEach(savedBranch => {
                         if (!branches.find(b => b.id === savedBranch.id)) {
                             branches.push(savedBranch);
+                        }
+                    });
+                }
+                
+                // Load reports from localStorage if available
+                const savedReports = localStorage.getItem('dynapharm_reports');
+                if (savedReports) {
+                    const parsedReports = JSON.parse(savedReports);
+                    // Merge with existing reports, avoiding duplicates
+                    parsedReports.forEach(savedReport => {
+                        if (!reports.find(r => r.id === savedReport.id)) {
+                            reports.push(savedReport);
                         }
                     });
                 }
@@ -9936,6 +9976,124 @@
                     console.error('Error deleting branch:', error);
                     alert('Error deleting branch. Please try again.');
                 }
+            }
+        }
+
+        async function displayClients() {
+            const list = document.getElementById('clientList');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            clients.forEach(client => {
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                card.innerHTML = `
+                    <h4>${client.fullName}</h4>
+                    <p>Reference: ${client.referenceNumber}</p>
+                    <p>Phone: ${client.phone}</p>
+                    <p>Branch: ${client.branch}</p>
+                    <button class="btn btn-primary" onclick="createReport('${client.referenceNumber}')">Create Report</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        async function displayFollowUps() {
+            const list = document.getElementById('followUpList');
+            if (!list) return;
+            
+            // Filter clients with follow-up dates
+            const followUpClients = clients.filter(client => {
+                const followUpDate = client.followUpDate;
+                if (!followUpDate) return false;
+                const followUp = new Date(followUpDate);
+                const today = new Date();
+                const diffTime = followUp - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 7 && diffDays >= -1; // Within 7 days or overdue
+            });
+            
+            if (followUpClients.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 20px; color: #7f8c8d;"><h3>📅 No follow-ups due</h3><p>All clients are up to date with their appointments.</p></div>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            followUpClients.forEach(client => {
+                const followUpDate = new Date(client.followUpDate);
+                const today = new Date();
+                const diffTime = followUpDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                card.style.borderLeft = diffDays < 0 ? '4px solid #e74c3c' : '4px solid #f39c12';
+                
+                card.innerHTML = `
+                    <h4>${client.fullName}</h4>
+                    <p>Reference: ${client.referenceNumber}</p>
+                    <p>Phone: ${client.phone}</p>
+                    <p>Follow-up: ${followUpDate.toLocaleDateString()}</p>
+                    <p style="color: ${diffDays < 0 ? '#e74c3c' : '#f39c12'}; font-weight: bold;">
+                        ${diffDays < 0 ? '⚠️ Overdue' : diffDays === 0 ? '📅 Today' : `📅 In ${diffDays} days`}
+                    </p>
+                    <button class="btn btn-primary" onclick="createReport('${client.referenceNumber}')">Create Report</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        async function saveReport() {
+            try {
+                // Get selected medicines
+                const selectedMeds = [];
+                document.querySelectorAll('#medicineGrid input:checked').forEach(cb => {
+                    selectedMeds.push(cb.value);
+                });
+                
+                if (selectedMeds.length === 0) {
+                    alert('Please select at least one medicine');
+                    return;
+                }
+                
+                // Get consultant notes and follow-up
+                const consultantNotes = document.getElementById('consultantNotes').value;
+                const followUpDate = document.getElementById('followUpDate').value;
+                const followUpNotes = document.getElementById('followUpNotes').value;
+                
+                // Create report object
+                const report = {
+                    id: 'RPT' + Date.now(),
+                    clientId: currentClientId,
+                    consultant: currentUser.fullName,
+                    medicines: selectedMeds.map(med => ({
+                        name: med,
+                        dispensed: false,
+                        paid: false
+                    })),
+                    consultantNotes: consultantNotes,
+                    followUpDate: followUpDate,
+                    followUpNotes: followUpNotes,
+                    timestamp: new Date().toISOString(),
+                    prescription: true
+                };
+                
+                // Add to reports array
+                reports.push(report);
+                
+                // Save to localStorage
+                localStorage.setItem('dynapharm_reports', JSON.stringify(reports));
+                
+                alert('✅ Report saved successfully');
+                closeModal('reportModal');
+                
+                // Refresh consultant portal
+                await displayClients();
+                await displayFollowUps();
+                
+            } catch (error) {
+                console.error('Error saving report:', error);
+                alert('Error saving report. Please try again.');
             }
         }
 
