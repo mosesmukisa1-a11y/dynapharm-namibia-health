@@ -2819,6 +2819,8 @@
             });
             document.getElementById('branchSelect').addEventListener('change', e => {
                 currentBranch = e.target.value;
+                // Save selected branch to localStorage so it's shared across all users
+                localStorage.setItem('dynapharm_selected_branch', currentBranch);
             });
             
             // Add event listener for full name field to update signature
@@ -3097,6 +3099,14 @@
                         select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
                     });
                     console.log('Populated select:', select.id, 'with', branches.length, 'branches');
+                    
+                    // Restore selected branch from localStorage if available
+                    const savedBranch = localStorage.getItem('dynapharm_selected_branch');
+                    if (savedBranch && branches.find(b => b.id === savedBranch)) {
+                        select.value = savedBranch;
+                        currentBranch = savedBranch;
+                        console.log('Restored branch selection:', savedBranch);
+                    }
                 }
             });
         }
@@ -6488,8 +6498,9 @@
             await loadData();
             
             const list = document.getElementById('prescriptionList');
-            // Filter only actual reports (with id field) that have prescriptions
-            const pendingReports = reports.filter(r => r.id && r.prescription && r.medicines);
+            // Filter only actual reports (with id field) that have prescriptions and sort by latest first
+            const pendingReports = reports.filter(r => r.id && r.prescription && r.medicines)
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             if (pendingReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>💊 No prescriptions to dispense</h3><p>Prescriptions will appear here once consultants create reports.</p></div>';
