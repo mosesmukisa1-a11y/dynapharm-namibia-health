@@ -2197,23 +2197,7 @@
             {"id": "RPT1759998887609", "clientId": "CLT-MWAMBO-NB58110700365-1759997280974", "clientInfo": {"fullName": "Mwambo Nyama Maria", "phone": "0813985792", "email": "ndumbperry@gmail.com", "nbNumber": "58110700365"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Drink more warm water , and avoid carbonated drinks. \n\n", "prescription": "Elderly Package (Female)", "medicines": [{"name": "Elderly Package (Female)", "dispensed": false, "currentPrice": {"dp": 3801, "cp": 4475, "bv": 779.5, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.768Z"}, "packageStatus": {}}], "followUpDate": "2025-10-23", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T08:34:47.609Z", "dispensed": false},
             {"id": "RPT1759999428502", "clientId": "CLT-HELIVI-NB90072900962-1759998742790", "clientInfo": {"fullName": "HELIVI NAMUPALA SHIMI", "phone": "0816615812", "email": "shimihelvi@gmail.com", "nbNumber": "90072900962"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Adopt to more cardio exercises \ndrink more water \n", "prescription": "Womens Package", "medicines": [{"name": "Womens Package", "dispensed": false, "currentPrice": {"dp": 2543, "cp": 2950, "bv": 481, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.773Z"}, "packageStatus": {"GAMAT FEMININE WASH (2)": "given", "HERBA WARISAN MAHARANI 6 x 10g": "given"}}], "followUpDate": "2025-11-23", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T08:43:48.502Z", "dispensed": false}
         ];
-        let currentUser = null;
-        let currentPortal = null;
-        let currentClientId = null;
-        let currentBranch = '';
         let uploadedPDF = null;
-        let autoRefreshInterval = null;
-        
-        // Cash management
-        let cashDrawer = {
-            openingBalance: 0,
-            currentBalance: 0,
-            isOpen: false,
-            openedBy: null,
-            openedAt: null,
-            drops: [],
-            expenses: []
-        };
         
         // Inventory tracking
         let inventory = {};
@@ -2245,11 +2229,6 @@
         
         // Appointments tracking
         let appointments = [];
-        
-        let lastDataHash = null;
-        
-        // API Configuration
-        const API_BASE = 'http://192.168.178.182:8001/api';
 
         // Official Price List - June 2025
         const PRICE_LIST = [
@@ -9804,8 +9783,6 @@
                 }
             }
         }
-
-        let editingUserId = null;
 
         function editUserBranches(userId) {
             const user = users.find(u => u.id === userId);
