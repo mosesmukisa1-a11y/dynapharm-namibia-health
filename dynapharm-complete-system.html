@@ -2877,17 +2877,39 @@
         async function loadData() {
             try {
                 // For standalone version, data is already pre-loaded in the arrays above
-                // No need to make API calls since we have all the data embedded
-                console.log('Using pre-loaded data:', {
+                // But also load any additional data from localStorage (for admin-created users/branches)
+                
+                // Load users from localStorage if available
+                const savedUsers = localStorage.getItem('dynapharm_users');
+                if (savedUsers) {
+                    const parsedUsers = JSON.parse(savedUsers);
+                    // Merge with existing users, avoiding duplicates
+                    parsedUsers.forEach(savedUser => {
+                        if (!users.find(u => u.id === savedUser.id)) {
+                            users.push(savedUser);
+                        }
+                    });
+                }
+                
+                // Load branches from localStorage if available
+                const savedBranches = localStorage.getItem('dynapharm_branches');
+                if (savedBranches) {
+                    const parsedBranches = JSON.parse(savedBranches);
+                    // Merge with existing branches, avoiding duplicates
+                    parsedBranches.forEach(savedBranch => {
+                        if (!branches.find(b => b.id === savedBranch.id)) {
+                            branches.push(savedBranch);
+                        }
+                    });
+                }
+                
+                console.log('Using pre-loaded data with localStorage additions:', {
                     clients: clients.length,
                     users: users.length,
                     branches: branches.length,
                     reports: reports.length
                 });
                 
-                // Data is already pre-loaded, no need for fallbacks
-                
-                // All data is pre-loaded, no fallbacks needed
             } catch (error) {
                 console.error('Error in loadData:', error);
                 // Data is already pre-loaded, so no fallback needed
@@ -9629,16 +9651,18 @@
             }
             
             try {
-                const result = await apiRequest('/users', 'POST', newUser);
-                if (result.success) {
+                // Add user to local array
             users.push(newUser);
+                
+                // Save to localStorage
+                localStorage.setItem('dynapharm_users', JSON.stringify(users));
+                
                     alert('✅ User created successfully');
             closeModal('addUserModal');
             this.reset();
-                    await refreshAllData();
-                } else {
-                    alert('Error creating user: ' + result.message);
-                }
+                
+                // Refresh user list
+                loadUserList();
             } catch (error) {
                 console.error('Error creating user:', error);
                 alert('Error creating user. Please try again.');
@@ -9676,14 +9700,16 @@
         async function deleteUser(userId) {
             if (confirm('Delete user?')) {
                 try {
-                    const result = await apiRequest(`/users?id=${userId}`, 'DELETE');
-                    if (result.success) {
+                    // Remove user from local array
                 users = users.filter(u => u.id !== userId);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('dynapharm_users', JSON.stringify(users));
+                    
                         alert('✅ User deleted successfully');
-                        await refreshAllData();
-                    } else {
-                        alert('Error deleting user: ' + result.message);
-                    }
+                    
+                    // Refresh user list
+                    loadUserList();
                 } catch (error) {
                     console.error('Error deleting user:', error);
                     alert('Error deleting user. Please try again.');
@@ -9779,20 +9805,18 @@
             };
 
             try {
-                const result = await apiRequest('/users', 'PUT', updatedUser);
-                if (result.success) {
                     // Update local users array
                     const userIndex = users.findIndex(u => u.id === editingUserId);
                     if (userIndex !== -1) {
                         users[userIndex] = updatedUser;
                     }
+                
+                // Save to localStorage
+                localStorage.setItem('dynapharm_users', JSON.stringify(users));
                     
                     alert('✅ User branches updated successfully');
                     closeModal('editBranchesModal');
                 loadUserList();
-                } else {
-                    alert('Error updating user branches: ' + result.message);
-            }
             } catch (error) {
                 console.error('Error updating user branches:', error);
                 alert('Error updating user branches. Please try again.');
@@ -9820,16 +9844,16 @@
             currentUser.password = formData.get('newPassword');
             
             try {
-                const result = await apiRequest('/users', 'PUT', currentUser);
-                if (result.success) {
+                // Update user in local array
             const index = users.findIndex(u => u.id === currentUser.id);
             users[index] = currentUser;
+                
+                // Save to localStorage
+                localStorage.setItem('dynapharm_users', JSON.stringify(users));
+                
                     alert('✅ Password changed successfully');
             closeModal('changePasswordModal');
             this.reset();
-                } else {
-                    alert('Error changing password: ' + result.message);
-                }
             } catch (error) {
                 console.error('Error changing password:', error);
                 alert('Error changing password. Please try again.');
@@ -9845,19 +9869,24 @@
             
             const branch = {
                 id: name.toLowerCase().replace(/\s+/g, '-'),
-                name: name
+                name: name,
+                location: 'Location to be added',
+                phone: 'Phone to be added'
             };
             
             try {
-                const result = await apiRequest('/branches', 'POST', branch);
-                if (result.success) {
+                // Add branch to local array
             branches.push(branch);
+                
+                // Save to localStorage
+                localStorage.setItem('dynapharm_branches', JSON.stringify(branches));
+                
             document.getElementById('newBranchName').value = '';
                     alert('✅ Branch added successfully');
-                    await refreshAllData();
-                } else {
-                    alert('Error adding branch: ' + result.message);
-                }
+                
+                // Refresh branch list
+                loadBranchListAdmin();
+                loadBranches(); // Refresh branch selectors
             } catch (error) {
                 console.error('Error adding branch:', error);
                 alert('Error adding branch. Please try again.');
@@ -9881,14 +9910,17 @@
         async function deleteBranch(branchId) {
             if (confirm('Delete branch?')) {
                 try {
-                    const result = await apiRequest(`/branches?id=${branchId}`, 'DELETE');
-                    if (result.success) {
+                    // Remove branch from local array
                 branches = branches.filter(b => b.id !== branchId);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('dynapharm_branches', JSON.stringify(branches));
+                    
                         alert('✅ Branch deleted successfully');
-                        await refreshAllData();
-                    } else {
-                        alert('Error deleting branch: ' + result.message);
-                    }
+                    
+                    // Refresh branch list and selectors
+                    loadBranchListAdmin();
+                    loadBranches();
                 } catch (error) {
                     console.error('Error deleting branch:', error);
                     alert('Error deleting branch. Please try again.');
