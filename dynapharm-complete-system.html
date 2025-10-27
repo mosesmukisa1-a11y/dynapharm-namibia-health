@@ -1747,8 +1747,9 @@
             <form id="walkInSaleForm">
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
                     <div class="form-group">
-                        <label>Customer/Distributor Name *</label>
+                        <label>Customer Name *</label>
                         <input type="text" id="walkInCustomerName" placeholder="Full Name" required>
+                        <input type="hidden" id="walkInCustomerCode">
                     </div>
                     <div class="form-group">
                         <label>Phone Number (Optional)</label>
@@ -10202,8 +10203,101 @@
             document.getElementById('selectedDistributorInfo').style.display = 'block';
         }
         
+        function searchDistributorsForCustomerName() {
+            const searchTerm = document.getElementById('walkInCustomerName').value.trim();
+            const customerType = document.getElementById('walkInCustomerType').value;
+            
+            // Only search if customer type is distributor
+            if (customerType !== 'distributor') return;
+            
+            // Reuse the referral dropdown
+            const dropdown = document.getElementById('distributorReferralDropdown');
+            const searchInput = document.getElementById('walkInCustomerName');
+            
+            if (!searchTerm) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Search by name or NB number (case-insensitive)
+            const filteredDistributors = distributors.filter(dist => {
+                const name = (dist.distributorName || dist.name || '').toLowerCase();
+                const code = (dist.distributorCode || dist.code || '').toLowerCase();
+                const search = searchTerm.toLowerCase();
+                return name.includes(search) || code.includes(search);
+            }).slice(0, 10); // Limit to 10 results
+            
+            if (filteredDistributors.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 10px; color: #7f8c8d;">No distributors found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            // Position dropdown below search input
+            const rect = searchInput.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.width = rect.width + 'px';
+            
+            dropdown.innerHTML = filteredDistributors.map(dist => {
+                const name = dist.distributorName || dist.name;
+                const code = dist.distributorCode || dist.code;
+                return `
+                    <div onclick="selectDistributorForCustomerName('${code}', '${name.replace(/'/g, "\\'")}')" 
+                         style="padding: 10px; cursor: pointer; border-bottom: 1px solid #eee;" 
+                         onmouseover="this.style.background='#f8f9fa'" 
+                         onmouseout="this.style.background='white'">
+                        <strong>${name}</strong><br>
+                        <span style="color: #c41e3a; font-size: 0.9rem;">${code}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            dropdown.style.display = 'block';
+            
+            // Close dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== searchInput) {
+                        dropdown.style.display = 'none';
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+        }
+        
+        function selectDistributorForCustomerName(code, name) {
+            document.getElementById('walkInCustomerName').value = name;
+            document.getElementById('walkInCustomerCode').value = code;
+            document.getElementById('distributorReferralDropdown').style.display = 'none';
+        }
+        
         function onCustomerTypeChange() {
             const customerType = document.getElementById('walkInCustomerType').value;
+            const customerNameField = document.getElementById('walkInCustomerName');
+            const referralField = document.getElementById('customerReferralField');
+            
+            if (customerType === 'distributor') {
+                // Show distributor name as searchable field
+                customerNameField.placeholder = 'Search distributor by name or NB number';
+                customerNameField.onkeyup = searchDistributorsForCustomerName;
+                
+                // Hide referral field - distributor doesn't need a referral
+                referralField.style.display = 'none';
+                document.getElementById('distributorReferralValue').required = false;
+            } else {
+                // Regular customer - manual name entry
+                customerNameField.placeholder = 'Full Name';
+                customerNameField.onkeyup = null;
+                customerNameField.value = '';
+                document.getElementById('walkInCustomerCode').value = '';
+                
+                // Show referral field - customer needs a referral
+                referralField.style.display = 'block';
+                document.getElementById('distributorReferralValue').required = true;
+            }
+            
             // Update product pricing based on customer type
             loadAllProductsForSale();
         }
@@ -10356,26 +10450,36 @@
                 return;
             }
             
-            // Require distributor referral
-            const distributorCode = document.getElementById('distributorReferralValue').value;
+            // Handle distributor referral based on customer type
+            let referralName = '';
+            let referralId = '';
             
-            if (!distributorCode) {
-                alert('⚠️ Required: Please search and select a referred distributor');
-                return;
+            if (customerType === 'customer') {
+                // Customer needs a referral distributor
+                const distributorCode = document.getElementById('distributorReferralValue').value;
+                
+                if (!distributorCode) {
+                    alert('⚠️ Required: Please search and select a referred distributor');
+                    return;
+                }
+                
+                // Find distributor details
+                const selectedDistributor = distributors.find(d => 
+                    (d.distributorCode || d.code) === distributorCode
+                );
+                
+                if (!selectedDistributor) {
+                    alert('⚠️ Error: Selected distributor not found');
+                    return;
+                }
+                
+                referralName = selectedDistributor.distributorName || selectedDistributor.name;
+                referralId = selectedDistributor.distributorCode || selectedDistributor.code;
+            } else {
+                // Distributor - get their own code
+                referralId = document.getElementById('walkInCustomerCode').value;
+                referralName = customerName; // Their own name
             }
-            
-            // Find distributor details
-            const selectedDistributor = distributors.find(d => 
-                (d.distributorCode || d.code) === distributorCode
-            );
-            
-            if (!selectedDistributor) {
-                alert('⚠️ Error: Selected distributor not found');
-                return;
-            }
-            
-            const referralName = selectedDistributor.distributorName || selectedDistributor.name;
-            const referralId = selectedDistributor.distributorCode || selectedDistributor.code;
             
             // Walk-in customers always use CP pricing
             const subtotal = walkInCart.reduce((sum, item) => {
