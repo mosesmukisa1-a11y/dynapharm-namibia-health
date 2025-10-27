@@ -1583,13 +1583,13 @@
                         <button class="btn" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; font-size: 1.1rem; padding: 20px; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="showWalkInSaleModal('customer')">
                             <div style="font-size: 2.5rem; margin-bottom: 10px;">👤</div>
                             <div style="font-weight: bold;">Walk-in Customer</div>
-                            <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">Direct purchase without prescription</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">Direct purchase with CP pricing</div>
                         </button>
                         
-                        <button class="btn" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; font-size: 1.1rem; padding: 20px; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="showWalkInSaleModal('distributor')">
-                            <div style="font-size: 2.5rem; margin-bottom: 10px;">🏢</div>
-                            <div style="font-weight: bold;">Distributor Purchase</div>
-                            <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">Bulk purchase for distribution</div>
+                        <button class="btn" style="background: linear-gradient(135deg, #27ae60, #229954); color: white; font-size: 1.1rem; padding: 20px; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); document.getElementById('prescriptionList').scrollIntoView({behavior: 'smooth', block: 'start'});">
+                            <div style="font-size: 2.5rem; margin-bottom: 10px;">📋</div>
+                            <div style="font-weight: bold;">Prescription Clients</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">Dispense from consultant reports below</div>
                         </button>
                     </div>
                     
@@ -1720,42 +1720,13 @@
                     </div>
                     <div class="form-group">
                         <label>Customer Type</label>
-                        <select id="walkInCustomerType" onchange="handleCustomerTypeChange()">
-                            <option value="customer">Regular Customer</option>
-                            <option value="distributor">Distributor</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="distributorFields" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                    <h4 style="margin-bottom: 10px;">Distributor Information</h4>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div class="form-group">
-                            <label>Company Name</label>
-                            <input type="text" id="distributorCompany" placeholder="Company Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Tax ID / Business Number</label>
-                            <input type="text" id="distributorTaxId" placeholder="Tax ID">
-                        </div>
-                        <div class="form-group">
-                            <label>Discount Rate (%)</label>
-                            <input type="number" id="distributorDiscount" placeholder="0" min="0" max="100" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Credit Terms</label>
-                            <select id="distributorCreditTerms">
-                                <option value="cash">Cash on Delivery</option>
-                                <option value="30">30 Days</option>
-                                <option value="60">60 Days</option>
-                                <option value="90">90 Days</option>
-                            </select>
-                        </div>
+                        <input type="text" value="Walk-in Customer" readonly style="background: #f8f9fa; cursor: not-allowed;">
+                        <input type="hidden" id="walkInCustomerType" value="customer">
                     </div>
                 </div>
                 
                 <!-- Distributor Referral Field for Customers -->
-                <div id="customerReferralField" style="display: none; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
+                <div id="customerReferralField" style="display: block; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
                     <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Required: Distributor Referral</h4>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                         <div class="form-group">
@@ -10040,16 +10011,12 @@
             // Reset form
             document.getElementById('walkInSaleForm').reset();
             walkInCart = [];
-            document.getElementById('walkInCustomerType').value = customerType;
+            document.getElementById('walkInCustomerType').value = 'customer';
             
             // Update title
-            const title = customerType === 'distributor' ? '🏢 Distributor Purchase' : '👤 Walk-in Customer Purchase';
-            document.getElementById('walkInSaleTitle').textContent = title;
+            document.getElementById('walkInSaleTitle').textContent = '👤 Walk-in Customer Purchase';
             
-            // Show/hide distributor fields and referral fields
-            toggleDistributorFields();
-            
-            // Load and display all products
+            // Load and display all products with CP pricing
             loadAllProductsForSale();
             
             // Clear cart display
@@ -10059,26 +10026,6 @@
             document.getElementById('walkInSaleModal').style.display = 'block';
         }
 
-        function handleCustomerTypeChange() {
-            toggleDistributorFields();
-            loadAllProductsForSale();
-            updateWalkInCart(); // Refresh cart with new pricing
-        }
-
-        function toggleDistributorFields() {
-            const customerType = document.getElementById('walkInCustomerType').value;
-            const distributorFields = document.getElementById('distributorFields');
-            const referralField = document.getElementById('customerReferralField');
-            
-            if (customerType === 'distributor') {
-                distributorFields.style.display = 'block';
-                if (referralField) referralField.style.display = 'none';
-            } else {
-                distributorFields.style.display = 'none';
-                if (referralField) referralField.style.display = 'block';
-            }
-        }
-
         function loadAllProductsForSale() {
             const customerType = document.getElementById('walkInCustomerType').value;
             displayAllProducts(customerType);
@@ -10086,25 +10033,20 @@
 
         function displayAllProducts(customerType) {
             const productsList = document.getElementById('walkInProductsList');
-            const showDP = customerType === 'distributor';
             
-            console.log('Displaying products for customer type:', customerType, 'showDP:', showDP);
-            
+            // Walk-in customers always use CP pricing
             if (PRICE_LIST.length === 0) {
                 productsList.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No products available</p>';
                 return;
             }
             
             productsList.innerHTML = PRICE_LIST.map(product => {
-                const displayPrice = showDP ? product.dp : product.cp;
-                const priceLabel = showDP ? 'DP' : 'CP';
-                
                 return `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp})">
                         <div style="flex: 1;">
                             <strong style="font-size: 0.95rem;">${product.description}</strong>
                             <div style="font-size: 0.85rem; color: #c41e3a; margin-top: 3px;">
-                                <strong>${priceLabel}: N$ ${displayPrice.toFixed(2)}</strong>
+                                <strong>CP: N$ ${product.cp.toFixed(2)}</strong>
                             </div>
                         </div>
                         <button class="btn" style="padding: 5px 15px; background: #c41e3a; color: white; border: none; border-radius: 5px;">➕ Add</button>
@@ -10182,21 +10124,16 @@
                 return;
             }
             
-            const customerType = document.getElementById('walkInCustomerType').value;
-            const useDP = customerType === 'distributor'; // Distributors get DP pricing
-            
-            console.log('Updating cart - customerType:', customerType, 'useDP:', useDP);
-            
+            // Walk-in customers always use CP pricing
             cartList.innerHTML = walkInCart.map((item, index) => {
-                const unitPrice = useDP ? item.dp : item.cp;
-                const totalPrice = unitPrice * item.quantity;
+                const totalPrice = item.cp * item.quantity;
                 
                 return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
                     <div style="flex: 1;">
                         <strong>${item.name}</strong>
                         <div style="font-size: 0.9rem; color: #666;">
-                            ${useDP ? 'DP' : 'CP'}: N$ ${unitPrice.toFixed(2)} × ${item.quantity}
+                            CP: N$ ${item.cp.toFixed(2)} × ${item.quantity}
                         </div>
                     </div>
                     <div style="margin: 0 15px;">
@@ -10211,25 +10148,16 @@
         }
 
         function updateWalkInTotals() {
-            const customerType = document.getElementById('walkInCustomerType').value;
-            const useDP = customerType === 'distributor'; // Distributors get DP pricing
-            const discountRate = customerType === 'distributor' ? parseFloat(document.getElementById('distributorDiscount').value || 0) : 0;
-            
-            console.log('Updating totals - customerType:', customerType, 'useDP:', useDP);
-            
+            // Walk-in customers always use CP pricing, no discount
             const subtotal = walkInCart.reduce((sum, item) => {
-                const unitPrice = useDP ? item.dp : item.cp;
-                console.log('Item:', item.name, 'CP:', item.cp, 'DP:', item.dp, 'Using price:', unitPrice, 'Qty:', item.quantity);
-                return sum + (unitPrice * item.quantity);
+                return sum + (item.cp * item.quantity);
             }, 0);
             
-            const discount = subtotal * (discountRate / 100);
-            const afterDiscount = subtotal - discount;
-            const tax = afterDiscount * 0.15;
-            const grandTotal = afterDiscount + tax;
+            const tax = subtotal * 0.15;
+            const grandTotal = subtotal + tax;
             
             document.getElementById('walkInTotalAmount').textContent = `N$ ${subtotal.toFixed(2)}`;
-            document.getElementById('walkInDiscountAmount').textContent = `N$ ${discount.toFixed(2)}`;
+            document.getElementById('walkInDiscountAmount').textContent = `N$ 0.00`;
             document.getElementById('walkInTaxAmount').textContent = `N$ ${tax.toFixed(2)}`;
             document.getElementById('walkInGrandTotal').textContent = `N$ ${grandTotal.toFixed(2)}`;
         }
@@ -10238,7 +10166,6 @@
             const customerName = document.getElementById('walkInCustomerName').value;
             const phone = document.getElementById('walkInPhone').value;
             const email = document.getElementById('walkInEmail').value;
-            const customerType = document.getElementById('walkInCustomerType').value;
             
             // Validation
             if (!customerName || !phone || walkInCart.length === 0) {
@@ -10246,47 +10173,35 @@
                 return;
             }
             
-            // For customers, require distributor referral
-            if (customerType === 'customer') {
-                const referralName = document.getElementById('distributorReferralName').value;
-                const referralId = document.getElementById('distributorReferralId').value;
-                
-                if (!referralName || !referralId) {
-                    alert('⚠️ Required: Please provide distributor referral information for customers');
-                    return;
-                }
+            // Require distributor referral
+            const referralName = document.getElementById('distributorReferralName').value;
+            const referralId = document.getElementById('distributorReferralId').value;
+            
+            if (!referralName || !referralId) {
+                alert('⚠️ Required: Please provide distributor referral information');
+                return;
             }
             
-            const useDP = customerType === 'distributor'; // Distributors get DP pricing
-            const discountRate = customerType === 'distributor' ? parseFloat(document.getElementById('distributorDiscount').value || 0) : 0;
-            
+            // Walk-in customers always use CP pricing
             const subtotal = walkInCart.reduce((sum, item) => {
-                const unitPrice = useDP ? item.dp : item.cp;
-                return sum + (unitPrice * item.quantity);
+                return sum + (item.cp * item.quantity);
             }, 0);
             
-            const discount = subtotal * (discountRate / 100);
-            const afterDiscount = subtotal - discount;
-            const tax = afterDiscount * 0.15;
-            const grandTotal = afterDiscount + tax;
+            const tax = subtotal * 0.15;
+            const grandTotal = subtotal + tax;
             
             const sale = {
                 id: 'WALKIN-' + Date.now(),
                 customerName: customerName,
                 phone: phone,
                 email: email,
-                customerType: customerType,
-                companyName: document.getElementById('distributorCompany').value || '',
-                taxId: document.getElementById('distributorTaxId').value || '',
-                distributorReferral: customerType === 'customer' ? {
-                    name: document.getElementById('distributorReferralName').value,
-                    id: document.getElementById('distributorReferralId').value
-                } : null,
-                discountRate: discountRate,
-                creditTerms: document.getElementById('distributorCreditTerms').value || 'cash',
+                customerType: 'customer',
+                distributorReferral: {
+                    name: referralName,
+                    id: referralId
+                },
                 products: walkInCart,
                 subtotal: subtotal,
-                discount: discount,
                 tax: tax,
                 total: grandTotal,
                 timestamp: new Date().toISOString(),
@@ -10309,7 +10224,7 @@
             localStorage.setItem('dyna_cash_drawer', JSON.stringify(cashDrawer));
             
             // Show success message
-            alert(`✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}\nPayment Method: ${sale.creditTerms === 'cash' ? 'Cash' : 'Credit'}`);
+            alert(`✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}`);
             
             // Close modal and reset
             closeModal('walkInSaleModal');
