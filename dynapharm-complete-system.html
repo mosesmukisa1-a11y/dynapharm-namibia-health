@@ -1772,12 +1772,12 @@
                 <div id="customerReferralField" style="display: block; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
                     <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Required: Referred Distributor</h4>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label style="color: #856404;">Search by Name or NB Number *</label>
                             <input type="text" id="distributorReferralSearch" placeholder="Type name or NB number (e.g. OTTILIE or NB001544)" 
                                    onkeyup="searchDistributorsForReferral()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;" required>
                             <input type="hidden" id="distributorReferralValue" required>
-                            <div id="distributorReferralDropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                            <div id="distributorReferralDropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); top: 100%; left: 0; margin-top: 5px;"></div>
                         </div>
                         <div id="selectedDistributorInfo" style="display: none; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">
                             <div style="font-size: 0.9rem;">
@@ -10236,13 +10236,7 @@
                 return;
             }
             
-            // Position dropdown below search input
-            const rect = searchInput.getBoundingClientRect();
-            dropdown.style.position = 'absolute';
-            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-            dropdown.style.left = rect.left + 'px';
-            dropdown.style.width = rect.width + 'px';
-            
+            // Dropdown is positioned via CSS relative to parent
             dropdown.innerHTML = filteredDistributors.map(dist => {
                 const name = dist.distributorName || dist.name;
                 const code = dist.distributorCode || dist.code;
@@ -10319,13 +10313,7 @@
                 return;
             }
             
-            // Position dropdown below search input
-            const rect = searchInput.getBoundingClientRect();
-            dropdown.style.position = 'absolute';
-            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-            dropdown.style.left = rect.left + 'px';
-            dropdown.style.width = rect.width + 'px';
-            
+            // Dropdown is positioned via CSS relative to parent
             dropdown.innerHTML = filteredDistributors.map(dist => {
                 const name = dist.distributorName || dist.name;
                 const code = dist.distributorCode || dist.code;
