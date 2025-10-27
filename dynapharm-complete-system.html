@@ -1808,8 +1808,8 @@
                                 <strong style="font-size: 1.2rem;">Total Amount:</strong>
                                 <span id="walkInTotalAmount" style="font-size: 1.5rem; color: #27ae60; font-weight: bold;">N$ 0.00</span>
                             </div>
-                            <div>
-                                <strong>Tax (15%):</strong>
+                            <div style="display: none;">
+                                <strong>Tax:</strong>
                                 <span id="walkInTaxAmount">N$ 0.00</span>
                             </div>
                             <div>
@@ -10527,12 +10527,12 @@
                 return sum + (item.bv * item.quantity);
             }, 0);
             
-            const tax = subtotal * 0.15;
-            const grandTotal = subtotal + tax;
+            // No tax - grand total equals subtotal
+            const grandTotal = subtotal;
             
             document.getElementById('walkInTotalAmount').textContent = `N$ ${subtotal.toFixed(2)}`;
             document.getElementById('walkInDiscountAmount').textContent = `BV: ${totalBV.toFixed(0)}`;
-            document.getElementById('walkInTaxAmount').textContent = `N$ ${tax.toFixed(2)}`;
+            document.getElementById('walkInTaxAmount').textContent = `N$ 0.00`;
             document.getElementById('walkInGrandTotal').textContent = `N$ ${grandTotal.toFixed(2)}`;
         }
 
@@ -10589,8 +10589,8 @@
                 return sum + (item.bv * item.quantity);
             }, 0);
             
-            const tax = subtotal * 0.15;
-            const grandTotal = subtotal + tax;
+            // No tax - grand total equals subtotal
+            const grandTotal = subtotal;
             
             const sale = {
                 id: 'WALKIN-' + Date.now(),
@@ -10604,7 +10604,7 @@
                 },
                 products: walkInCart,
                 subtotal: subtotal,
-                tax: tax,
+                tax: 0,
                 total: grandTotal,
                 totalBV: totalBV,
                 timestamp: new Date().toISOString(),
@@ -10874,10 +10874,6 @@
                         <div class="total-line">
                             <span>Subtotal:</span>
                             <span>N$${sale.subtotal.toFixed(2)}</span>
-                        </div>
-                        <div class="total-line">
-                            <span>Tax (15%):</span>
-                            <span>N$${sale.tax.toFixed(2)}</span>
                         </div>
                         ${sale.totalBV ? `
                         <div class="total-line">
