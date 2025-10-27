@@ -10552,7 +10552,7 @@
             refreshWalkInSalesList();
         }
 
-                function refreshWalkInSalesList() {
+        function refreshWalkInSalesList() {
             const salesList = document.getElementById('walkInSalesList');
             const recentSales = walkInSales.slice(-10).reverse();
             
@@ -10925,10 +10925,12 @@
                         throw new Error('File must contain headers and at least one data row');
                     }
                     
-                    // Detect delimiter - check for tab first, then comma
+                    // Detect delimiter - check for tab, semicolon, then comma
                     let delimiter = ',';
                     if (lines[0].includes('\t')) {
                         delimiter = '\t';
+                    } else if (lines[0].includes(';')) {
+                        delimiter = ';';
                     }
                     
                     // Parse CSV properly (handle quoted values with commas inside)
