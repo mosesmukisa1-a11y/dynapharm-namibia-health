@@ -2702,11 +2702,7 @@
                 
                 // If API returns empty arrays, initialize with defaults
                 if (users.length === 0) {
-                users = [
-                    {"id":"USR001","username":"admin","password":"admin123","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},
-                    {"id":"USR002","username":"consultant","password":"consultant123","fullName":"Dr. John Smith","email":"consultant@dynapharm.com.na","phone":"061-300877","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","hochland-park"]},
-                    {"id":"USR003","username":"dispenser","password":"dispenser123","fullName":"Jane Doe","email":"dispenser@dynapharm.com.na","phone":"061-300877","role":"dispenser","branch":"townshop","branches":["townshop"]}
-                ];
+                    users = JSON.parse(DEFAULT_USERS_JSON);
                 }
                 
                 if (branches.length === 0) {
