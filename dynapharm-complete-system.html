@@ -10627,12 +10627,22 @@
                     
                     console.log('Distributor object created:', distributor);
                     
-                    // Require at minimum the distributor code
-                    if (distributor.distributorCode && distributor.distributorCode !== '') {
+                    // Check if we have at least a name or code
+                    const hasName = distributor.distributorName && distributor.distributorName.trim() !== '';
+                    const hasCode = distributor.distributorCode && distributor.distributorCode.trim() !== '';
+                    
+                    if (hasName || hasCode) {
+                        // If no code provided, generate one from the name or timestamp
+                        if (!hasCode && hasName) {
+                            distributor.distributorCode = 'DIST-' + Date.now() + '-' + i;
+                        } else if (!hasName && hasCode) {
+                            distributor.distributorName = 'Distributor ' + distributor.distributorCode;
+                        }
+                        
                         newDistributors.push(distributor);
-                        console.log(`✓ Row ${i + 1} added (has distributorCode: ${distributor.distributorCode})`);
+                        console.log(`✓ Row ${i + 1} added (Name: ${distributor.distributorName}, Code: ${distributor.distributorCode})`);
                     } else {
-                        console.log(`✗ Row ${i + 1} skipped - missing distributorCode. Distributor object:`, distributor);
+                        console.log(`✗ Row ${i + 1} skipped - missing both name and code. Distributor object:`, distributor);
                     }
                 }
                 
