@@ -10517,6 +10517,8 @@
                     // Serial numbers
                     'S.No.': 'serialNo',
                     'SN': 'serialNo',
+                    // DRN is the most important - contains NB numbers
+                    'DRN': 'distributorCode',
                     // Name variations
                     'Distributor Name': 'distributorName',
                     'NAME': 'distributorName',
@@ -10627,22 +10629,35 @@
                     
                     console.log('Distributor object created:', distributor);
                     
-                    // Check if we have at least a name or code
+                    // Check if we have at least a name or code (DRN is most important)
                     const hasName = distributor.distributorName && distributor.distributorName.trim() !== '';
                     const hasCode = distributor.distributorCode && distributor.distributorCode.trim() !== '';
                     
                     if (hasName || hasCode) {
-                        // If no code provided, generate one from the name or timestamp
-                        if (!hasCode && hasName) {
-                            distributor.distributorCode = 'DIST-' + Date.now() + '-' + i;
-                        } else if (!hasName && hasCode) {
+                        // If no DRN/code provided, use name or generate one
+                        if (!hasCode) {
+                            if (hasName) {
+                                // Extract NB number from name if it contains one
+                                const nbMatch = hasName.match(/NB\d+/i);
+                                if (nbMatch) {
+                                    distributor.distributorCode = nbMatch[0].toUpperCase();
+                                } else {
+                                    distributor.distributorCode = 'DIST-' + Date.now() + '-' + i;
+                                }
+                            } else {
+                                distributor.distributorCode = 'DIST-' + Date.now() + '-' + i;
+                            }
+                        }
+                        
+                        // If no name provided but we have a code, use the code as name
+                        if (!hasName && hasCode) {
                             distributor.distributorName = 'Distributor ' + distributor.distributorCode;
                         }
                         
                         newDistributors.push(distributor);
-                        console.log(`✓ Row ${i + 1} added (Name: ${distributor.distributorName}, Code: ${distributor.distributorCode})`);
+                        console.log(`✓ Row ${i + 1} added (DRN: ${distributor.distributorCode}, Name: ${distributor.distributorName})`);
                     } else {
-                        console.log(`✗ Row ${i + 1} skipped - missing both name and code. Distributor object:`, distributor);
+                        console.log(`✗ Row ${i + 1} skipped - missing both name and DRN. Distributor object:`, distributor);
                     }
                 }
                 

@@ -1,0 +1,4 @@
+DRN,NAME,MOBILE NO.,EMAIL,Address,City,State,Pin Code,GST No.,PAN No.,Bank Name,Account No.,IFSC Code,Account Holder Name,Commission Rate,Status,Date of Joining,Referred By
+NB123456,John Doe,0812345678,john@example.com,123 Main St,Windhoek,Khomas,9000,GST123,PAN123,Bank A,123456789,IFSC001,John Doe,10%,Active,2024-01-01,SP001
+NB789012,Jane Smith,0812345679,jane@example.com,456 Oak St,Swakopmund,Erongo,9001,GST456,PAN456,Bank B,987654321,IFSC002,Jane Smith,15%,Active,2024-02-01,
+NB345678,Bob Johnson,0812345680,bob@example.com,789 Pine St,Walvis Bay,Erongo,9002,GST789,PAN789,Bank C,555555555,IFSC003,Bob Johnson,12%,Inactive,2024-03-01,SP002
