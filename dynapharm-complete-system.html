@@ -1611,43 +1611,43 @@
                 <!-- Prescription Section (Hidden by default) -->
                 <div id="dispenserPrescriptionSection" style="display: none;">
                     <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📋 Prescription Dispensing</h3>
-                    
-                    <div class="search-box">
-                        <input type="text" id="dispenserSearch" placeholder="Search prescriptions by client name, report ID, or consultant...">
-                        <button class="btn" onclick="searchPrescriptions('dispenser')">🔍 Search</button>
-                        <button class="btn btn-info" onclick="showAllPrescriptions('dispenser')">💊 Show All Prescriptions</button>
-                        <button class="btn btn-warning" onclick="updateExistingReportsPricing()">💰 Update Pricing</button>
-                        <button class="btn btn-primary" onclick="showDailyStatementModal()">📊 Daily Statement</button>
-                        <button class="btn btn-success" onclick="refreshDispenserData()">🔄 Refresh Data</button>
-                    </div>
+                
+                <div class="search-box">
+                    <input type="text" id="dispenserSearch" placeholder="Search prescriptions by client name, report ID, or consultant...">
+                    <button class="btn" onclick="searchPrescriptions('dispenser')">🔍 Search</button>
+                    <button class="btn btn-info" onclick="showAllPrescriptions('dispenser')">💊 Show All Prescriptions</button>
+                    <button class="btn btn-warning" onclick="updateExistingReportsPricing()">💰 Update Pricing</button>
+                    <button class="btn btn-primary" onclick="showDailyStatementModal()">📊 Daily Statement</button>
+                    <button class="btn btn-success" onclick="refreshDispenserData()">🔄 Refresh Data</button>
+                </div>
 
-                    <div id="prescriptionList"></div>
-                    
-                    <!-- Business Intelligence Dashboard -->
-                    <div class="form-section" style="margin-top: 30px;">
-                        <h3>📈 Business Intelligence Dashboard</h3>
-                        <div class="search-box">
-                            <select id="biTimeframe" onchange="refreshBusinessIntelligence()" style="padding: 10px; margin-right: 10px;">
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month" selected>This Month</option>
-                                <option value="all">All Time</option>
-                            </select>
-                            <button class="btn btn-success" onclick="refreshBusinessIntelligence()">🔄 Refresh</button>
-                            <button class="btn btn-primary" onclick="printBusinessIntelligence()">🖨️ Print Report</button>
-                        </div>
-                        <div id="biDisplay"></div>
+                <div id="prescriptionList"></div>
+
+                <!-- Business Intelligence Dashboard -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>📈 Business Intelligence Dashboard</h3>
+                    <div class="search-box">
+                        <select id="biTimeframe" onchange="refreshBusinessIntelligence()" style="padding: 10px; margin-right: 10px;">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="btn btn-success" onclick="refreshBusinessIntelligence()">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="printBusinessIntelligence()">🖨️ Print Report</button>
                     </div>
-                    
-                    <!-- Price List Section -->
-                    <div class="form-section" style="margin-top: 30px;">
-                        <h3>💰 Official Price List - June 2025</h3>
-                        <div class="search-box">
-                            <input type="text" id="priceSearch" placeholder="Search products by name..." onkeyup="searchPriceList()">
-                            <button class="btn btn-info" onclick="showAllPrices()">📋 Show All Prices</button>
-                            <button class="btn btn-success" onclick="printPriceList()">🖨️ Print Price List</button>
-                        </div>
-                        <div id="priceList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
+                    <div id="biDisplay"></div>
+                </div>
+                
+                <!-- Price List Section -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>💰 Official Price List - June 2025</h3>
+                    <div class="search-box">
+                        <input type="text" id="priceSearch" placeholder="Search products by name..." onkeyup="searchPriceList()">
+                        <button class="btn btn-info" onclick="showAllPrices()">📋 Show All Prices</button>
+                        <button class="btn btn-success" onclick="printPriceList()">🖨️ Print Price List</button>
+                    </div>
+                    <div id="priceList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
                     </div>
                 </div>
             </div>
@@ -10310,19 +10310,22 @@
         function displayAllProducts(customerType) {
             const productsList = document.getElementById('walkInProductsList');
             
-            // Walk-in customers always use CP pricing
             if (PRICE_LIST.length === 0) {
                 productsList.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No products available</p>';
                 return;
             }
             
             productsList.innerHTML = PRICE_LIST.map(product => {
+                // Show appropriate pricing based on customer type
+                const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
+                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                
                 return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp})">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp}, ${product.bv})">
                         <div style="flex: 1;">
                             <strong style="font-size: 0.95rem;">${product.description}</strong>
                             <div style="font-size: 0.85rem; color: #c41e3a; margin-top: 3px;">
-                                <strong>CP: N$ ${product.cp.toFixed(2)}</strong>
+                                <strong>${priceLabel}: N$ ${displayPrice.toFixed(2)}</strong>
                             </div>
                         </div>
                         <button class="btn" style="padding: 5px 15px; background: #c41e3a; color: white; border: none; border-radius: 5px;">➕ Add</button>
@@ -10369,8 +10372,10 @@
             `).join('');
         }
 
-        function addToWalkInCart(productName, cp, dp) {
+        function addToWalkInCart(productName, cp, dp, bv) {
             const existingItem = walkInCart.find(item => item.name === productName);
+            
+            const customerType = document.getElementById('walkInCustomerType').value;
             
             if (existingItem) {
                 existingItem.quantity += 1;
@@ -10379,6 +10384,7 @@
                     name: productName,
                     cp: cp,
                     dp: dp,
+                    bv: bv || 0,
                     quantity: 1
                 });
             }
@@ -10393,6 +10399,7 @@
 
         function updateWalkInCart() {
             const cartList = document.getElementById('walkInCartList');
+            const customerType = document.getElementById('walkInCustomerType').value;
             
             if (walkInCart.length === 0) {
                 cartList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Cart is empty</p>';
@@ -10400,16 +10407,18 @@
                 return;
             }
             
-            // Walk-in customers always use CP pricing
+            // Use DP for distributors, CP for customers
             cartList.innerHTML = walkInCart.map((item, index) => {
-                const totalPrice = item.cp * item.quantity;
+                const pricePerUnit = customerType === 'distributor' ? item.dp : item.cp;
+                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                const totalPrice = pricePerUnit * item.quantity;
                 
                 return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
                     <div style="flex: 1;">
                         <strong>${item.name}</strong>
                         <div style="font-size: 0.9rem; color: #666;">
-                            CP: N$ ${item.cp.toFixed(2)} × ${item.quantity}
+                            ${priceLabel}: N$ ${pricePerUnit.toFixed(2)} × ${item.quantity} | BV: ${(item.bv * item.quantity).toFixed(0)}
                         </div>
                     </div>
                     <div style="margin: 0 15px;">
@@ -10424,16 +10433,23 @@
         }
 
         function updateWalkInTotals() {
-            // Walk-in customers always use CP pricing, no discount
+            const customerType = document.getElementById('walkInCustomerType').value;
+            
+            // Use DP for distributors, CP for customers
             const subtotal = walkInCart.reduce((sum, item) => {
-                return sum + (item.cp * item.quantity);
+                const pricePerUnit = customerType === 'distributor' ? item.dp : item.cp;
+                return sum + (pricePerUnit * item.quantity);
+            }, 0);
+            
+            const totalBV = walkInCart.reduce((sum, item) => {
+                return sum + (item.bv * item.quantity);
             }, 0);
             
             const tax = subtotal * 0.15;
             const grandTotal = subtotal + tax;
             
             document.getElementById('walkInTotalAmount').textContent = `N$ ${subtotal.toFixed(2)}`;
-            document.getElementById('walkInDiscountAmount').textContent = `N$ 0.00`;
+            document.getElementById('walkInDiscountAmount').textContent = `BV: ${totalBV.toFixed(0)}`;
             document.getElementById('walkInTaxAmount').textContent = `N$ ${tax.toFixed(2)}`;
             document.getElementById('walkInGrandTotal').textContent = `N$ ${grandTotal.toFixed(2)}`;
         }
@@ -10481,9 +10497,14 @@
                 referralName = customerName; // Their own name
             }
             
-            // Walk-in customers always use CP pricing
+            // Use DP for distributors, CP for customers
             const subtotal = walkInCart.reduce((sum, item) => {
-                return sum + (item.cp * item.quantity);
+                const pricePerUnit = customerType === 'distributor' ? item.dp : item.cp;
+                return sum + (pricePerUnit * item.quantity);
+            }, 0);
+            
+            const totalBV = walkInCart.reduce((sum, item) => {
+                return sum + (item.bv * item.quantity);
             }, 0);
             
             const tax = subtotal * 0.15;
@@ -10503,6 +10524,7 @@
                 subtotal: subtotal,
                 tax: tax,
                 total: grandTotal,
+                totalBV: totalBV,
                 timestamp: new Date().toISOString(),
                 soldBy: currentUser ? currentUser.fullName : 'Unknown',
                 branch: currentUser ? currentUser.branch : 'unknown'
