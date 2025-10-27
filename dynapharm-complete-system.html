@@ -832,6 +832,8 @@
             background: #f39c12;
         }
     </style>
+    <!-- SheetJS library for Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- Real-time status indicator -->
@@ -1699,7 +1701,7 @@
                     <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                         <h4>📤 Upload Distributor Data</h4>
                         <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
-                            <strong>Note:</strong> Please save your Excel file as CSV before uploading, or upload a CSV file directly.<br>
+                            Upload Excel (.xlsx, .xls) or CSV files with distributor information.<br>
                             Required columns: S.No., Distributor Name, Distributor Code, Mobile No., Email ID, Address, City, State, Pin Code, GST No., PAN No., Bank Name, Account No., IFSC Code, Account Holder Name, Commission Rate, Status, Date of Joining, Referred By.
                         </p>
                         <input type="file" id="distributorFile" accept=".xlsx,.xls,.csv" style="padding: 8px; margin-right: 10px;">
@@ -10438,7 +10440,7 @@
             }
             
             if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
-                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select a CSV file or Excel file (.xlsx, .xls, or .csv). Note: For Excel files, please save as CSV first.</p>';
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select an Excel file (.xlsx, .xls) or CSV file (.csv)</p>';
                 return;
             }
             
@@ -10446,32 +10448,60 @@
             
             try {
                 const arrayBuffer = await file.arrayBuffer();
+                let header = [];
+                let rows = [];
                 
-                // Try to parse as CSV first (simple format)
-                let text = '';
-                try {
-                    const data = new Uint8Array(arrayBuffer);
-                    text = new TextDecoder().decode(data);
-                } catch (e) {
-                    statusDiv.innerHTML = '<p style="color: #e74c3c;">❌ Error: Could not read file. Please save Excel file as CSV (.csv) or upload a CSV file.</p>';
-                    return;
+                // Check if it's an Excel file
+                if (file.name.match(/\.(xlsx|xls)$/)) {
+                    // Use SheetJS to parse Excel
+                    if (typeof XLSX === 'undefined') {
+                        statusDiv.innerHTML = '<p style="color: #e74c3c;">❌ Error: Excel library not loaded. Please refresh the page.</p>';
+                        return;
+                    }
+                    
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert to JSON with header row
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (jsonData.length < 2) {
+                        throw new Error('File must contain headers and at least one data row');
+                    }
+                    
+                    header = jsonData[0].map(h => h ? String(h).trim() : '');
+                    rows = jsonData.slice(1);
+                    
+                    console.log('Excel file loaded. Headers:', header);
+                    console.log('Total rows:', rows.length);
+                    
+                } else {
+                    // Parse as CSV
+                    const text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+                    const lines = text.split('\n').filter(line => line.trim());
+                    
+                    if (lines.length < 2) {
+                        throw new Error('File must contain headers and at least one data row');
+                    }
+                    
+                    // Parse header - handle both tab and comma delimiters
+                    let delimiter = ',';
+                    if (lines[0].includes('\t')) {
+                        delimiter = '\t';
+                    }
+                    
+                    header = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+                    
+                    // Parse rows
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(delimiter).map(v => v.trim().replace(/["']/g, ''));
+                        rows.push(values);
+                    }
+                    
+                    console.log('CSV file loaded. Headers:', header);
+                    console.log('Total rows:', rows.length);
                 }
-                
-                const lines = text.split('\n').filter(line => line.trim());
-                
-                if (lines.length < 2) {
-                    throw new Error('File must contain headers and at least one data row');
-                }
-                
-                // Parse header - handle both tab and comma delimiters
-                let delimiter = ',';
-                if (lines[0].includes('\t')) {
-                    delimiter = '\t';
-                }
-                
-                const header = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
-                
-                console.log('Headers found:', header);
                 
                 // Map Excel columns to our distributor object
                 const columnMap = {
@@ -10504,14 +10534,15 @@
                 
                 // Parse data rows
                 const newDistributors = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(delimiter).map(v => v.trim().replace(/["']/g, ''));
+                for (let i = 0; i < rows.length; i++) {
+                    const values = rows[i];
                     const distributor = { id: 'DIST-' + Date.now() + '-' + i };
                     
                     header.forEach((colName, index) => {
                         const mappedKey = columnMap[colName];
-                        if (mappedKey && values[index] && values[index] !== '') {
-                            distributor[mappedKey] = values[index];
+                        const value = values[index];
+                        if (mappedKey && value && String(value).trim() !== '') {
+                            distributor[mappedKey] = String(value).trim();
                         }
                     });
                     
@@ -10519,11 +10550,11 @@
                     if (distributor.distributorCode && distributor.distributorCode !== '') {
                         newDistributors.push(distributor);
                     } else {
-                        console.log('Skipping row', i, 'due to missing distributor code. Values:', values);
+                        console.log('Skipping row', i + 1, 'due to missing distributor code. Values:', values);
                     }
                 }
                 
-                console.log('Parsed', newDistributors.length, 'distributors from', lines.length - 1, 'data rows');
+                console.log('Parsed', newDistributors.length, 'distributors from', rows.length, 'data rows');
                 
                 // Check for duplicates
                 const existingCodes = distributors.map(d => d.distributorCode || d.code);
