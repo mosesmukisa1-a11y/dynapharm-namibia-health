@@ -4098,8 +4098,14 @@
             const list = document.getElementById('myReportsList');
             if (!list) return;
             
+            console.log('🔍 Displaying reports for:', currentUser.fullName);
+            console.log('📊 Total reports available:', reports.length);
+            console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r.consultant))]);
+            
             // Get all reports created by this consultant
             const myReports = reports.filter(r => r.id && r.consultant === currentUser.fullName);
+            
+            console.log('✅ Reports found for', currentUser.fullName + ':', myReports.length);
             
             if (myReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📋 No reports created yet</h3><p>Reports you create will appear here for review and editing.</p></div>';
