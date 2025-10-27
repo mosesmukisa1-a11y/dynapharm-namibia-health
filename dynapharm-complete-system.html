@@ -2,11 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -430,196 +426,6 @@
             font-size: 0.9rem;
             font-weight: 500;
         }
-
-        /* Mobile Responsive Design */
-        @media screen and (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                margin: 10px auto;
-                border-radius: 10px;
-            }
-            .header {
-                padding: 20px 15px;
-            }
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            .tabs {
-                flex-wrap: wrap;
-            }
-            .tab-button {
-                font-size: 0.9rem;
-                padding: 12px 8px;
-                min-width: 120px;
-            }
-            .tab-content {
-                padding: 20px 15px;
-            }
-            .form-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .form-section {
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            .form-section h3 {
-                font-size: 1.1rem;
-            }
-            .branch-selector select {
-                width: 100%;
-                max-width: 300px;
-            }
-            .modal {
-                padding: 20px;
-            }
-            .modal-content {
-                margin: 5% auto;
-                width: 95%;
-                max-width: 500px;
-            }
-            .btn {
-                padding: 12px 20px;
-                font-size: 1rem;
-                width: 100%;
-                margin-bottom: 10px;
-            }
-            .client-list, .user-list, .branch-list {
-                padding: 15px;
-            }
-            .client-item, .user-item, .branch-item {
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .medicine-grid {
-                grid-template-columns: 1fr;
-            }
-            .prescription-item {
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            .prescription-actions {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .prescription-actions .btn {
-                width: 100%;
-            }
-            .analytics-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-            .analytics-card {
-                padding: 15px;
-            }
-            .symptom-checkbox {
-                font-size: 0.9rem;
-                padding: 8px;
-            }
-            .recommendation-item {
-                padding: 12px;
-                margin-bottom: 10px;
-            }
-            .signature-pad {
-                height: 150px;
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-            .container {
-                margin: 5px auto;
-                border-radius: 8px;
-            }
-            .header {
-                padding: 15px 10px;
-            }
-            .header h1 {
-                font-size: 1.3rem;
-            }
-            .tab-button {
-                font-size: 0.8rem;
-                padding: 10px 6px;
-                min-width: 100px;
-            }
-            .tab-content {
-                padding: 15px 10px;
-            }
-            .form-section {
-                padding: 12px;
-            }
-            .form-section h3 {
-                font-size: 1rem;
-            }
-            .modal-content {
-                width: 98%;
-                margin: 2% auto;
-            }
-            .btn {
-                padding: 10px 15px;
-                font-size: 0.9rem;
-            }
-            .client-item, .user-item, .branch-item {
-                padding: 12px;
-            }
-            .prescription-item {
-                padding: 12px;
-            }
-            .analytics-card {
-                padding: 12px;
-            }
-            .symptom-checkbox {
-                font-size: 0.8rem;
-                padding: 6px;
-            }
-            .recommendation-item {
-                padding: 10px;
-            }
-            .signature-pad {
-                height: 120px;
-            }
-        }
-
-        /* Touch-friendly improvements */
-        @media (hover: none) and (pointer: coarse) {
-            .tab-button, .btn, .symptom-checkbox, input[type="checkbox"], input[type="radio"] {
-                min-height: 44px;
-                min-width: 44px;
-            }
-            .form-group input, .form-group select, .form-group textarea {
-                font-size: 16px; /* Prevents zoom on iOS */
-                padding: 12px;
-            }
-        }
-
-        /* Landscape mobile optimization */
-        @media screen and (max-width: 768px) and (orientation: landscape) {
-            .header {
-                padding: 15px;
-            }
-            .header h1 {
-                font-size: 1.3rem;
-            }
-            .tabs {
-                flex-wrap: nowrap;
-            }
-            .tab-button {
-                font-size: 0.8rem;
-                padding: 8px 4px;
-            }
-            .tab-content {
-                padding: 15px;
-            }
-        }
-
         @media print {
             @page {
                 size: A4;
@@ -1063,10 +869,6 @@
             <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
-            <div id="userInfo" style="display: none; margin-left: auto; display: flex; align-items: center; gap: 10px;">
-                <span style="color: white; font-size: 0.9rem;">👤 <span id="currentUserName"></span></span>
-                <button class="btn btn-secondary" onclick="logout()" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
-            </div>
         </div>
 
         <!-- Client Registration -->
@@ -1138,7 +940,7 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="required">Full Name</label>
-                            <input type="text" name="fullName" required>
+                            <input type="text" name="fullName" required autocomplete="name">
                         </div>
                         <div class="form-group">
                             <label class="required">Namibian ID Number</label>
@@ -1175,11 +977,11 @@
                         </div>
                         <div class="form-group">
                             <label class="required">Phone Number</label>
-                            <input type="tel" name="phone" required>
+                            <input type="tel" name="phone" required autocomplete="tel">
                         </div>
                         <div class="form-group">
                             <label class="required">Email Address</label>
-                            <input type="email" name="email" required>
+                            <input type="email" name="email" required autocomplete="email">
                         </div>
                         <div class="form-group">
                             <label class="required">Occupation</label>
@@ -1868,15 +1670,17 @@
             <h2>Login</h2>
             <form id="loginForm">
                 <div class="form-group">
-                    <input type="text" id="username" placeholder="Username" required>
+                    <input type="text" id="username" placeholder="Username" required autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" placeholder="Password" required>
+                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn">Login</button>
                 <div style="margin-top: 15px; font-size: 0.85rem; color: #666; background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                    <p><strong>🔐 Secure Login Required</strong></p>
-                    <p>Please contact your administrator for login credentials.</p>
+                    <p><strong>Default Test Accounts:</strong></p>
+                    <p>Admin: <code>admin</code> / <code>admin123</code></p>
+                    <p>Consultant: <code>consultant</code> / <code>consultant123</code></p>
+                    <p>Dispenser: <code>dispenser</code> / <code>dispenser123</code></p>
                 </div>
             </form>
         </div>
@@ -1889,19 +1693,19 @@
             <h2>Add User</h2>
             <form id="addUserForm">
                 <div class="form-group">
-                    <input type="text" name="fullName" placeholder="Full Name" required>
+                    <input type="text" name="fullName" placeholder="Full Name" required autocomplete="name">
                 </div>
                 <div class="form-group">
-                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <input type="password" name="password" placeholder="Password" required>
+                    <input type="password" name="password" placeholder="Password" required autocomplete="new-password">
                 </div>
                 <div class="form-group">
-                    <input type="email" name="email" placeholder="Email Address" required>
+                    <input type="email" name="email" placeholder="Email Address" required autocomplete="email">
                 </div>
                 <div class="form-group">
-                    <input type="tel" name="phone" placeholder="Phone Number" required>
+                    <input type="tel" name="phone" placeholder="Phone Number" required autocomplete="tel">
                 </div>
                 <div class="form-group">
                     <select name="role" required onchange="toggleAdditionalBranches()">
@@ -1936,13 +1740,13 @@
             <h2>Change Password</h2>
             <form id="changePasswordForm">
                 <div class="form-group">
-                    <input type="password" name="currentPassword" placeholder="Current Password" required>
+                    <input type="password" name="currentPassword" placeholder="Current Password" required autocomplete="current-password">
                 </div>
                 <div class="form-group">
-                    <input type="password" name="newPassword" placeholder="New Password" required>
+                    <input type="password" name="newPassword" placeholder="New Password" required autocomplete="new-password">
                 </div>
                 <div class="form-group">
-                    <input type="password" name="confirmPassword" placeholder="Confirm Password" required>
+                    <input type="password" name="confirmPassword" placeholder="Confirm Password" required autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-success">Change Password</button>
             </form>
@@ -2103,101 +1907,27 @@
     </div>
 
     <script>
-        // Global variables
+        let clients = [];
+        let users = [];
+        let branches = [];
+        let reports = [];
         let currentUser = null;
+        let currentPortal = null;
         let currentClientId = null;
         let currentBranch = '';
-        let currentPortal = '';
+        let uploadedPDF = null;
         let autoRefreshInterval = null;
-        let lastDataHash = null;
-        let editingUserId = null;
+        
+        // Cash management
         let cashDrawer = {
-            isOpen: false,
             openingBalance: 0,
             currentBalance: 0,
+            isOpen: false,
+            openedBy: null,
+            openedAt: null,
             drops: [],
             expenses: []
         };
-        
-        // API Configuration
-        const API_BASE = (() => {
-            const hostname = window.location.hostname;
-            if (hostname.includes('vercel.app') || hostname.includes('netlify.app')) {
-                return '/api';
-            } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                return 'http://localhost:5000';
-            } else {
-                return 'http://localhost:5000';
-            }
-        })();
-        
-        let clients = [
-            {"referenceNumber": "CLT-NGHISHIDIMBWA-NB96061001371-1759828718144", "fullName": "Nghishidimbwa Mathias Nghipangelwa", "nbNumber": "NB96061001371", "email": "", "phone": "0816716038", "membershipStatus": "referred", "referralName": "mogan maria ", "referralNbNumber": "12345678", "memberId": "", "memberSince": "", "gender": "Male", "dob": "1996-06-10", "age": "28", "height": "175", "weight": "70", "occupation": "Teacher", "emergencyContact": "0812345678", "primaryReason": "General Health Check", "medicalHistory": "None", "currentMedications": "None", "supplements": "None", "familyHistory": ["None"], "waterIntake": "1-2 liters", "exerciseFreq": "1-2 times per week", "sleepHours": "6-7 hours", "stressLevel": "Moderate", "symptoms": ["None"], "signature": "Nghishidimbwa Mathias Nghipangelwa", "branch": "townshop", "timestamp": "2025-10-07T09:18:38.144Z", "lastUpdated": "2025-10-07T10:11:14.845Z", "updatedBy": "NAEM HANGULA", "allergies": ""},
-            {"referenceNumber": "CLT-MWAREWANGEPO-NBN/A-1759832656098", "fullName": "Mwarewangepo Munyaradzi Gwinyayi", "nbNumber": "N/A", "email": "m.g.mwarewangepo@gmail.com", "phone": "0816432344", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "Nb008304", "memberId": "", "memberSince": "", "gender": "male", "dob": "1969-09-08", "age": "56", "height": "1", "weight": "101", "occupation": "teacher", "emergencyContact": "0857468102", "primaryReason": "check my well-being", "medicalHistory": ["highBloodPressure", "diabetes"], "currentMedications": "Yes", "supplements": "N/A", "familyHistory": ["hypertension"], "waterIntake": "2to3", "exerciseFreq": "3-4", "sleepHours": "5-6", "stressLevel": "1", "symptoms": ["none"], "signature": "Mwarewangepo Munyaradzi Gwinyayi", "branch": "townshop", "timestamp": "2025-10-07T10:24:16.098Z"},
-            {"referenceNumber": "CLT-JEROME-NB07083000452-1759833199954", "fullName": "JEROME JOSEPH", "nbNumber": "07083000452", "email": "jjoseph@gmail.com", "phone": "0814803618", "membershipStatus": "referred", "referralName": "Jennifer Joseph", "referralNbNumber": "123456789", "memberId": "", "memberSince": "", "gender": "male", "dob": "2007-08-30", "age": "18", "height": "165", "weight": "45", "occupation": "student", "emergencyContact": "0812161169", "primaryReason": "Persistent Migraines", "medicalHistory": ["na"], "currentMedications": "none", "supplements": "Hibiscus tea", "familyHistory": ["hypertension"], "waterIntake": "1to2", "exerciseFreq": "3-4", "sleepHours": "7-8", "stressLevel": "2", "symptoms": ["headache"], "signature": "JEROME JOSEPH", "branch": "townshop", "timestamp": "2025-10-07T10:33:19.954Z"},
-            {"referenceNumber": "CLT-KAUANDENGE-NB80010910204-1759835675309", "fullName": "Kauandenge Erenfried", "nbNumber": "80010910204", "email": "Erenfriedkauandenge@gmail.com", "phone": "0812337395", "membershipStatus": "referred", "referralName": "Aibino Apolinario Ndikwete", "referralNbNumber": "NB007695", "memberId": "", "memberSince": "", "gender": "male", "dob": "1980-01-09", "age": "45", "height": "175", "weight": "90", "occupation": "N/A", "emergencyContact": "0814501583", "primaryReason": "General check-up", "medicalHistory": ["highBloodPressure"], "currentMedications": "High blood pressure", "supplements": "N/A", "familyHistory": [], "waterIntake": "less1", "exerciseFreq": "1-2", "sleepHours": "7-8", "stressLevel": "5", "symptoms": ["swelling"], "signature": "Kauandenge Erenfried", "branch": "townshop", "timestamp": "2025-10-07T11:14:35.309Z"},
-            {"referenceNumber": "CLT-MVULA-NBNB009561-1759842430247", "fullName": "Mvula", "nbNumber": "NB009561", "email": "mvuladesign@gamil.com", "phone": "0814088881", "membershipStatus": "referred", "referralName": "Jeniffer Joseph", "referralNbNumber": "NB009561", "memberId": "", "memberSince": "", "gender": "male", "dob": "1989-12-09", "age": "35", "height": "180", "weight": "78", "occupation": "Graphic designer", "emergencyContact": "0814088881", "primaryReason": "General check up", "medicalHistory": [], "currentMedications": "TB", "supplements": "N/A", "familyHistory": [], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "7-8", "stressLevel": "3", "symptoms": [], "signature": "Mvula", "branch": "townshop", "timestamp": "2025-10-07T13:07:10.247Z"},
-            {"referenceNumber": "CLT-HERMAN-NBNB011114-1759844161976", "fullName": "HERMAN OTTO JACOBES", "nbNumber": "NB011114", "email": "dynapharmnamibia@gmail.com", "phone": "0812959041", "membershipStatus": "referred", "referralName": "KAROLINA NGHIPUNY", "referralNbNumber": "NB011114", "memberId": "", "memberSince": "", "gender": "male", "dob": "1961-03-09", "age": "64", "height": "168", "weight": "67", "occupation": "pensioner", "emergencyContact": "0812791116", "primaryReason": "GENERAL CHECK UP", "medicalHistory": ["na"], "currentMedications": "NO", "supplements": "NO", "familyHistory": ["hypertension", "cancer"], "waterIntake": "less1", "exerciseFreq": "3-4", "sleepHours": "5-6", "stressLevel": "2", "symptoms": [], "signature": "HERMAN OTTO JACOBES", "branch": "townshop", "timestamp": "2025-10-07T13:36:01.976Z"},
-            {"referenceNumber": "CLT-MARTH-NBNb9101040323-1759913384085", "fullName": "Marth Ashuulu", "nbNumber": "Nb9101040323", "email": "mo@gmail.com", "phone": "0812801012", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "008304123412", "memberId": "", "memberSince": "", "gender": "female", "dob": "1991-10-08", "age": "34", "height": "1", "weight": "50", "occupation": "student", "emergencyContact": "0812791116", "primaryReason": "Check my well being", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "less1", "exerciseFreq": "1-2", "sleepHours": "5-6", "stressLevel": "1", "symptoms": ["none"], "signature": "Marth Ashuulu", "branch": "townshop", "timestamp": "2025-10-08T08:49:44.085Z"},
-            {"referenceNumber": "CLT-NGATJIZEKO-NBNb-1759915843760", "fullName": "Ngatjizeko Theodor", "nbNumber": "Nb", "email": "tngatjizeko28@gmail.com", "phone": "0817644224", "membershipStatus": "referred", "referralName": "Felisitas Karieue", "referralNbNumber": "009216123456", "memberId": "", "memberSince": "", "gender": "male", "dob": "1988-02-04", "age": "37", "height": "172", "weight": "101", "occupation": "N/A", "emergencyContact": "0815504657", "primaryReason": "Check my well being", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "more3", "exerciseFreq": "5+", "sleepHours": "7-8", "stressLevel": "1", "symptoms": ["weight_changes", "swelling"], "signature": "Ngatjizeko Theodor", "branch": "townshop", "timestamp": "2025-10-08T09:30:43.760Z"},
-            {"referenceNumber": "CLT-GWESU-NBNB0631297150942-1759921485554", "fullName": "Gwesu Munyaradzi", "nbNumber": "NB0631297150942", "email": "munyanic2010@gmail.com", "phone": "081351233", "membershipStatus": "member", "referralName": "Klementine Tobias", "referralNbNumber": "NB010733", "memberId": "NB010733", "memberSince": "", "gender": "male", "dob": "1967-09-20", "age": "58", "height": "1", "weight": "73", "occupation": "Diplomate", "emergencyContact": "0812347440", "primaryReason": "Check my well being", "medicalHistory": ["na"], "currentMedications": "N/B", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "2to3", "exerciseFreq": "3-4", "sleepHours": "7-8", "stressLevel": "6", "symptoms": [], "signature": "Gwesu Munyaradzi", "branch": "townshop", "timestamp": "2025-10-08T11:04:45.554Z"},
-            {"referenceNumber": "CLT-PENNY-NB00112900593-1759930702178", "fullName": "PENNY", "nbNumber": "00112900593", "email": "josephpeneyambeko42@gmail.com", "phone": "0815807840", "membershipStatus": "member", "referralName": "Octavia Maharero", "referralNbNumber": "NB01108145614", "memberId": "MAHERERO NB011081", "memberSince": "", "gender": "female", "dob": "2000-11-29", "age": "24", "height": "126", "weight": "59", "occupation": "sales", "emergencyContact": "0815807380", "primaryReason": "general check uo", "medicalHistory": ["na"], "currentMedications": "no", "supplements": "no", "familyHistory": ["hypertension"], "waterIntake": "less1", "exerciseFreq": "never", "sleepHours": "5-6", "stressLevel": "5", "symptoms": [], "signature": "PENNY", "branch": "townshop", "timestamp": "2025-10-08T13:38:22.178Z"},
-            {"referenceNumber": "CLT-OCTAVIA-NB95061900782-1759932029999", "fullName": "Octavia Maharero", "nbNumber": "95061900782", "email": "mo@gmail.com", "phone": "0813451376", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "NB008304", "memberId": "", "memberSince": "", "gender": "female", "dob": "1995-06-19", "age": "30", "height": "1", "weight": "65", "occupation": "N/A", "emergencyContact": "0812155173", "primaryReason": "General check up", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "Dyna tonic", "familyHistory": ["diabetes"], "waterIntake": "less1", "exerciseFreq": "3-4", "sleepHours": "5-6", "stressLevel": "2", "symptoms": [], "signature": "Octavia Maharero", "branch": "khomasdal", "timestamp": "2025-10-08T14:00:29.999Z"},
-            {"referenceNumber": "CLT-AMASIA-NB88101000755-1759992170364", "fullName": "Amasia N Iileka", "nbNumber": "88101000755", "email": "amasiaileka@gmail.com", "phone": "0815672716", "membershipStatus": "referred", "referralName": "Ndeshipanda Shiponeni", "referralNbNumber": "NB003023", "memberId": "011081", "memberSince": "2024-12-31", "gender": "male", "dob": "1988-10-10", "age": "37", "height": "1", "weight": "93", "occupation": "Truck Driver", "emergencyContact": "0812359540", "primaryReason": "General check up", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "5-6", "stressLevel": "2", "symptoms": [], "signature": "Amasia N Iileka", "branch": "townshop", "timestamp": "2025-10-09T06:42:50.364Z"},
-            {"referenceNumber": "CLT-PETRUS-NB54040300645-1759994851719", "fullName": "Petrus Tsitsilia", "nbNumber": "54040300645", "email": "thresialeonard@gmail.com", "phone": "0818129298", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "NB008304", "memberId": "011081", "memberSince": "2024-12-31", "gender": "female", "dob": "1954-04-03", "age": "71", "height": "1", "weight": "32", "occupation": "Pansioner", "emergencyContact": "0813295565", "primaryReason": "General check up", "medicalHistory": ["highBloodPressure"], "currentMedications": "Yes", "supplements": "N/A", "familyHistory": ["stroke"], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "<5", "stressLevel": "5", "symptoms": [], "signature": "Petrus Tsitsilia", "branch": "townshop", "timestamp": "2025-10-09T07:27:31.719Z"},
-            {"referenceNumber": "CLT-MWAMBO-NB58110700365-1759997280974", "fullName": "Mwambo Nyama Maria", "nbNumber": "58110700365", "email": "ndumbperry@gmail.com", "phone": "0813985792", "membershipStatus": "referred", "referralName": "Victoria  Kamati", "referralNbNumber": "NB008427", "memberId": "011081", "memberSince": "2024-12-31", "gender": "female", "dob": "1958-07-11", "age": "67", "height": "1", "weight": "68", "occupation": "Pansioner", "emergencyContact": "0857895744", "primaryReason": "General check up", "medicalHistory": ["highBloodPressure", "digestiveDisorders"], "currentMedications": "Yes", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "7-8", "stressLevel": "1", "symptoms": [], "signature": "Mwambo Nyama Maria", "branch": "townshop", "timestamp": "2025-10-09T08:08:00.974Z"},
-            {"referenceNumber": "CLT-HELIVI-NB90072900962-1759998742790", "fullName": "HELIVI NAMUPALA SHIMI", "nbNumber": "90072900962", "email": "shimihelvi@gmail.com", "phone": "0816615812", "membershipStatus": "referred", "referralName": "TUSNELDE  POMBANDA", "referralNbNumber": "NB010109", "memberId": "", "memberSince": "", "gender": "female", "dob": "1990-07-29", "age": "35", "height": "170", "weight": "64", "occupation": "CARE GIVER", "emergencyContact": "0818004759", "primaryReason": "LOWER ABDORMEN PAIN", "medicalHistory": ["na"], "currentMedications": "NO", "supplements": "NO", "familyHistory": ["na"], "waterIntake": "1to2", "exerciseFreq": "1-2", "sleepHours": "7-8", "stressLevel": "3", "symptoms": [], "signature": "HELIVI NAMUPALA SHIMI", "branch": "townshop", "timestamp": "2025-10-09T08:32:22.790Z"},
-            {"referenceNumber": "CLT-MWINGA-NB80052810526-1760005460677", "fullName": "Mwinga Matruda", "nbNumber": "80052810526", "email": "mwinga@gmail.com", "phone": "0814140601", "membershipStatus": "member", "referralName": "", "referralNbNumber": "", "memberId": "80052810526", "memberSince": "2024-04-22", "gender": "female", "dob": "1980-05-28", "age": "45", "height": "165", "weight": "85", "occupation": "Solder", "emergencyContact": "0814140601", "primaryReason": "pain under  the feet", "medicalHistory": ["na"], "currentMedications": "NONE", "supplements": "Dynapharm supplement", "familyHistory": ["na"], "waterIntake": "2to3", "exerciseFreq": "5+", "sleepHours": "5-6", "stressLevel": "5", "symptoms": [], "signature": "Mwinga Matruda", "branch": "townshop", "timestamp": "2025-10-09T10:24:20.677Z"},
-            {"referenceNumber": "CLT-NAKALEKE-NB801110010632-1760007765521", "fullName": "Nakaleke Johanna", "nbNumber": "801110010632", "email": "jonnynakaleke@gmail.com", "phone": "0813346918", "membershipStatus": "referred", "referralName": "Octavia Maharero", "referralNbNumber": "NB011081", "memberId": "80052810526", "memberSince": "2024-04-22", "gender": "female", "dob": "1980-10-11", "age": "45", "height": "175", "weight": "56", "occupation": "N/A", "emergencyContact": "0812982462", "primaryReason": "General check up", "medicalHistory": ["na"], "currentMedications": "NONE", "supplements": "NONE\n", "familyHistory": ["na"], "waterIntake": "1to2", "exerciseFreq": "1-2", "sleepHours": "5-6", "stressLevel": "1", "symptoms": [], "signature": "Nakaleke Johanna", "branch": "townshop", "timestamp": "2025-10-09T11:02:45.521Z"},
-            {"referenceNumber": "CLT-SITARARA-NB82021210022-1760008610147", "fullName": "Sitarara Djami", "nbNumber": "82021210022", "email": "mo@gmail.com", "phone": "0814359347", "membershipStatus": "referred", "referralName": "Maria Mogen", "referralNbNumber": "NB008304", "memberId": "", "memberSince": "", "gender": "Male", "dob": "0001-02-12", "age": "2026", "height": "1", "weight": "52", "occupation": "machardice", "emergencyContact": "0812684853", "primaryReason": "Check my well being", "medicalHistory": "na", "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "", "exerciseFreq": "", "sleepHours": "", "stressLevel": "", "symptoms": [], "signature": "Sitarara Djami", "branch": "townshop", "timestamp": "2025-10-09T11:16:50.147Z", "allergies": "", "lastUpdated": "2025-10-09T13:16:41.361Z", "updatedBy": "HILMA C"},
-            {"referenceNumber": "CLT-IYAMBO-NB87032300650-1760012033988", "fullName": "Iyambo Fillemon", "nbNumber": "87032300650", "email": "pomwenerejoice@gmail.com", "phone": "0814572099", "membershipStatus": "referred", "referralName": "Maria Nakweenda", "referralNbNumber": "NB008222", "memberId": "87032300650", "memberSince": "2021-11-11", "gender": "male", "dob": "1987-03-23", "age": "38", "height": "170", "weight": "84", "occupation": "unemployed", "emergencyContact": "0812742950", "primaryReason": "too much wind in the stomach", "medicalHistory": ["na"], "currentMedications": "None", "supplements": "None", "familyHistory": ["hypertension"], "waterIntake": "2to3", "exerciseFreq": "1-2", "sleepHours": "<5", "stressLevel": "4", "symptoms": [], "signature": "Iyambo Fillemon", "branch": "townshop", "timestamp": "2025-10-09T12:13:53.988Z"},
-            {"referenceNumber": "CLT-BALIE-NB71010110780-1760081902894", "fullName": "Balie Rebekka", "nbNumber": "71010110780", "email": "dynapharmnamibia@gmail.com", "phone": "0813450408", "membershipStatus": "referred", "referralName": "Felisitas Karieue", "referralNbNumber": "NB009216", "memberId": "", "memberSince": "", "gender": "female", "dob": "1971-01-01", "age": "54", "height": "152", "weight": "65", "occupation": "pensioner", "emergencyContact": "0812036569", "primaryReason": "GENERAL check up", "medicalHistory": ["asthma"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["hypertension", "cancer"], "waterIntake": "less1", "exerciseFreq": "never", "sleepHours": "5-6", "stressLevel": "4", "symptoms": [], "signature": "Balie Rebekka", "branch": "townshop", "timestamp": "2025-10-10T07:38:22.894Z"},
-            {"referenceNumber": "CLT-KANKAMENI-NB79112910217-1760082464630", "fullName": "Kankameni Samuel eelu", "nbNumber": "79112910217", "email": "dynapharmnamibia@gmail.com", "phone": "0811491107", "membershipStatus": "referred", "referralName": "Octavia Maharero", "referralNbNumber": "NB011081", "memberId": "", "memberSince": "", "gender": "male", "dob": "1979-11-29", "age": "45", "height": "165", "weight": "73", "occupation": "N/A", "emergencyContact": "0811491107", "primaryReason": "General check up", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "less1", "exerciseFreq": "1-2", "sleepHours": "7-8", "stressLevel": "1", "symptoms": [], "signature": "Kankameni Samuel eelu", "branch": "townshop", "timestamp": "2025-10-10T07:47:44.630Z"},
-            {"referenceNumber": "CLT-EISEB-NB99101100319-1760085115356", "fullName": "EISEB Marion Mackenzie", "nbNumber": "99101100319", "email": "dynapharmnamibia@gmail.com", "phone": "0818369443", "membershipStatus": "referred", "referralName": "KAROLINA NGHIPUNYA", "referralNbNumber": "NB011114", "memberId": "", "memberSince": "", "gender": "male", "dob": "1999-10-11", "age": "26", "height": "166", "weight": "65", "occupation": "N/A", "emergencyContact": "0818228389", "primaryReason": "General check up", "medicalHistory": ["kidneyLiver"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["hypertension"], "waterIntake": "1to2", "exerciseFreq": "5+", "sleepHours": "5-6", "stressLevel": "1", "symptoms": [], "signature": "EISEB Marion Mackenzie", "branch": "townshop", "timestamp": "2025-10-10T08:31:55.356Z"},
-            {"referenceNumber": "CLT-KANYANGA-NB55040900171-1760166923173", "fullName": "Kanyanga Alfonsina Konde", "nbNumber": "55040900171", "email": "vallentino.haingura@nampower.com.na", "phone": "0818299601", "membershipStatus": "referred", "referralName": "Octavia Maharero", "referralNbNumber": "NB011081", "memberId": "", "memberSince": "", "gender": "female", "dob": "1955-09-04", "age": "70", "height": "169", "weight": "36", "occupation": "pensioner", "emergencyContact": "0812955782", "primaryReason": "General check up.", "medicalHistory": ["na"], "currentMedications": "Paracetamol ect", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "less1", "exerciseFreq": "5+", "sleepHours": "7-8", "stressLevel": "3", "symptoms": [], "signature": "Kanyanga Alfonsina Konde", "branch": "townshop", "timestamp": "2025-10-11T07:15:23.173Z"},
-            {"referenceNumber": "CLT-SAMUEL-NB88090100880-1760168518518", "fullName": "Samuel Mateus", "nbNumber": "88090100880", "email": "matheussamuel270@gmail.com", "phone": "0813125014", "membershipStatus": "referred", "referralName": "Maggy Nakweenda", "referralNbNumber": "NB008222", "memberId": "", "memberSince": "", "gender": "male", "dob": "1988-09-01", "age": "37", "height": "160", "weight": "74", "occupation": "truck driver", "emergencyContact": "0853125014", "primaryReason": "back pain", "medicalHistory": ["na"], "currentMedications": "Paracetamol ect", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "1to2", "exerciseFreq": "5+", "sleepHours": "5-6", "stressLevel": "3", "symptoms": [], "signature": "Samuel Mateus", "branch": "townshop", "timestamp": "2025-10-11T07:41:58.518Z"},
-            {"referenceNumber": "CLT-NANSES-NB91102300087-1760350491604", "fullName": "NANSES ALIEN GERTHY", "nbNumber": "91102300087", "email": "Kabistro@gmail.com", "phone": "0818831447", "membershipStatus": "referred", "referralName": "Ndapandula david", "referralNbNumber": "NB008994", "memberId": "", "memberSince": "", "gender": "female", "dob": "1991-10-23", "age": "33", "height": "159", "weight": "130", "occupation": "N/A", "emergencyContact": "0812753609", "primaryReason": "JUST to know my well being", "medicalHistory": ["highBloodPressure"], "currentMedications": "For high blood pressure", "supplements": "N/A", "familyHistory": ["heartDisease", "diabetes", "stroke"], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "5-6", "stressLevel": "5", "symptoms": [], "signature": "NANSES ALIEN GERTHY", "branch": "townshop", "timestamp": "2025-10-13T10:14:51.604Z"},
-            {"referenceNumber": "CLT-HASHEELA-NB00041300556-1760351526340", "fullName": "Hasheela Wilma-Ngonyofi", "nbNumber": "00041300556", "email": "dynapharmnamibia@gmail.com", "phone": "0815572970", "membershipStatus": "referred", "referralName": "KAROLINA NGHIPUNYA", "referralNbNumber": "NB011114", "memberId": "", "memberSince": "", "gender": "female", "dob": "2000-04-13", "age": "25", "height": "155", "weight": "48", "occupation": "unemployed", "emergencyContact": "08182141586", "primaryReason": "General body check up,stomach problem", "medicalHistory": ["digestiveDisorders"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["na"], "waterIntake": "less1", "exerciseFreq": "never", "sleepHours": "9+", "stressLevel": "3", "symptoms": [], "signature": "Hasheela Wilma-Ngonyofi", "branch": "townshop", "timestamp": "2025-10-13T10:32:06.340Z"},
-            {"referenceNumber": "CLT-KAMBONDE-NB00111000912-1760352132905", "fullName": "Kambonde Ester Ndapandula", "nbNumber": "00111000912", "email": "ndapandulakam00@gmail.com", "phone": "0815526522", "membershipStatus": "referred", "referralName": "Octavia Maharero", "referralNbNumber": "NB011081", "memberId": "", "memberSince": "", "gender": "female", "dob": "2000-11-10", "age": "24", "height": "158", "weight": "80", "occupation": "student", "emergencyContact": "0814092395", "primaryReason": "General body check up...", "medicalHistory": ["na"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["heartDisease", "diabetes"], "waterIntake": "1to2", "exerciseFreq": "never", "sleepHours": "5-6", "stressLevel": "1", "symptoms": [], "signature": "Kambonde Ester Ndapandula", "branch": "townshop", "timestamp": "2025-10-13T10:42:12.906Z"},
-            {"referenceNumber": "CLT-KATOOLE-NB76091510479-1760353131373", "fullName": "Katoole Hilma", "nbNumber": "76091510479", "email": "dynapharmnamibia@gmail.com", "phone": "0817275372", "membershipStatus": "referred", "referralName": "KAROLINA NGHIPUNYA", "referralNbNumber": "NB011114", "memberId": "", "memberSince": "", "gender": "female", "dob": "1976-09-15", "age": "49", "height": "163", "weight": "62", "occupation": "Self employed", "emergencyContact": "0812868541", "primaryReason": "Stomach  problem,joints issues,headache,back pain and migraine. ", "medicalHistory": ["digestiveDisorders", "arthritis", "mentalHealth"], "currentMedications": "N/A", "supplements": "N/A", "familyHistory": ["hypertension", "diabetes"], "waterIntake": "less1", "exerciseFreq": "5+", "sleepHours": "5-6", "stressLevel": "7", "symptoms": [], "signature": "Katoole Hilma", "branch": "townshop", "timestamp": "2025-10-13T10:58:51.373Z"}
-        ];
-        let users = [
-            {"id": "USR001", "username": "admin", "password": "walker33", "fullName": "Administrator", "email": "admin@dynapharm.com.na", "phone": "061-300877", "role": "admin", "branch": "townshop", "branches": ["townshop"]},
-            {"id": "USR1759829667953", "username": "moses", "password": "walker33", "fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160", "role": "consultant", "branch": "townshop", "branches": ["townshop", "khomasdal", "katima", "outapi", "ondangwa", "okongo", "okahao", "nkurenkuru", "swakopmund", "hochland-park", "rundu", "gobabis", "walvisbay", "eenhana", "otjiwarongo"], "createdAt": "2025-10-07T09:34:27.953Z"},
-            {"id": "USR1759829814781", "username": "Geneva", "password": "Pearl_11", "fullName": "Jennifer Joseph", "email": "shange1124@gmail.com", "phone": "0852803618", "role": "consultant", "branch": "townshop", "branches": ["townshop", "khomasdal", "katima", "outapi", "ondangwa", "okongo", "okahao", "nkurenkuru", "swakopmund", "hochland-park", "rundu", "gobabis", "walvisbay", "eenhana", "otjiwarongo"], "createdAt": "2025-10-07T09:36:54.781Z"},
-            {"id": "USR1759830625722", "username": "NAEM", "password": "PASSWORD", "fullName": "NAEM HANGULA", "email": "naemhangula4@gmail.com", "phone": "0817499757", "role": "dispenser", "branch": "townshop", "branches": ["townshop"], "createdAt": "2025-10-07T09:50:25.722Z"},
-            {"id": "USR1759928153488", "username": "GEINGOS", "password": "ALBERTO99", "fullName": "HILMA C", "email": "geingoshilma@gmail", "phone": "0814137106", "role": "consultant", "branch": "townshop", "branches": ["townshop", "khomasdal", "katima", "outapi", "ondangwa", "okongo", "okahao", "nkurenkuru", "swakopmund", "hochland-park", "rundu", "gobabis", "walvisbay", "eenhana", "otjiwarongo"], "createdAt": "2025-10-08T12:55:53.488Z"}
-        ];
-        let branches = [
-            {"id": "townshop", "name": "TOWNSHOP (Head Office)", "location": "Shop No.1 Continental Building Independence Avenue - Windhoek", "phone": "814683999"},
-            {"id": "khomasdal", "name": "KHOMASDAL DPC", "location": "Shop No.2 Khomasdal Funky Town - Windhoek", "phone": "814682991"},
-            {"id": "katima", "name": "KATIMA DPC", "location": "Opposite Open Market Hospital Road, Katima", "phone": "817375818"},
-            {"id": "outapi", "name": "OUTAPI DPC", "location": "Okasilili Location in Christmas Building, Next Tolemeka Garage Main Road Oshakati - Outapi", "phone": "814685886"},
-            {"id": "ondangwa", "name": "ONDANGWA DPC", "location": "Shop No.3 Woerman Block Oluno, Opposite Fresco, Cash and Carry Entrance Ondangwa", "phone": "814685882"},
-            {"id": "okongo", "name": "OKONGO DPC", "location": "Handongo Festus Erf 333 Okongo Village Council", "phone": "814684935"},
-            {"id": "okahao", "name": "OKAHAO DPC", "location": "Iteka complex opposite Pep store Okahao - Oshakati main road", "phone": "814683963"},
-            {"id": "nkurenkuru", "name": "NKURENKURU DPC", "location": "Total Service Station, Next to Oluno Bar - Nkurenkuru", "phone": "814684939"},
-            {"id": "swakopmund", "name": "SWAKOPMUND DPC", "location": "Opposite Mondesa Usave Swakopmund", "phone": "814686806"},
-            {"id": "hochland-park", "name": "HOCHLAND PARK", "location": "House No.2 Robin Road, Taubern Glain Street, Next to OK Food Windhoek", "phone": "813207195"},
-            {"id": "rundu", "name": "RUNDU DPC", "location": "Shop No.6 Fish Building opposite, Dr. Romanus Kampungi Stadium", "phone": "814050125"},
-            {"id": "gobabis", "name": "GOBABIS", "location": "Shop No. Church Street Woerman Complex Gobabis", "phone": "814685905"},
-            {"id": "walvisbay", "name": "WALVISBAY", "location": "Shop No.6 Pelican Mall Shop Sam Nujoma Avenue", "phone": "814685894"},
-            {"id": "eenhana", "name": "EENHANA", "location": "Shop No.3 Tangi Complex, Next to Namibia Funeral Supply, Dimo Amaambo Street Eenhana", "phone": "814682049"},
-            {"id": "otjiwarongo", "name": "OTJIWARONGO DPC", "location": "Erindi Complex next to Spar", "phone": "814681997"}
-        ];
-        let reports = [
-            {"id": "RPT1759830407708", "clientId": "CLT-NGHISHIDIMBWA-NB96061001371-1759828718144", "clientInfo": {"fullName": "Nghishidimbwa Mathias Nghipangelwa", "phone": "0816716038", "email": "", "nbNumber": "NB96061001371"}, "consultant": "Jennifer Joseph", "consultantInfo": {"fullName": "Jennifer Joseph", "email": "shange1124@gmail.com", "phone": "0852803618"}, "notes": "~Try to take in more zinc .\nReduce carbonated drinks.\nReduce Stress .", "prescription": "Dyna Tonic 780ml, Ginali Capsule 100's, Tongkat Ali & Maca - C, Tongkat Ali Caps 100 S, Yeeginako Tabs 90's , 30's", "medicines": [{"name": "Dyna Tonic 780ml", "dispensed": false, "currentPrice": {"dp": 600, "cp": 710, "bv": 120, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.722Z"}}, {"name": "Ginali Capsule 100's", "dispensed": true, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-07T09:51:59.749Z", "paid": true, "paidBy": "NAEM HANGULA", "paidAt": "2025-10-07T09:54:23.067Z", "currentPrice": {"dp": 403, "cp": 493, "bv": 80, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.722Z"}}, {"name": "Tongkat Ali & Maca - C", "dispensed": false, "currentPrice": {"dp": 250, "cp": 300, "bv": 38, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.722Z"}}, {"name": "Tongkat Ali Caps 100 S", "dispensed": false, "currentPrice": {"dp": 400, "cp": 490, "bv": 80, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.722Z"}}, {"name": "Yeeginako Tabs 90's , 30's", "dispensed": true, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-07T09:51:55.005Z", "paid": true, "paidBy": "NAEM HANGULA", "paidAt": "2025-10-07T09:54:27.781Z", "currentPrice": {"dp": 364, "cp": 454, "bv": 75, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.722Z"}}], "followUpDate": "2025-10-21", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-07T09:46:47.708Z", "dispensed": false},
-            {"id": "RPT1759834647793", "clientId": "CLT-MWAREWANGEPO-NBN/A-1759832656098", "clientInfo": {"fullName": "Mwarewangepo Munyaradzi Gwinyayi", "phone": "0816432344", "email": "m.g.mwarewangepo@gmail.com", "nbNumber": "N/A"}, "consultant": "Jennifer Joseph", "consultantInfo": {"fullName": "Jennifer Joseph", "email": "shange1124@gmail.com", "phone": "0852803618"}, "notes": "High Uric Acid and Liver fat .\nHigh Cholesterol.\nLow Insulin.\n(Maintain a healthier Lifestyle)", "prescription": "Di Liquid Alpha Alpha 500ml, Dyna Tonic 780ml, Green Tea Capsule 60's, Milk Thistle Tablet 120's, Tongkat Ali Coffee, Yeeginako Tabs 90's , 30's", "medicines": [{"name": "Di Liquid Alpha Alpha 500ml", "dispensed": false, "currentPrice": {"dp": 430, "cp": 530, "bv": 75, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}, {"name": "Dyna Tonic 780ml", "dispensed": false, "currentPrice": {"dp": 600, "cp": 710, "bv": 120, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}, {"name": "Green Tea Capsule 60's", "dispensed": false, "currentPrice": {"dp": 344, "cp": 430, "bv": 85, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}, {"name": "Milk Thistle Tablet 120's", "dispensed": false, "currentPrice": {"dp": 500, "cp": 592, "bv": 125, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}, {"name": "Tongkat Ali Coffee", "dispensed": false, "currentPrice": {"dp": 260, "cp": 320, "bv": 38, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}, {"name": "Yeeginako Tabs 90's , 30's", "dispensed": false, "currentPrice": {"dp": 364, "cp": 454, "bv": 75, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.728Z"}}], "followUpDate": "2025-11-07", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-07T10:57:27.793Z", "dispensed": false},
-            {"id": "RPT1759837456161", "clientId": "CLT-KAUANDENGE-NB80010910204-1759835675309", "clientInfo": {"fullName": "Kauandenge Erenfried", "phone": "0812337395", "email": "Erenfriedkauandenge@gmail.com", "nbNumber": "80010910204"}, "consultant": "Jennifer Joseph", "consultantInfo": {"fullName": "Jennifer Joseph", "email": "shange1124@gmail.com", "phone": "0852803618"}, "notes": "Hypertension (BP:/120, P:88).\nHigh Cholesterol.\nNB:Please exercise more,quit beer ,Eat more green leafy vegetables.", "prescription": "Di Liquid Alpha Alpha 500ml, Dyna Tonic 780ml, Ginseng Capsule, Milk Thistle Tablet 120's, Yeegarlic 90's, Yeeginako Tabs 90's , 30's", "medicines": [{"name": "Di Liquid Alpha Alpha 500ml", "dispensed": false, "currentPrice": {"dp": 430, "cp": 530, "bv": 75, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.733Z"}}, {"name": "Dyna Tonic 780ml", "dispensed": false, "currentPrice": {"dp": 600, "cp": 710, "bv": 120, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.733Z"}}, {"name": "Ginseng Capsule", "dispensed": false, "currentPrice": {"dp": 546, "cp": 655, "bv": 115, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.734Z"}}, {"name": "Milk Thistle Tablet 120's", "dispensed": false, "currentPrice": {"dp": 500, "cp": 592, "bv": 125, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.734Z"}}, {"name": "Yeegarlic 90's", "dispensed": false, "currentPrice": {"dp": 300, "cp": 390, "bv": 64, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.734Z"}}, {"name": "Yeeginako Tabs 90's , 30's", "dispensed": false, "currentPrice": {"dp": 364, "cp": 454, "bv": 75, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.734Z"}}], "followUpDate": "2025-11-07", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-07T11:44:16.161Z", "dispensed": false},
-            {"id": "RPT1759840685965", "clientId": "CLT-JEROME-NB07083000452-1759833199954", "clientInfo": {"fullName": "JEROME JOSEPH", "phone": "0814803618", "email": "jjoseph@gmail.com", "nbNumber": "07083000452"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "", "prescription": "Gano & Green Tea - C, Blood Circulation Package", "medicines": [{"name": "Gano & Green Tea - C", "dispensed": false, "currentPrice": {"dp": 260, "cp": 320, "bv": 38, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.737Z"}}, {"name": "Blood Circulation Pack", "dispensed": false, "packageStatus": {"YEEGINKGO TABLET 90's": "not_given", "YEEGARLIC CAPSULE 90's": "not_given"}, "currentPrice": {"dp": 3290, "cp": 3854, "bv": 657, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.737Z"}}], "symptoms": ["headache", "poor_concentration", "shortness_breath", "fatigue", "bloating", "loss_appetite", "chest_tightness", "slow_healing", "mood_swings", "back_neck_pain", "lower_back_pain", "erectile_issues", "hair_loss"], "followUpDate": "2025-11-07", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-07T14:03:24.625Z", "dispensed": false},
-            {"id": "RPT1759916564293", "clientId": "CLT-NGATJIZEKO-NBNb-1759915857564", "clientInfo": {"fullName": "Ngatjizeko Theodor", "phone": "0817644224", "email": "tngatjizeko28@gmail.com", "nbNumber": "Nb"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "exercise more (cardio exercises )\navoid consumption of carbonated drinks \nsleep more and drink more warm water ", "prescription": "Blood Circulation Package", "medicines": [{"name": "Blood Circulation Pack", "dispensed": false, "packageStatus": {"DI LIQUID CHLOROPHYLL PLUS GUARANA 500ml": "given"}, "currentPrice": {"dp": 3290, "cp": 3854, "bv": 657, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.748Z"}}], "followUpDate": "2025-11-07", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-08T09:42:44.293Z", "dispensed": false},
-            {"id": "RPT1759922228373", "clientId": "CLT-GWESU-NBNB0631297150942-1759921485554", "clientInfo": {"fullName": "Gwesu Munyaradzi", "phone": "081351233", "email": "munyanic2010@gmail.com", "nbNumber": "NB0631297150942"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "BP. 153/98 ps100bm\navoid consumption of animal fat(milk,cheese,yogurt,butter,meat etc)\ncardial exercises (walking , jogging ,cycling ) ", "prescription": "Blood Circulation Package", "medicines": [{"name": "Blood Circulation Pack", "dispensed": true, "packageStatus": {"DI LIQUID CHLOROPHYLL PLUS GUARANA 500ml": "given", "DYNA TONIC 780ml": "given", "YEE YANG YEN TABLET 90's": "given", "YEEGINKGO TABLET 90's": "given", "GINSENG CAPSULE 9 x 10's": "given", "YEEGANO CAPSULE 90's": "given", "YEEGARLIC CAPSULE 90's": "given", "INSTANT COFFEE W/ TONGKAT ALI 20's x 21g": "given"}, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-09T08:42:56.783Z", "currentPrice": {"dp": 3290, "cp": 3854, "bv": 657, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.752Z"}}], "followUpDate": "2025-11-07", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-08T11:17:08.373Z", "dispensed": false},
-            {"id": "RPT1759996024947", "clientId": "CLT-AMASIA-NB88101000755-1759992170364", "clientInfo": {"fullName": "Amasia N Iileka", "phone": "0815672716", "email": "amasiaileka@gmail.com", "nbNumber": "88101000755"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Adopt to cardio exercises and stretches.\nvisit a chiropractor  ", "prescription": "Ginali Capsule 100's, Noni 1 Ltr, Nutmeg Ointment 2 X 20g, Tongkat Ali Coffee, Yeegano Caps 90's", "medicines": [{"name": "Ginali Capsule 100's", "dispensed": true, "paid": false, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-09T08:03:21.389Z", "currentPrice": {"dp": 403, "cp": 493, "bv": 80, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.758Z"}}, {"name": "Noni 1 Ltr", "dispensed": false, "paid": false}, {"name": "Nutmeg Ointment 2 X 20g", "dispensed": true, "paid": false, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-09T07:59:49.494Z", "currentPrice": {"dp": 180, "cp": 234, "bv": 19.5, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.758Z"}}, {"name": "Tongkat Ali Coffee", "dispensed": true, "paid": false, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-09T07:59:56.654Z", "currentPrice": {"dp": 260, "cp": 320, "bv": 38, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.758Z"}}, {"name": "Yeegano Caps 90's", "dispensed": true, "paid": false, "dispensedBy": "NAEM HANGULA", "dispensedAt": "2025-10-09T08:03:17.701Z", "currentPrice": {"dp": 195, "cp": 254, "bv": 27, "isPackage": false, "updatedAt": "2025-10-09T14:37:05.758Z"}}], "followUpDate": "2025-10-31", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T07:47:04.947Z", "lastModified": "2025-10-09T08:48:11.139Z", "dispensed": false},
-            {"id": "RPT1759997141926", "clientId": "CLT-PETRUS-NB54040300645-1759994851719", "clientInfo": {"fullName": "Petrus Tsitsilia", "phone": "0818129298", "email": "thresialeonard@gmail.com", "nbNumber": "54040300645"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Minmize consumption consumption of animal fat.\nminmize alcahol consumption \nAdot to Hot water therapy \n", "prescription": "Elderly Package (Female)", "medicines": [{"name": "Elderly Package (Female)", "dispensed": false, "currentPrice": {"dp": 3801, "cp": 4475, "bv": 779.5, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.764Z"}, "packageStatus": {"NUTMEG OINTMENT 2 x 20g": "given"}}], "followUpDate": "2025-10-31", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T08:05:41.926Z", "dispensed": false},
-            {"id": "RPT1759998887609", "clientId": "CLT-MWAMBO-NB58110700365-1759997280974", "clientInfo": {"fullName": "Mwambo Nyama Maria", "phone": "0813985792", "email": "ndumbperry@gmail.com", "nbNumber": "58110700365"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Drink more warm water , and avoid carbonated drinks. \n\n", "prescription": "Elderly Package (Female)", "medicines": [{"name": "Elderly Package (Female)", "dispensed": false, "currentPrice": {"dp": 3801, "cp": 4475, "bv": 779.5, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.768Z"}, "packageStatus": {}}], "followUpDate": "2025-10-23", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T08:34:47.609Z", "dispensed": false},
-            {"id": "RPT1759999428502", "clientId": "CLT-HELIVI-NB90072900962-1759998742790", "clientInfo": {"fullName": "HELIVI NAMUPALA SHIMI", "phone": "0816615812", "email": "shimihelvi@gmail.com", "nbNumber": "90072900962"}, "consultant": "MOSES MUKISA", "consultantInfo": {"fullName": "MOSES MUKISA", "email": "mosesmukisa1@gmail.com", "phone": "0817317160"}, "notes": "Adopt to more cardio exercises \ndrink more water \n", "prescription": "Womens Package", "medicines": [{"name": "Womens Package", "dispensed": false, "currentPrice": {"dp": 2543, "cp": 2950, "bv": 481, "isPackage": true, "updatedAt": "2025-10-09T14:37:05.773Z"}, "packageStatus": {"GAMAT FEMININE WASH (2)": "given", "HERBA WARISAN MAHARANI 6 x 10g": "given"}}], "followUpDate": "2025-11-23", "followUpNotes": "", "pdf": null, "timestamp": "2025-10-09T08:43:48.502Z", "dispensed": false}
-        ];
-        let uploadedPDF = null;
         
         // Inventory tracking
         let inventory = {};
@@ -2229,6 +1959,28 @@
         
         // Appointments tracking
         let appointments = [];
+        
+        let lastDataHash = null;
+        
+        // API Configuration
+        const API_BASE = 'http://192.168.178.182:8001/api';
+
+        // Safe JSON parse with default fallback
+        function safeParseFromStorage(key, defaultJsonString) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return JSON.parse(defaultJsonString);
+                const parsed = JSON.parse(raw);
+                if (parsed === null || parsed === undefined) return JSON.parse(defaultJsonString);
+                return parsed;
+            } catch (e) {
+                return JSON.parse(defaultJsonString);
+            }
+        }
+
+        const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"admin123","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR002","username":"consultant","password":"consultant123","fullName":"Dr. John Smith","email":"consultant@dynapharm.com.na","phone":"061-300877","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","hochland-park"]},{"id":"USR003","username":"dispenser","password":"dispenser123","fullName":"Jane Doe","email":"dispenser@dynapharm.com.na","phone":"061-300877","role":"dispenser","branch":"townshop","branches":["townshop"]}]';
+
+        const DEFAULT_BRANCHES_JSON = '[{"id":"townshop","name":"TOWNSHOP (Head Office)","location":"Shop No.1 Continental Building Independence Avenue - Windhoek","phone":"814683999"},{"id":"khomasdal","name":"KHOMASDAL DPC","location":"Shop No.2 Khomasdal Funky Town - Windhoek","phone":"814682991"},{"id":"katima","name":"KATIMA DPC","location":"Opposite Open Market Hospital Road, Katima","phone":"817375818"},{"id":"outapi","name":"OUTAPI DPC","location":"Okasilili Location in Christmas Building, Next Tolemeka Garage Main Road Oshakati - Outapi","phone":"814685886"},{"id":"ondangwa","name":"ONDANGWA DPC","location":"Shop No.3 Woerman Block Oluno, Opposite Fresco, Cash and Carry Entrance Ondangwa","phone":"814685882"},{"id":"okongo","name":"OKONGO DPC","location":"Handongo Festus Erf 333 Okongo Village Council","phone":"814684935"},{"id":"okahao","name":"OKAHAO DPC","location":"Iteka complex opposite Pep store Okahao - Oshakati main road","phone":"814683963"},{"id":"nkurenkuru","name":"NKURENKURU DPC","location":"Total Service Station, Next to Oluno Bar - Nkurenkuru","phone":"814684939"},{"id":"swakopmund","name":"SWAKOPMUND DPC","location":"Opposite Mondesa Usave Swakopmund","phone":"814686806"},{"id":"hochland-park","name":"HOCHLAND PARK","location":"House No.2 Robin Road, Taubern Glain Street, Next to OK Food Windhoek","phone":"813207195"},{"id":"rundu","name":"RUNDU DPC","location":"Shop No.6 Fish Building opposite, Dr. Romanus Kampungi Stadium","phone":"814050125"},{"id":"gobabis","name":"GOBABIS","location":"Shop No. Church Street Woerman Complex Gobabis","phone":"814685905"},{"id":"walvisbay","name":"WALVISBAY","location":"Shop No.6 Pelican Mall Shop Sam Nujoma Avenue","phone":"814685894"},{"id":"eenhana","name":"EENHANA","location":"Shop No.3 Tangi Complex, Next to Namibia Funeral Supply, Dimo Amaambo Street Eenhana","phone":"814682049"},{"id":"otjiwarongo","name":"OTJIWARONGO DPC","location":"Erindi Complex next to Spar","phone":"814681997"}]';
 
         // Official Price List - June 2025
         const PRICE_LIST = [
@@ -2830,8 +2582,6 @@
             });
             document.getElementById('branchSelect').addEventListener('change', e => {
                 currentBranch = e.target.value;
-                // Save selected branch to localStorage so it's shared across all users
-                localStorage.setItem('dynapharm_selected_branch', currentBranch);
             });
             
             // Add event listener for full name field to update signature
@@ -2883,85 +2633,116 @@
                     return { success: true, message: 'Client saved (offline)' };
                 }
             }
+            if (endpoint === '/users') {
+                if (method === 'GET') {
+                    const parsed = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+                    if (!Array.isArray(parsed) || parsed.length === 0) {
+                        localStorage.setItem('dyna_users', DEFAULT_USERS_JSON);
+                        return JSON.parse(DEFAULT_USERS_JSON);
+                    }
+                    return parsed;
+                } else if (method === 'POST') {
+                    const usersLocal = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+                    usersLocal.push(data);
+                    localStorage.setItem('dyna_users', JSON.stringify(usersLocal));
+                    return { success: true, message: 'User saved (offline)' };
+                } else if (method === 'PUT') {
+                    const usersLocal = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+                    const idx = usersLocal.findIndex(u => u.id === data.id);
+                    if (idx !== -1) {
+                        usersLocal[idx] = data;
+                        localStorage.setItem('dyna_users', JSON.stringify(usersLocal));
+                        return { success: true, message: 'User updated (offline)' };
+                    }
+                    return { success: false, message: 'User not found (offline)' };
+                } else if (method === 'DELETE') {
+                    const usersLocal = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+                    const url = new URL(window.location.origin + endpoint + (endpoint.includes('?') ? '' : ''));
+                    // Expect id via query in caller; fallback: data.id
+                    const id = (data && data.id) || (typeof endpoint === 'string' && endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]).get('id') : null);
+                    if (!id) return { success: false, message: 'No user id provided (offline)' };
+                    const next = usersLocal.filter(u => u.id !== id);
+                    localStorage.setItem('dyna_users', JSON.stringify(next));
+                    return { success: true, message: 'User deleted (offline)' };
+                }
+            }
+            if (endpoint === '/branches') {
+                if (method === 'GET') {
+                    const parsed = safeParseFromStorage('dyna_branches', DEFAULT_BRANCHES_JSON);
+                    if (!Array.isArray(parsed) || parsed.length === 0) {
+                        localStorage.setItem('dyna_branches', DEFAULT_BRANCHES_JSON);
+                        return JSON.parse(DEFAULT_BRANCHES_JSON);
+                    }
+                    return parsed;
+                } else if (method === 'POST') {
+                    const branchesLocal = safeParseFromStorage('dyna_branches', DEFAULT_BRANCHES_JSON);
+                    branchesLocal.push(data);
+                    localStorage.setItem('dyna_branches', JSON.stringify(branchesLocal));
+                    return { success: true, message: 'Branch saved (offline)' };
+                }
+            }
             // Add more fallback logic as needed
             return { error: 'Offline mode - limited functionality' };
         }
 
         async function loadData() {
             try {
-                // For standalone version, data is already pre-loaded in the arrays above
-                // But also load any additional data from localStorage (for admin-created users/branches)
+                clients = await apiRequest('/clients');
+                users = await apiRequest('/users');
+                branches = await apiRequest('/branches');
+                reports = await apiRequest('/reports');
                 
-                // Load users from localStorage if available
-                const savedUsers = localStorage.getItem('dynapharm_users');
-                if (savedUsers) {
-                    const parsedUsers = JSON.parse(savedUsers);
-                    // Merge with existing users, avoiding duplicates
-                    parsedUsers.forEach(savedUser => {
-                        if (!users.find(u => u.id === savedUser.id)) {
-                            users.push(savedUser);
-                        }
-                    });
+                // If API returns empty arrays, initialize with defaults
+                if (users.length === 0) {
+                users = [
+                    {"id":"USR001","username":"admin","password":"admin123","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},
+                    {"id":"USR002","username":"consultant","password":"consultant123","fullName":"Dr. John Smith","email":"consultant@dynapharm.com.na","phone":"061-300877","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","hochland-park"]},
+                    {"id":"USR003","username":"dispenser","password":"dispenser123","fullName":"Jane Doe","email":"dispenser@dynapharm.com.na","phone":"061-300877","role":"dispenser","branch":"townshop","branches":["townshop"]}
+                ];
                 }
                 
-                // Load branches from localStorage if available
-                const savedBranches = localStorage.getItem('dynapharm_branches');
-                if (savedBranches) {
-                    const parsedBranches = JSON.parse(savedBranches);
-                    // Merge with existing branches, avoiding duplicates
-                    parsedBranches.forEach(savedBranch => {
-                        if (!branches.find(b => b.id === savedBranch.id)) {
-                            branches.push(savedBranch);
-                        }
-                    });
+                if (branches.length === 0) {
+                    branches = [
+                        {"id":"townshop","name":"TOWNSHOP (Head Office)","location":"Shop No.1 Continental Building Independence Avenue - Windhoek","phone":"814683999"},
+                        {"id":"khomasdal","name":"KHOMASDAL DPC","location":"Shop No.2 Khomasdal Funky Town - Windhoek","phone":"814682991"},
+                        {"id":"katima","name":"KATIMA DPC","location":"Opposite Open Market Hospital Road, Katima","phone":"817375818"},
+                        {"id":"outapi","name":"OUTAPI DPC","location":"Okasilili Location in Christmas Building, Next Tolemeka Garage Main Road Oshakati - Outapi","phone":"814685886"},
+                        {"id":"ondangwa","name":"ONDANGWA DPC","location":"Shop No.3 Woerman Block Oluno, Opposite Fresco, Cash and Carry Entrance Ondangwa","phone":"814685882"},
+                        {"id":"okongo","name":"OKONGO DPC","location":"Handongo Festus Erf 333 Okongo Village Council","phone":"814684935"},
+                        {"id":"okahao","name":"OKAHAO DPC","location":"Iteka complex opposite Pep store Okahao - Oshakati main road","phone":"814683963"},
+                        {"id":"nkurenkuru","name":"NKURENKURU DPC","location":"Total Service Station, Next to Oluno Bar - Nkurenkuru","phone":"814684939"},
+                        {"id":"swakopmund","name":"SWAKOPMUND DPC","location":"Opposite Mondesa Usave Swakopmund","phone":"814686806"},
+                        {"id":"hochland-park","name":"HOCHLAND PARK","location":"House No.2 Robin Road, Taubern Glain Street, Next to OK Food Windhoek","phone":"813207195"},
+                        {"id":"rundu","name":"RUNDU DPC","location":"Shop No.6 Fish Building opposite, Dr. Romanus Kampungi Stadium","phone":"814050125"},
+                        {"id":"gobabis","name":"GOBABIS","location":"Shop No. Church Street Woerman Complex Gobabis","phone":"814685905"},
+                        {"id":"walvisbay","name":"WALVISBAY","location":"Shop No.6 Pelican Mall Shop Sam Nujoma Avenue","phone":"814685894"},
+                        {"id":"eenhana","name":"EENHANA","location":"Shop No.3 Tangi Complex, Next to Namibia Funeral Supply, Dimo Amaambo Street Eenhana","phone":"814682049"},
+                        {"id":"otjiwarongo","name":"OTJIWARONGO DPC","location":"Erindi Complex next to Spar","phone":"814681997"}
+                    ];
                 }
-                
-                // Load reports from localStorage if available
-                const savedReports = localStorage.getItem('dynapharm_reports');
-                if (savedReports) {
-                    const parsedReports = JSON.parse(savedReports);
-                    // Merge with existing reports, avoiding duplicates
-                    parsedReports.forEach(savedReport => {
-                        if (!reports.find(r => r.id === savedReport.id)) {
-                            reports.push(savedReport);
-                        }
-                    });
-                }
-                
-                console.log('Using pre-loaded data with localStorage additions:', {
-                    clients: clients.length,
-                    users: users.length,
-                    branches: branches.length,
-                    reports: reports.length
-                });
-                
             } catch (error) {
-                console.error('Error in loadData:', error);
-                // Data is already pre-loaded, so no fallback needed
+                console.error('Error loading data:', error);
+                // Fallback to localStorage using safe parsing
+                clients = safeParseFromStorage('dyna_clients', '[]');
+                users = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+                branches = safeParseFromStorage('dyna_branches', DEFAULT_BRANCHES_JSON);
+                reports = safeParseFromStorage('dyna_reports', '[]');
+                
+                // Ensure users and branches are not empty
+                if (users.length === 0) {
+                    users = JSON.parse(DEFAULT_USERS_JSON);
+                    localStorage.setItem('dyna_users', DEFAULT_USERS_JSON);
+                }
+                if (branches.length === 0) {
+                    branches = JSON.parse(DEFAULT_BRANCHES_JSON);
+                    localStorage.setItem('dyna_branches', DEFAULT_BRANCHES_JSON);
+                }
             }
         }
 
         async function saveData() {
             // This function is kept for compatibility but data is now saved via API calls
             console.log('Data saved via API calls');
-        }
-
-        // Barcode generation function
-        function generateBarcode(text) {
-            // Simple barcode using Code 128 pattern (for demonstration)
-            // In production, you'd use a proper barcode library like JsBarcode
-            const barcodeData = text.replace(/[^A-Za-z0-9]/g, '');
-            const barcode = barcodeData.split('').map((char, index) => {
-                const code = char.charCodeAt(0);
-                return (code % 2 === 0 ? '█' : '▌').repeat(2);
-            }).join('');
-            
-            return `
-                <div style="text-align: center; margin: 10px 0; font-family: monospace; font-size: 12px;">
-                    <div style="background: #000; color: #fff; padding: 5px; letter-spacing: 2px;">${barcode}</div>
-                    <div style="margin-top: 5px; font-size: 10px;">${text}</div>
-                </div>
-            `;
         }
 
         // Global refresh function to update all portals
@@ -3122,56 +2903,15 @@
                         select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
                     });
                     console.log('Populated select:', select.id, 'with', branches.length, 'branches');
-                    
-                    // Restore selected branch from localStorage if available
-                    const savedBranch = localStorage.getItem('dynapharm_selected_branch');
-                    if (savedBranch && branches.find(b => b.id === savedBranch)) {
-                        select.value = savedBranch;
-                        currentBranch = savedBranch;
-                        console.log('Restored branch selection:', savedBranch);
-                    }
                 }
             });
         }
 
         function openTab(tabName) {
-            // Check if portal requires authentication
-            if (tabName === 'admin' || tabName === 'consultant' || tabName === 'dispenser') {
-                if (!currentUser) {
-                    showLogin(tabName);
-                    return;
-                }
-                
-                // Check if user has access to this portal
-                if (tabName === 'admin' && currentUser.role !== 'admin') {
-                    alert('❌ Admin access required');
-                    return;
-                }
-                if (tabName === 'consultant' && currentUser.role !== 'consultant') {
-                    alert('❌ Consultant access required');
-                    return;
-                }
-                if (tabName === 'dispenser' && currentUser.role !== 'dispenser') {
-                    alert('❌ Dispenser access required');
-                    return;
-                }
-            }
-            
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
-            
-            // Load portal-specific data
-            if (tabName === 'consultant' && currentUser) {
-                displayClients();
-                displayFollowUps();
-            } else if (tabName === 'dispenser' && currentUser) {
-                displayPrescriptions();
-            } else if (tabName === 'admin' && currentUser) {
-                loadUserList();
-                loadBranchListAdmin();
-            }
         }
 
         function calculateAge() {
@@ -3334,7 +3074,6 @@
                         <p>${branchName}</p>
                         <p>CLIENT REGISTRATION FORM</p>
                         <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
-                        ${generateBarcode(formData.get('nbNumber') || 'CLIENT-' + Date.now())}
                     </div>
                     
                     <div class="section">
@@ -3550,41 +3289,79 @@
             document.getElementById('password').value = '';
         }
 
-        // Wait for DOM to be ready before attaching event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             
-            // Reload users from storage to get latest data
+            console.log('=== LOGIN DEBUG START ===');
+            console.log('Username:', username, 'Password entered:', password ? '***' : '(empty)');
+            console.log('Current portal:', currentPortal);
+            
+            // Get users directly from localStorage to avoid timing issues
+            let loginUsers = safeParseFromStorage('dyna_users', DEFAULT_USERS_JSON);
+            console.log('Users from localStorage:', loginUsers);
+            
+            // If no users found, try to load from API/fallback
+            if (!loginUsers || loginUsers.length === 0) {
+                console.log('No users in localStorage, loading from API...');
                 await loadData();
+                loginUsers = users;
+                console.log('Users after loadData:', loginUsers);
+            }
             
-            console.log('Login attempt:', username, 'for portal:', currentPortal);
-            console.log('Available users:', users.map(u => ({username: u.username, role: u.role})));
+            console.log('Total users available:', loginUsers ? loginUsers.length : 0);
+            console.log('User names:', loginUsers ? loginUsers.map(u => u.username) : 'none');
             
-            const user = users.find(u => u.username === username && u.password === password);
+            // Try to find the user
+            const user = loginUsers ? loginUsers.find(u => u.username === username && u.password === password) : null;
+            console.log('Found user:', user ? user.username + ' (' + user.role + ')' : 'NOT FOUND');
             
             if (!user) {
+                console.log('=== LOGIN FAILED ===');
                 alert('Invalid username or password');
                 return;
             }
             
+            console.log('User found! Role:', user.role, 'Required portal:', currentPortal);
+            console.log('User details:', JSON.stringify(user, null, 2));
+            
             if (user.role !== currentPortal) {
-                alert(`This user is a ${user.role}, not a ${currentPortal}. Please use the correct portal.`);
-                return;
+                console.log('=== ROLE MISMATCH ===');
+                console.log('DEBUG: Showing content anyway for troubleshooting');
+                // Temporarily allow any role to login to consultant portal for debugging
+                if (currentPortal === 'consultant') {
+                    console.log('DEBUG: Bypassing role check for consultant portal');
+                } else {
+                    alert(`This user is a ${user.role}, not a ${currentPortal}. Please use the correct portal.`);
+                    return;
+                }
             }
+            
+            console.log('=== LOGIN SUCCESS ===');
+            console.log('Displaying content for portal:', currentPortal);
             
             // Login successful
             currentUser = user;
             closeModal('loginModal');
             
-            document.getElementById(currentPortal + 'Auth').style.display = 'none';
-            document.getElementById(currentPortal + 'Content').style.display = 'block';
+            const authElement = document.getElementById(currentPortal + 'Auth');
+            const contentElement = document.getElementById(currentPortal + 'Content');
             
-            // Start real-time synchronization
-            startAutoRefresh();
-            showRealtimeStatus();
+            console.log('Auth element:', authElement, 'Display:', authElement ? authElement.style.display : 'not found');
+            console.log('Content element:', contentElement, 'Display:', contentElement ? contentElement.style.display : 'not found');
+            
+            if (authElement) authElement.style.display = 'none';
+            if (contentElement) contentElement.style.display = 'block';
+            
+            console.log('After update - Auth display:', authElement ? authElement.style.display : 'not found');
+            console.log('After update - Content display:', contentElement ? contentElement.style.display : 'not found');
+            
+            // Start real-time synchronization (delayed to avoid login conflicts)
+            setTimeout(() => {
+                startAutoRefresh();
+                showRealtimeStatus();
+            }, 2000);
             
             const branchName = branches.find(b => b.id === user.branch)?.name || 'Unknown';
             const profile = document.getElementById(currentPortal + 'Profile');
@@ -3613,7 +3390,6 @@
             
             alert(`Welcome, ${user.fullName}! Real-time sync activated.`);
         });
-        }); // End of DOMContentLoaded
 
         function logout() {
             currentUser = null;
@@ -6381,7 +6157,6 @@
                     <div class="header">
                         <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
                         <div class="subtitle">SUMMARY ANALYTIC REPORT CARD</div>
-                        ${generateBarcode(reportId || client.referenceNumber)}
                         <div class="branch-info">${branchName}</div>
                         <div class="branch-info">${branchAddress}</div>
                         <div class="report-date">Report Date: ${new Date().toLocaleDateString('en-GB')}</div>
@@ -6554,9 +6329,8 @@
             await loadData();
             
             const list = document.getElementById('prescriptionList');
-            // Filter only actual reports (with id field) that have prescriptions and sort by latest first
-            const pendingReports = reports.filter(r => r.id && r.prescription && r.medicines)
-                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            // Filter only actual reports (with id field) that have prescriptions
+            const pendingReports = reports.filter(r => r.id && r.prescription && r.medicines);
             
             if (pendingReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>💊 No prescriptions to dispense</h3><p>Prescriptions will appear here once consultants create reports.</p></div>';
@@ -8263,7 +8037,6 @@
                         <p>${branchName}</p>
                         <p>PRESCRIPTION RECEIPT</p>
                         <p>${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'})}</p>
-                        ${generateBarcode(report.id)}
                     </div>
                     
                     <!-- Client Details -->
@@ -8877,7 +8650,6 @@
                         <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
                         <p>DAILY DISPENSING STATEMENT</p>
                         <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
-                        ${generateBarcode('DAILY-' + new Date().toISOString().split('T')[0])}
                     </div>
                     
                     <!-- Summary Statistics -->
@@ -9577,7 +9349,6 @@
                         <div style="font-size: 12pt;">DYNAPHARM NAMIBIA</div>
                         <div style="font-size: 9pt;">PAYMENT RECEIPT</div>
                         <div style="font-size: 8pt;">${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'})}</div>
-                        ${generateBarcode(report.id + '-' + medicine.name)}
                     </div>
                     
                     <div style="margin: 8px 0; font-size: 9pt;">
@@ -9718,18 +9489,17 @@
             }
             
             try {
-                // Add user to local array
+                const result = await apiRequest('/users', 'POST', newUser);
+                if (result.success) {
             users.push(newUser);
-                
-                // Save to localStorage
-                localStorage.setItem('dynapharm_users', JSON.stringify(users));
-                
+            try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
                     alert('✅ User created successfully');
             closeModal('addUserModal');
             this.reset();
-                
-                // Refresh user list
-                loadUserList();
+                    await refreshAllData();
+                } else {
+                    alert('Error creating user: ' + result.message);
+                }
             } catch (error) {
                 console.error('Error creating user:', error);
                 alert('Error creating user. Please try again.');
@@ -9767,22 +9537,23 @@
         async function deleteUser(userId) {
             if (confirm('Delete user?')) {
                 try {
-                    // Remove user from local array
+                    const result = await apiRequest(`/users?id=${userId}`, 'DELETE');
+                    if (result.success) {
                 users = users.filter(u => u.id !== userId);
-                    
-                    // Save to localStorage
-                    localStorage.setItem('dynapharm_users', JSON.stringify(users));
-                    
+                try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
                         alert('✅ User deleted successfully');
-                    
-                    // Refresh user list
-                    loadUserList();
+                        await refreshAllData();
+                    } else {
+                        alert('Error deleting user: ' + result.message);
+                    }
                 } catch (error) {
                     console.error('Error deleting user:', error);
                     alert('Error deleting user. Please try again.');
                 }
             }
         }
+
+        let editingUserId = null;
 
         function editUserBranches(userId) {
             const user = users.find(u => u.id === userId);
@@ -9870,18 +9641,20 @@
             };
 
             try {
+                const result = await apiRequest('/users', 'PUT', updatedUser);
+                if (result.success) {
                     // Update local users array
                     const userIndex = users.findIndex(u => u.id === editingUserId);
                     if (userIndex !== -1) {
                         users[userIndex] = updatedUser;
                     }
-                
-                // Save to localStorage
-                localStorage.setItem('dynapharm_users', JSON.stringify(users));
                     
                     alert('✅ User branches updated successfully');
                     closeModal('editBranchesModal');
                 loadUserList();
+                } else {
+                    alert('Error updating user branches: ' + result.message);
+            }
             } catch (error) {
                 console.error('Error updating user branches:', error);
                 alert('Error updating user branches. Please try again.');
@@ -9909,16 +9682,17 @@
             currentUser.password = formData.get('newPassword');
             
             try {
-                // Update user in local array
+                const result = await apiRequest('/users', 'PUT', currentUser);
+                if (result.success) {
             const index = users.findIndex(u => u.id === currentUser.id);
             users[index] = currentUser;
-                
-                // Save to localStorage
-                localStorage.setItem('dynapharm_users', JSON.stringify(users));
-                
+            try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
                     alert('✅ Password changed successfully');
             closeModal('changePasswordModal');
             this.reset();
+                } else {
+                    alert('Error changing password: ' + result.message);
+                }
             } catch (error) {
                 console.error('Error changing password:', error);
                 alert('Error changing password. Please try again.');
@@ -9934,24 +9708,19 @@
             
             const branch = {
                 id: name.toLowerCase().replace(/\s+/g, '-'),
-                name: name,
-                location: 'Location to be added',
-                phone: 'Phone to be added'
+                name: name
             };
             
             try {
-                // Add branch to local array
+                const result = await apiRequest('/branches', 'POST', branch);
+                if (result.success) {
             branches.push(branch);
-                
-                // Save to localStorage
-                localStorage.setItem('dynapharm_branches', JSON.stringify(branches));
-                
             document.getElementById('newBranchName').value = '';
                     alert('✅ Branch added successfully');
-                
-                // Refresh branch list
-                loadBranchListAdmin();
-                loadBranches(); // Refresh branch selectors
+                    await refreshAllData();
+                } else {
+                    alert('Error adding branch: ' + result.message);
+                }
             } catch (error) {
                 console.error('Error adding branch:', error);
                 alert('Error adding branch. Please try again.');
@@ -9975,240 +9744,19 @@
         async function deleteBranch(branchId) {
             if (confirm('Delete branch?')) {
                 try {
-                    // Remove branch from local array
+                    const result = await apiRequest(`/branches?id=${branchId}`, 'DELETE');
+                    if (result.success) {
                 branches = branches.filter(b => b.id !== branchId);
-                    
-                    // Save to localStorage
-                    localStorage.setItem('dynapharm_branches', JSON.stringify(branches));
-                    
                         alert('✅ Branch deleted successfully');
-                    
-                    // Refresh branch list and selectors
-                    loadBranchListAdmin();
-                    loadBranches();
+                        await refreshAllData();
+                    } else {
+                        alert('Error deleting branch: ' + result.message);
+                    }
                 } catch (error) {
                     console.error('Error deleting branch:', error);
                     alert('Error deleting branch. Please try again.');
                 }
             }
-        }
-
-        async function displayClients() {
-            const list = document.getElementById('clientList');
-            if (!list) return;
-            
-            list.innerHTML = '';
-            clients.forEach(client => {
-                const card = document.createElement('div');
-                card.className = 'client-card';
-                card.innerHTML = `
-                    <h4>${client.fullName}</h4>
-                    <p>Reference: ${client.referenceNumber}</p>
-                    <p>Phone: ${client.phone}</p>
-                    <p>Branch: ${client.branch}</p>
-                    <button class="btn btn-primary" onclick="createReport('${client.referenceNumber}')">Create Report</button>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        async function displayFollowUps() {
-            const list = document.getElementById('followUpList');
-            if (!list) return;
-            
-            // Filter clients with follow-up dates
-            const followUpClients = clients.filter(client => {
-                const followUpDate = client.followUpDate;
-                if (!followUpDate) return false;
-                const followUp = new Date(followUpDate);
-                const today = new Date();
-                const diffTime = followUp - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7 && diffDays >= -1; // Within 7 days or overdue
-            });
-            
-            if (followUpClients.length === 0) {
-                list.innerHTML = '<div style="text-align: center; padding: 20px; color: #7f8c8d;"><h3>📅 No follow-ups due</h3><p>All clients are up to date with their appointments.</p></div>';
-                return;
-            }
-            
-            list.innerHTML = '';
-            followUpClients.forEach(client => {
-                const followUpDate = new Date(client.followUpDate);
-                const today = new Date();
-                const diffTime = followUpDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                const card = document.createElement('div');
-                card.className = 'client-card';
-                card.style.borderLeft = diffDays < 0 ? '4px solid #e74c3c' : '4px solid #f39c12';
-                
-                card.innerHTML = `
-                    <h4>${client.fullName}</h4>
-                    <p>Reference: ${client.referenceNumber}</p>
-                    <p>Phone: ${client.phone}</p>
-                    <p>Follow-up: ${followUpDate.toLocaleDateString()}</p>
-                    <p style="color: ${diffDays < 0 ? '#e74c3c' : '#f39c12'}; font-weight: bold;">
-                        ${diffDays < 0 ? '⚠️ Overdue' : diffDays === 0 ? '📅 Today' : `📅 In ${diffDays} days`}
-                    </p>
-                    <button class="btn btn-primary" onclick="createReport('${client.referenceNumber}')">Create Report</button>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        async function saveReport() {
-            try {
-                // Get selected medicines
-                const selectedMeds = [];
-                document.querySelectorAll('#medicineGrid input:checked').forEach(cb => {
-                    selectedMeds.push(cb.value);
-                });
-                
-                if (selectedMeds.length === 0) {
-                    alert('Please select at least one medicine');
-                    return;
-                }
-                
-                // Get consultant notes and follow-up
-                const consultantNotes = document.getElementById('consultantNotes').value;
-                const followUpDate = document.getElementById('followUpDate').value;
-                const followUpNotes = document.getElementById('followUpNotes').value;
-                
-                // Create report object
-                const report = {
-                    id: 'RPT' + Date.now(),
-                    clientId: currentClientId,
-                    consultant: currentUser.fullName,
-                    medicines: selectedMeds.map(med => ({
-                        name: med,
-                        dispensed: false,
-                        paid: false
-                    })),
-                    consultantNotes: consultantNotes,
-                    followUpDate: followUpDate,
-                    followUpNotes: followUpNotes,
-                    timestamp: new Date().toISOString(),
-                    prescription: true
-                };
-                
-                // Add to reports array
-                reports.push(report);
-                
-                // Save to localStorage
-                localStorage.setItem('dynapharm_reports', JSON.stringify(reports));
-                
-                alert('✅ Report saved successfully');
-                closeModal('reportModal');
-                
-                // Refresh consultant portal
-                await displayClients();
-                await displayFollowUps();
-                
-            } catch (error) {
-                console.error('Error saving report:', error);
-                alert('Error saving report. Please try again.');
-            }
-        }
-
-        function showLogin(portal) {
-            currentPortal = portal;
-            document.getElementById('loginModal').style.display = 'block';
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // Find user in the users array
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (user) {
-                currentUser = user;
-                
-                // Check if user has access to the requested portal
-                if (currentPortal === 'admin' && user.role !== 'admin') {
-                    alert('❌ Admin access required');
-                    return;
-                }
-                
-                if (currentPortal === 'consultant' && user.role !== 'consultant') {
-                    alert('❌ Consultant access required');
-                    return;
-                }
-                
-                if (currentPortal === 'dispenser' && user.role !== 'dispenser') {
-                    alert('❌ Dispenser access required');
-                    return;
-                }
-                
-                // Hide login modal
-                closeModal('loginModal');
-                
-                // Show the appropriate portal
-                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
-                
-                if (currentPortal === 'admin') {
-                    document.getElementById('admin').classList.add('active');
-                    document.querySelector('button[onclick="openTab(\'admin\')"]').classList.add('active');
-                    document.getElementById('adminAuth').style.display = 'none';
-                    document.getElementById('adminContent').style.display = 'block';
-                    loadUserList();
-                    loadBranchListAdmin();
-                } else if (currentPortal === 'consultant') {
-                    document.getElementById('consultant').classList.add('active');
-                    document.querySelector('button[onclick="openTab(\'consultant\')"]').classList.add('active');
-                    await displayClients();
-                    await displayFollowUps();
-                } else if (currentPortal === 'dispenser') {
-                    document.getElementById('dispenser').classList.add('active');
-                    document.querySelector('button[onclick="openTab(\'dispenser\')"]').classList.add('active');
-                    await displayPrescriptions();
-                }
-                
-                // Show user info in header
-                document.getElementById('userInfo').style.display = 'flex';
-                document.getElementById('currentUserName').textContent = user.fullName;
-                
-                // Start auto-refresh
-                startAutoRefresh();
-                
-                alert(`✅ Welcome, ${user.fullName}!`);
-                
-            } else {
-                alert('❌ Invalid username or password');
-            }
-            
-            // Clear form
-            this.reset();
-        });
-
-        function logout() {
-            currentUser = null;
-            currentPortal = '';
-            
-            // Hide user info
-            document.getElementById('userInfo').style.display = 'none';
-            
-            // Stop auto-refresh
-            stopAutoRefresh();
-            
-            // Hide all portal content
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
-            
-            // Show login prompts
-            document.getElementById('adminAuth').style.display = 'block';
-            document.getElementById('adminContent').style.display = 'none';
-            
-            // Show client registration by default
-            document.getElementById('client').classList.add('active');
-            document.querySelector('button[onclick="openTab(\'client\')"]').classList.add('active');
-            
-            alert('👋 Logged out successfully');
         }
 
         function closeModal(modalId) {
