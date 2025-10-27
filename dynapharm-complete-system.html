@@ -2753,6 +2753,31 @@
                     branches = JSON.parse(DEFAULT_BRANCHES_JSON);
                     localStorage.setItem('dyna_branches', DEFAULT_BRANCHES_JSON);
                 }
+                
+                // Auto-extract clients from reports if clients array is empty
+                if (clients.length === 0 && reports.length > 0) {
+                    console.log('📋 No clients found, extracting from reports...');
+                    const extractedClients = [];
+                    
+                    reports.forEach(report => {
+                        if (!report.clientInfo || !report.clientId) return;
+                        
+                        const exists = extractedClients.find(c => c.referenceNumber === report.clientId);
+                        if (!exists) {
+                            extractedClients.push({
+                                referenceNumber: report.clientId,
+                                fullName: report.clientInfo.fullName,
+                                phone: report.clientInfo.phone || '',
+                                email: report.clientInfo.email || '',
+                                nbNumber: report.clientInfo.nbNumber || ''
+                            });
+                        }
+                    });
+                    
+                    clients = extractedClients;
+                    localStorage.setItem('dyna_clients', JSON.stringify(clients));
+                    console.log(`✅ Extracted ${clients.length} clients from reports`);
+                }
             }
         }
 
