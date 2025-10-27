@@ -69,6 +69,8 @@
         .tab-button.active { background: white; color: #c41e3a; font-weight: bold; }
         .tab-content { padding: 30px; display: none; }
         .tab-content.active { display: block; }
+        .stock-tab-content { padding: 20px; display: none; }
+        .stock-tab-content.active { display: block; }
         .form-section {
             margin-bottom: 20px;
             padding: 20px;
@@ -870,6 +872,8 @@
             <button class="tab-button active" onclick="openTab('client')">Client Registration</button>
             <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
+            <button class="tab-button" onclick="openTab('mis')">MIS Portal</button>
+            <button class="tab-button" onclick="openTab('stock')">Stock Management</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
         </div>
 
@@ -1639,6 +1643,82 @@
                     <div id="biDisplay"></div>
                 </div>
                 
+                <!-- Unified Sales Dashboard -->
+                <div class="form-section" style="margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 Unified Sales Dashboard</h3>
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <select id="salesTimeframe" onchange="refreshUnifiedSales()" style="padding: 10px; margin-right: 10px;">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <button class="btn btn-success" onclick="refreshUnifiedSales()">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="printUnifiedSales()">🖨️ Print Report</button>
+                        <button class="btn btn-info" onclick="exportUnifiedSales()">📥 Export Excel</button>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db; text-align: center;">
+                            <h3 id="totalSales" style="color: #3498db; font-size: 28pt; margin-bottom: 5px;">0</h3>
+                            <p style="color: #666; font-size: 0.9rem;">Total Sales (N$)</p>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60; text-align: center;">
+                            <h3 id="totalBV" style="color: #27ae60; font-size: 28pt; margin-bottom: 5px;">0</h3>
+                            <p style="color: #666; font-size: 0.9rem;">Total BV Points</p>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #e74c3c; text-align: center;">
+                            <h3 id="walkInCount" style="color: #e74c3c; font-size: 28pt; margin-bottom: 5px;">0</h3>
+                            <p style="color: #666; font-size: 0.9rem;">Walk-in Sales</p>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #f39c12; text-align: center;">
+                            <h3 id="prescriptionCount" style="color: #f39c12; font-size: 28pt; margin-bottom: 5px;">0</h3>
+                            <p style="color: #666; font-size: 0.9rem;">Prescriptions</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Type Breakdown -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ddd;">
+                            <h4 style="color: #2c3e50; margin-bottom: 15px;">💼 Customer Type Sales</h4>
+                            <div style="margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Distributor Sales:</span>
+                                    <strong id="distributorSales" style="color: #27ae60;">N$ 0.00</strong>
+                                </div>
+                                <div style="background: #e8f5e9; height: 10px; border-radius: 5px;">
+                                    <div id="distributorBar" style="background: #27ae60; height: 100%; width: 0%; border-radius: 5px;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Customer Sales:</span>
+                                    <strong id="customerSales" style="color: #f39c12;">N$ 0.00</strong>
+                                </div>
+                                <div style="background: #fff3cd; height: 10px; border-radius: 5px;">
+                                    <div id="customerBar" style="background: #f39c12; height: 100%; width: 0%; border-radius: 5px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ddd;">
+                            <h4 style="color: #2c3e50; margin-bottom: 15px;">👥 Top Distributors</h4>
+                            <div id="topDistributors" style="max-height: 200px; overflow-y: auto;">
+                                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Sales Table -->
+                    <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ddd;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">📋 Detailed Sales Breakdown</h4>
+                        <div id="unifiedSalesDetail" style="max-height: 400px; overflow-y: auto;">
+                            <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading sales data...</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Price List Section -->
                 <div class="form-section" style="margin-top: 30px;">
                     <h3>💰 Official Price List - June 2025</h3>
@@ -1648,6 +1728,261 @@
                         <button class="btn btn-success" onclick="printPriceList()">🖨️ Print Price List</button>
                     </div>
                     <div id="priceList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock & Inventory Management Portal -->
+        <div id="stock" class="tab-content">
+            <div id="stockAuth">
+                <div class="portal-header">
+                    <h2>📦 Stock & Inventory Management</h2>
+                    <p>Manage stock receiving, warehouses, and distribution</p>
+                </div>
+                <div style="text-align: center; padding: 40px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access stock management portal</p>
+                    <button class="btn" onclick="showLogin('stock')">🔐 Login</button>
+                </div>
+            </div>
+            <div id="stockContent" style="display: none;">
+                <div class="user-profile" id="stockProfile"></div>
+                
+                <div class="portal-header">
+                    <h2>📦 Stock & Inventory Management Portal</h2>
+                    <p>Manage country stock, warehouse inventory, and branch distribution</p>
+                    <button class="btn btn-primary" onclick="refreshAllData()" style="margin-top: 10px;">🔄 Refresh Data</button>
+                </div>
+                
+                <!-- Stock Management Tabs -->
+                <div class="tabs" style="margin-top: 20px;">
+                    <button class="tab-button active" onclick="showStockTab('countryStock')">🌍 Country Stock</button>
+                    <button class="tab-button" onclick="showStockTab('windhoek')">🏢 Windhoek Warehouse</button>
+                    <button class="tab-button" onclick="showStockTab('ondangwa')">🏢 Ondangwa Warehouse</button>
+                    <button class="tab-button" onclick="showStockTab('distribution')">🚚 Distribution</button>
+                </div>
+                
+                <!-- Country Stock Tab -->
+                <div id="countryStockTab" class="stock-tab-content" style="display: block;">
+                    <div class="form-section">
+                        <h3>📥 Receive Country Stock</h3>
+                        <form id="receiveStockForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Product Name</label>
+                                    <input type="text" id="stockProductName" placeholder="Enter product name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Product Code/SKU</label>
+                                    <input type="text" id="stockProductCode" placeholder="e.g. PROD-001" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Category</label>
+                                    <select id="stockCategory" required>
+                                        <option value="">Select Category</option>
+                                        <option value="supplements">Supplements</option>
+                                        <option value="vitamins">Vitamins</option>
+                                        <option value="herbs">Herbs</option>
+                                        <option value="equipment">Equipment</option>
+                                        <option value="personal-care">Personal Care</option>
+                                        <option value="food-items">Food Items</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Quantity Received</label>
+                                    <input type="number" id="stockQuantity" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Unit</label>
+                                    <select id="stockUnit" required>
+                                        <option value="units">Units</option>
+                                        <option value="boxes">Boxes</option>
+                                        <option value="bottles">Bottles</option>
+                                        <option value="packets">Packets</option>
+                                        <option value="kg">Kilograms</option>
+                                        <option value="liters">Liters</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Batch Number</label>
+                                    <input type="text" id="stockBatchNumber" placeholder="Batch/Lot number" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Expiry Date</label>
+                                    <input type="date" id="stockExpiryDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Supplier</label>
+                                    <input type="text" id="stockSupplier" placeholder="Supplier name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cost per Unit (N$)</label>
+                                    <input type="number" id="stockCost" step="0.01" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Notes</label>
+                                    <textarea id="stockNotes" rows="2" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">📥 Receive Stock</button>
+                                <button type="button" class="btn" onclick="clearStockForm()">Clear Form</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>📊 Country Stock Inventory</h3>
+                        <div class="search-box">
+                            <input type="text" id="countryStockSearch" placeholder="Search products..." onkeyup="searchCountryStock()">
+                            <button class="btn btn-success" onclick="displayCountryStock()">Refresh</button>
+                        </div>
+                        <div id="countryStockList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Windhoek Warehouse Tab -->
+                <div id="windhoekTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>🏢 Windhoek Warehouse - Transfer Stock</h3>
+                        <form id="transferToWindhoekForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Source</label>
+                                    <select id="windhoekSource" required>
+                                        <option value="country">Country Stock</option>
+                                        <option value="ondangwa">Ondangwa Warehouse</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Product</label>
+                                    <select id="windhoekProduct" required>
+                                        <option value="">Select Product</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Quantity</label>
+                                    <input type="number" id="windhoekQuantity" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Notes</label>
+                                    <textarea id="windhoekNotes" rows="2" placeholder="Transfer notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">📤 Transfer to Windhoek</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>📦 Windhoek Warehouse Inventory</h3>
+                        <div class="search-box">
+                            <input type="text" id="windhoekSearch" placeholder="Search products..." onkeyup="searchWindhoekStock()">
+                            <button class="btn btn-success" onclick="displayWindhoekStock()">Refresh</button>
+                            <button class="btn btn-warning" onclick="showLowStockWindhoek()">⚠️ Low Stock Alert</button>
+                        </div>
+                        <div id="windhoekStockList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Ondangwa Warehouse Tab -->
+                <div id="ondangwaTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>🏢 Ondangwa Warehouse - Transfer Stock</h3>
+                        <form id="transferToOndangwaForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Source</label>
+                                    <select id="ondangwaSource" required>
+                                        <option value="country">Country Stock</option>
+                                        <option value="windhoek">Windhoek Warehouse</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Product</label>
+                                    <select id="ondangwaProduct" required>
+                                        <option value="">Select Product</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Quantity</label>
+                                    <input type="number" id="ondangwaQuantity" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Notes</label>
+                                    <textarea id="ondangwaNotes" rows="2" placeholder="Transfer notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">📤 Transfer to Ondangwa</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>📦 Ondangwa Warehouse Inventory</h3>
+                        <div class="search-box">
+                            <input type="text" id="ondangwaSearch" placeholder="Search products..." onkeyup="searchOndangwaStock()">
+                            <button class="btn btn-success" onclick="displayOndangwaStock()">Refresh</button>
+                            <button class="btn btn-warning" onclick="showLowStockOndangwa()">⚠️ Low Stock Alert</button>
+                        </div>
+                        <div id="ondangwaStockList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Distribution Tab -->
+                <div id="distributionTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>🚚 Distribute Stock to Branches</h3>
+                        <form id="distributeStockForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">From Warehouse</label>
+                                    <select id="distributionWarehouse" required>
+                                        <option value="">Select Warehouse</option>
+                                        <option value="windhoek">Windhoek Warehouse</option>
+                                        <option value="ondangwa">Ondangwa Warehouse</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">To Branch</label>
+                                    <select id="distributionBranch" required>
+                                        <option value="">Select Branch</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Product</label>
+                                    <select id="distributionProduct" required>
+                                        <option value="">Select Product</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Quantity</label>
+                                    <input type="number" id="distributionQuantity" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" id="distributionDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Notes</label>
+                                    <textarea id="distributionNotes" rows="2" placeholder="Distribution notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">🚚 Distribute to Branch</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>📋 Distribution History</h3>
+                        <div class="search-box">
+                            <input type="text" id="distributionSearch" placeholder="Search distributions..." onkeyup="searchDistribution()">
+                            <button class="btn btn-success" onclick="displayDistributionHistory()">Refresh</button>
+                        </div>
+                        <div id="distributionHistoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
                     </div>
                 </div>
             </div>
@@ -1733,6 +2068,44 @@
                         <button class="btn btn-primary" onclick="printInventoryReport()">🖨️ Print Report</button>
                     </div>
                     <div id="inventoryList" style="max-height: 500px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIS Portal -->
+        <div id="mis" class="tab-content">
+            <h2>📊 MIS Portal - Sales Receipt Management</h2>
+            
+            <div class="form-section">
+                <h3>Branch & Search Filters</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Select Branch</label>
+                        <select id="misBranchSelect" onchange="filterMISReports()" style="padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 5px;">
+                            <option value="all">All Branches</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Search by Name or NB Number</label>
+                        <input type="text" id="misSearchInput" placeholder="Type name or NB number..." onkeyup="filterMISReports()" style="padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 5px;">
+                    </div>
+                </div>
+                <div style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
+                    <strong>📊 Summary:</strong>
+                    <span id="misTotalCount" style="margin-left: 10px;">Total Records: 0</span>
+                    <span id="misBranchSummary" style="margin-left: 20px;">Branch Breakdown: Loading...</span>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Sales Receipts List</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-info" onclick="exportMISData()">📥 Export to Excel</button>
+                    <button class="btn btn-success" onclick="refreshMISData()">🔄 Refresh Data</button>
+                    <button class="btn btn-primary" onclick="printMISReport()">🖨️ Print Report</button>
+                </div>
+                <div id="misReportsDisplay" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
+                    <p style="text-align: center; color: #7f8c8d;">Loading sales receipts...</p>
                 </div>
             </div>
         </div>
@@ -2147,7 +2520,7 @@
             }
         }
 
-        const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"walker33","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR1759829667953","username":"moses","password":"walker33","fullName":"MOSES MUKISA","email":"mosesmukisa1@gmail.com","phone":"0817317160","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:34:27.953Z"},{"id":"USR1759829814781","username":"Geneva","password":"Pearl_11","fullName":"Jennifer Joseph","email":"shange1124@gmail.com","phone":"0852803618","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:36:54.781Z"},{"id":"USR1759830625722","username":"NAEM","password":"PASSWORD","fullName":"NAEM HANGULA","email":"naemhangula4@gmail.com","phone":"0817499757","role":"dispenser","branch":"townshop","branches":["townshop"],"createdAt":"2025-10-07T09:50:25.722Z"},{"id":"USR1759928153488","username":"GEINGOS","password":"ALBERTO99","fullName":"HILMA C","email":"geingoshilma@gmail","phone":"0814137106","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-08T12:55:53.488Z"}]';
+        const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"walker33","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR1759829667953","username":"moses","password":"walker33","fullName":"MOSES MUKISA","email":"mosesmukisa1@gmail.com","phone":"0817317160","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:34:27.953Z"},{"id":"USR1759829814781","username":"Geneva","password":"Pearl_11","fullName":"Jennifer Joseph","email":"shange1124@gmail.com","phone":"0852803618","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:36:54.781Z"},{"id":"USR1759830625722","username":"NAEM","password":"PASSWORD","fullName":"NAEM HANGULA","email":"naemhangula4@gmail.com","phone":"0817499757","role":"dispenser","branch":"townshop","branches":["townshop"],"createdAt":"2025-10-07T09:50:25.722Z"},{"id":"USR1759928153488","username":"GEINGOS","password":"ALBERTO99","fullName":"HILMA C","email":"geingoshilma@gmail","phone":"0814137106","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-08T12:55:53.488Z"},{"id":"USR2000000000001","username":"stock","password":"stock123","fullName":"Stock Manager","email":"stock@dynapharm.com.na","phone":"0812000000","role":"stock","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"}]';
 
         const DEFAULT_BRANCHES_JSON = '[{"id":"townshop","name":"TOWNSHOP (Head Office)","location":"Shop No.1 Continental Building Independence Avenue - Windhoek","phone":"814683999"},{"id":"khomasdal","name":"KHOMASDAL DPC","location":"Shop No.2 Khomasdal Funky Town - Windhoek","phone":"814682991"},{"id":"katima","name":"KATIMA DPC","location":"Opposite Open Market Hospital Road, Katima","phone":"817375818"},{"id":"outapi","name":"OUTAPI DPC","location":"Okasilili Location in Christmas Building, Next Tolemeka Garage Main Road Oshakati - Outapi","phone":"814685886"},{"id":"ondangwa","name":"ONDANGWA DPC","location":"Shop No.3 Woerman Block Oluno, Opposite Fresco, Cash and Carry Entrance Ondangwa","phone":"814685882"},{"id":"okongo","name":"OKONGO DPC","location":"Handongo Festus Erf 333 Okongo Village Council","phone":"814684935"},{"id":"okahao","name":"OKAHAO DPC","location":"Iteka complex opposite Pep store Okahao - Oshakati main road","phone":"814683963"},{"id":"nkurenkuru","name":"NKURENKURU DPC","location":"Total Service Station, Next to Oluno Bar - Nkurenkuru","phone":"814684939"},{"id":"swakopmund","name":"SWAKOPMUND DPC","location":"Opposite Mondesa Usave Swakopmund","phone":"814686806"},{"id":"hochland-park","name":"HOCHLAND PARK","location":"House No.2 Robin Road, Taubern Glain Street, Next to OK Food Windhoek","phone":"813207195"},{"id":"rundu","name":"RUNDU DPC","location":"Shop No.6 Fish Building opposite, Dr. Romanus Kampungi Stadium","phone":"814050125"},{"id":"gobabis","name":"GOBABIS","location":"Shop No. Church Street Woerman Complex Gobabis","phone":"814685905"},{"id":"walvisbay","name":"WALVISBAY","location":"Shop No.6 Pelican Mall Shop Sam Nujoma Avenue","phone":"814685894"},{"id":"eenhana","name":"EENHANA","location":"Shop No.3 Tangi Complex, Next to Namibia Funeral Supply, Dimo Amaambo Street Eenhana","phone":"814682049"},{"id":"otjiwarongo","name":"OTJIWARONGO DPC","location":"Erindi Complex next to Spar","phone":"814681997"}]';
 
@@ -2977,6 +3350,11 @@
                     await displayFollowUps();
                 } else if (currentPortal === 'dispenser') {
                     await displayPrescriptions();
+                } else if (currentPortal === 'stock') {
+                    displayCountryStock();
+                    displayWindhoekStock();
+                    displayOndangwaStock();
+                    displayDistributionHistory();
                 } else if (currentPortal === 'admin') {
                     loadUserList();
                     loadBranchListAdmin();
@@ -3126,6 +3504,182 @@
             document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
+            
+            // Initialize MIS Portal when opening the tab
+            if (tabName === 'mis') {
+                initializeMISPortal();
+            }
+        }
+
+        // MIS Portal Functions
+        function initializeMISPortal() {
+            loadMISBranches();
+            displayMISReports();
+        }
+
+        function loadMISBranches() {
+            const branchSelect = document.getElementById('misBranchSelect');
+            if (!branchSelect) return;
+            
+            // Clear existing options except "All Branches"
+            branchSelect.innerHTML = '<option value="all">All Branches</option>';
+            
+            // Add branches
+            branches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = branch.name;
+                branchSelect.appendChild(option);
+            });
+        }
+
+        function filterMISReports() {
+            const branchId = document.getElementById('misBranchSelect')?.value || 'all';
+            const searchTerm = document.getElementById('misSearchInput')?.value?.toLowerCase() || '';
+            
+            let filteredReports = reports.filter(report => {
+                // Filter by branch (if branch is specified in report data)
+                // For now, we'll show all reports since they don't have branch info
+                
+                // Filter by search term (name or NB number)
+                if (searchTerm) {
+                    const name = report.clientInfo?.fullName?.toLowerCase() || '';
+                    const nbNumber = report.clientInfo?.nbNumber?.toLowerCase() || '';
+                    const receiptId = report.id?.toLowerCase() || '';
+                    
+                    return name.includes(searchTerm) || nbNumber.includes(searchTerm) || receiptId.includes(searchTerm);
+                }
+                
+                return true;
+            });
+            
+            displayMISReportsTable(filteredReports);
+            updateMISSummary(filteredReports);
+        }
+
+        function displayMISReports() {
+            displayMISReportsTable(reports);
+            updateMISSummary(reports);
+        }
+
+        function displayMISReportsTable(reportsToDisplay) {
+            const displayDiv = document.getElementById('misReportsDisplay');
+            if (!displayDiv) return;
+            
+            if (reportsToDisplay.length === 0) {
+                displayDiv.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No sales receipts found.</p>';
+                return;
+            }
+            
+            let html = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #c41e3a; color: white;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Receipt ID</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Client Name</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">NB Number</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Phone</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Consultant</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            reportsToDisplay.forEach((report, index) => {
+                const date = new Date(report.timestamp).toLocaleDateString('en-GB');
+                const totalAmount = calculateReportTotal(report);
+                
+                const rowColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                
+                html += `
+                    <tr style="background: ${rowColor};">
+                        <td style="padding: 10px; border: 1px solid #ddd;">${report.id}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.fullName || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.nbNumber || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.phone || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${report.consultant || 'N/A'}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${date}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">N$${totalAmount.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            displayDiv.innerHTML = html;
+        }
+
+        function calculateReportTotal(report) {
+            if (!report.medicines || report.medicines.length === 0) return 0;
+            
+            return report.medicines.reduce((total, med) => {
+                if (med.currentPrice) {
+                    return total + (med.currentPrice.cp || 0);
+                }
+                return total;
+            }, 0);
+        }
+
+        function updateMISSummary(reportsToDisplay) {
+            const totalCount = document.getElementById('misTotalCount');
+            const branchSummary = document.getElementById('misBranchSummary');
+            
+            if (totalCount) {
+                totalCount.textContent = `Total Records: ${reportsToDisplay.length}`;
+            }
+            
+            if (branchSummary) {
+                // Calculate branch breakdown (for now, show total since branches aren't in report data)
+                branchSummary.textContent = `Showing ${reportsToDisplay.length} receipt(s)`;
+            }
+        }
+
+        function refreshMISData() {
+            refreshAllData().then(() => {
+                displayMISReports();
+                alert('MIS data refreshed successfully!');
+            });
+        }
+
+        function exportMISData() {
+            const csv = convertReportsToCSV(reports);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MIS_Sales_Receipts_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function convertReportsToCSV(reportsData) {
+            let csv = 'Receipt ID,Date,Client Name,NB Number,Phone,Email,Consultant,Total Amount,Medicines\n';
+            
+            reportsData.forEach(report => {
+                const date = new Date(report.timestamp).toLocaleDateString('en-GB');
+                const totalAmount = calculateReportTotal(report);
+                const medicinesList = report.medicines?.map(m => m.name).join('; ') || 'N/A';
+                
+                csv += `"${report.id}",`;
+                csv += `"${date}",`;
+                csv += `"${report.clientInfo?.fullName || 'N/A'}",`;
+                csv += `"${report.clientInfo?.nbNumber || 'N/A'}",`;
+                csv += `"${report.clientInfo?.phone || 'N/A'}",`;
+                csv += `"${report.clientInfo?.email || 'N/A'}",`;
+                csv += `"${report.consultant || 'N/A'}",`;
+                csv += `"N$${totalAmount.toFixed(2)}",`;
+                csv += `"${medicinesList}"\n`;
+            });
+            
+            return csv;
+        }
+
+        function printMISReport() {
+            window.print();
         }
 
         function calculateAge() {
@@ -3596,6 +4150,7 @@
             if (currentPortal === 'dispenser') {
                 displayPrescriptions();
                 displayPriceList();
+                setTimeout(() => refreshUnifiedSales(), 500); // Load unified sales after UI is ready
             }
             if (currentPortal === 'admin') {
                 loadUserList();
@@ -7063,6 +7618,7 @@
             refreshBusinessIntelligence();
             displayCashDrawerStatus();
             refreshWalkInSalesList();
+            refreshUnifiedSales(); // Add unified sales dashboard
         }
 
         function displayCashDrawerStatus() {
@@ -7549,6 +8105,204 @@
             printWindow.print();
         }
 
+        // ========== Unified Sales Dashboard Functions ==========
+        
+        function refreshUnifiedSales() {
+            const timeframe = document.getElementById('salesTimeframe')?.value || 'month';
+            
+            // Get all sales data
+            const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const reports = JSON.parse(localStorage.getItem('dyna_reports') || '[]');
+            
+            // Calculate date range based on timeframe
+            let startDate = new Date();
+            switch(timeframe) {
+                case 'today':
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'week':
+                    startDate.setDate(startDate.getDate() - 7);
+                    break;
+                case 'month':
+                    startDate.setMonth(startDate.getMonth() - 1);
+                    break;
+                case 'all':
+                    startDate = new Date(0); // Start of epoch
+                    break;
+            }
+            
+            // Filter walk-in sales
+            const filteredWalkInSales = walkInSales.filter(sale => {
+                const saleDate = new Date(sale.timestamp);
+                return saleDate >= startDate;
+            });
+            
+            // Filter prescription sales (paid items only)
+            let prescriptionSales = [];
+            reports.forEach(report => {
+                if (!report.medicines || !report.medicines.length) return;
+                
+                report.medicines.forEach(med => {
+                    if (med.paid && med.amountPaid) {
+                        const paidDate = new Date(med.paidAt || report.createdAt);
+                        if (paidDate >= startDate) {
+                            prescriptionSales.push({
+                                id: report.id,
+                                customerName: report.clientName || 'Unknown',
+                                distributorReferral: report.distributorReferral || { name: 'N/A', id: 'N/A' },
+                                productName: med.name,
+                                quantity: med.quantity || 1,
+                                price: med.price || med.amountPaid,
+                                totalAmount: med.amountPaid,
+                                bv: med.bv || 0,
+                                type: 'prescription',
+                                saleDate: paidDate,
+                                soldBy: med.paidBy || 'Unknown',
+                                branch: report.branch || 'Unknown'
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Aggregate data
+            let totalSales = 0;
+            let totalBV = 0;
+            let distributorSales = 0;
+            let customerSales = 0;
+            
+            filteredWalkInSales.forEach(sale => {
+                totalSales += sale.total;
+                totalBV += sale.totalBV || 0;
+                if (sale.customerType === 'distributor') {
+                    distributorSales += sale.total;
+                } else {
+                    customerSales += sale.total;
+                }
+            });
+            
+            prescriptionSales.forEach(sale => {
+                totalSales += sale.totalAmount;
+                totalBV += sale.bv * sale.quantity;
+                customerSales += sale.totalAmount; // Prescriptions are always customer sales
+            });
+            
+            // Update summary cards
+            document.getElementById('totalSales').textContent = `N$ ${totalSales.toFixed(2)}`;
+            document.getElementById('totalBV').textContent = totalBV.toFixed(0);
+            document.getElementById('walkInCount').textContent = filteredWalkInSales.length;
+            document.getElementById('prescriptionCount').textContent = prescriptionSales.length;
+            
+            // Update customer type breakdown
+            document.getElementById('distributorSales').textContent = `N$ ${distributorSales.toFixed(2)}`;
+            document.getElementById('customerSales').textContent = `N$ ${customerSales.toFixed(2)}`;
+            
+            const totalCustSales = distributorSales + customerSales;
+            const distributorPercentage = totalCustSales > 0 ? (distributorSales / totalCustSales * 100) : 0;
+            const customerPercentage = totalCustSales > 0 ? (customerSales / totalCustSales * 100) : 0;
+            
+            document.getElementById('distributorBar').style.width = distributorPercentage + '%';
+            document.getElementById('customerBar').style.width = customerPercentage + '%';
+            
+            // Top distributors
+            const distributorMap = new Map();
+            [...filteredWalkInSales, ...prescriptionSales].forEach(sale => {
+                const distName = sale.distributorReferral?.name || 'N/A';
+                const current = distributorMap.get(distName) || { sales: 0, bv: 0 };
+                current.sales += sale.total || sale.totalAmount || 0;
+                current.bv += sale.totalBV || (sale.bv * sale.quantity) || 0;
+                distributorMap.set(distName, current);
+            });
+            
+            const topDistributors = Array.from(distributorMap.entries())
+                .sort((a, b) => b[1].sales - a[1].sales)
+                .slice(0, 5);
+            
+            document.getElementById('topDistributors').innerHTML = topDistributors.length > 0
+                ? topDistributors.map(([name, data]) => `
+                    <div style="padding: 8px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                        <span style="font-weight: 500;">${name}</span>
+                        <span style="color: #27ae60;">N$ ${data.sales.toFixed(2)}</span>
+                    </div>
+                `).join('')
+                : '<p style="text-align: center; color: #7f8c8d; padding: 10px;">No distributor sales</p>';
+            
+            // Detailed sales breakdown
+            const allSales = [
+                ...filteredWalkInSales.map(sale => ({
+                    ...sale,
+                    type: 'walkin',
+                    saleDate: new Date(sale.timestamp)
+                })),
+                ...prescriptionSales
+            ].sort((a, b) => b.saleDate - a.saleDate);
+            
+            document.getElementById('unifiedSalesDetail').innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Date</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Type</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Customer</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Referrer</th>
+                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Amount</th>
+                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">BV</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Sold By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allSales.slice(0, 50).map(sale => `
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 8px;">${sale.saleDate.toLocaleDateString('en-GB')}</td>
+                                <td style="padding: 8px;">
+                                    <span style="padding: 3px 8px; border-radius: 3px; font-size: 0.8rem; background: ${sale.type === 'walkin' ? '#fff3cd' : '#e8f5e9'};">
+                                        ${sale.type === 'walkin' ? '🛒 Walk-in' : '💊 Prescription'}
+                                    </span>
+                                </td>
+                                <td style="padding: 8px;">${sale.customerName || 'N/A'}</td>
+                                <td style="padding: 8px; font-size: 0.85rem;">${sale.distributorReferral?.name || 'N/A'}</td>
+                                <td style="padding: 8px; text-align: right; font-weight: bold;">N$ ${(sale.total || sale.totalAmount || 0).toFixed(2)}</td>
+                                <td style="padding: 8px; text-align: right;">${(sale.totalBV || (sale.bv * sale.quantity) || 0).toFixed(0)}</td>
+                                <td style="padding: 8px; font-size: 0.85rem;">${sale.soldBy || 'Unknown'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function printUnifiedSales() {
+            const printWindow = window.open('', '_blank');
+            const timeframe = document.getElementById('salesTimeframe')?.value || 'month';
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Unified Sales Report - ${timeframe}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { color: #2c3e50; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+                        th { background-color: #f8f9fa; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Unified Sales Report - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}</h1>
+                    ${document.getElementById('unifiedSalesDetail').innerHTML}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 250);
+        }
+        
+        function exportUnifiedSales() {
+            alert('Excel export feature will be implemented soon.');
+        }
+        
         async function refreshBusinessIntelligence() {
             await loadData();
             
@@ -11417,7 +12171,469 @@
             }
         }
 
+        // ==================== STOCK MANAGEMENT FUNCTIONS ====================
+        
+        // Stock data storage
+        let countryStock = [];
+        let windhoekStock = [];
+        let ondangwaStock = [];
+        let distributionHistory = [];
+        
+        // Load stock data from localStorage
+        function loadStockData() {
+            countryStock = safeParseFromStorage('dyna_countryStock', '[]');
+            windhoekStock = safeParseFromStorage('dyna_windhoekStock', '[]');
+            ondangwaStock = safeParseFromStorage('dyna_ondangwaStock', '[]');
+            distributionHistory = safeParseFromStorage('dyna_distributionHistory', '[]');
+        }
+        
+        // Save stock data to localStorage
+        function saveStockData() {
+            localStorage.setItem('dyna_countryStock', JSON.stringify(countryStock));
+            localStorage.setItem('dyna_windhoekStock', JSON.stringify(windhoekStock));
+            localStorage.setItem('dyna_ondangwaStock', JSON.stringify(ondangwaStock));
+            localStorage.setItem('dyna_distributionHistory', JSON.stringify(distributionHistory));
+        }
+        
+        // Receive stock to country inventory
+        document.getElementById('receiveStockForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const stockItem = {
+                id: 'STK-' + Date.now(),
+                productName: document.getElementById('stockProductName').value,
+                productCode: document.getElementById('stockProductCode').value,
+                category: document.getElementById('stockCategory').value,
+                quantity: parseInt(document.getElementById('stockQuantity').value),
+                unit: document.getElementById('stockUnit').value,
+                batchNumber: document.getElementById('stockBatchNumber').value,
+                expiryDate: document.getElementById('stockExpiryDate').value,
+                supplier: document.getElementById('stockSupplier').value,
+                cost: parseFloat(document.getElementById('stockCost').value) || 0,
+                notes: document.getElementById('stockNotes').value,
+                receivedDate: new Date().toISOString(),
+                location: 'country'
+            };
+            
+            countryStock.push(stockItem);
+            saveStockData();
+            displayCountryStock();
+            alert('Stock received successfully!');
+            clearStockForm();
+        });
+        
+        // Transfer to Windhoek Warehouse
+        document.getElementById('transferToWindhoekForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const source = document.getElementById('windhoekSource').value;
+            const productId = document.getElementById('windhoekProduct').value;
+            const quantity = parseInt(document.getElementById('windhoekQuantity').value);
+            
+            let sourceStock = source === 'country' ? countryStock : ondangwaStock;
+            let item = sourceStock.find(s => s.id === productId);
+            
+            if (!item || item.quantity < quantity) {
+                alert('Insufficient stock available!');
+                return;
+            }
+            
+            // Deduct from source
+            item.quantity -= quantity;
+            
+            // Add to Windhoek
+            let windhoekItem = windhoekStock.find(s => s.id === item.id);
+            if (windhoekItem) {
+                windhoekItem.quantity += quantity;
+            } else {
+                let newItem = {...item, quantity: quantity};
+                windhoekStock.push(newItem);
+            }
+            
+            saveStockData();
+            displayCountryStock();
+            displayWindhoekStock();
+            displayOndangwaStock();
+            alert('Stock transferred to Windhoek Warehouse!');
+            document.getElementById('transferToWindhoekForm').reset();
+        });
+        
+        // Transfer to Ondangwa Warehouse
+        document.getElementById('transferToOndangwaForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const source = document.getElementById('ondangwaSource').value;
+            const productId = document.getElementById('ondangwaProduct').value;
+            const quantity = parseInt(document.getElementById('ondangwaQuantity').value);
+            
+            let sourceStock = source === 'country' ? countryStock : windhoekStock;
+            let item = sourceStock.find(s => s.id === productId);
+            
+            if (!item || item.quantity < quantity) {
+                alert('Insufficient stock available!');
+                return;
+            }
+            
+            // Deduct from source
+            item.quantity -= quantity;
+            
+            // Add to Ondangwa
+            let ondangwaItem = ondangwaStock.find(s => s.id === item.id);
+            if (ondangwaItem) {
+                ondangwaItem.quantity += quantity;
+            } else {
+                let newItem = {...item, quantity: quantity};
+                ondangwaStock.push(newItem);
+            }
+            
+            saveStockData();
+            displayCountryStock();
+            displayWindhoekStock();
+            displayOndangwaStock();
+            alert('Stock transferred to Ondangwa Warehouse!');
+            document.getElementById('transferToOndangwaForm').reset();
+        });
+        
+        // Distribute to branches
+        document.getElementById('distributeStockForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const warehouse = document.getElementById('distributionWarehouse').value;
+            const branch = document.getElementById('distributionBranch').value;
+            const productId = document.getElementById('distributionProduct').value;
+            const quantity = parseInt(document.getElementById('distributionQuantity').value);
+            const date = document.getElementById('distributionDate').value || new Date().toISOString().split('T')[0];
+            const notes = document.getElementById('distributionNotes').value;
+            
+            let warehouseStock = warehouse === 'windhoek' ? windhoekStock : ondangwaStock;
+            let item = warehouseStock.find(s => s.id === productId);
+            
+            if (!item || item.quantity < quantity) {
+                alert('Insufficient stock available in warehouse!');
+                return;
+            }
+            
+            // Deduct from warehouse
+            item.quantity -= quantity;
+            
+            // Record distribution
+            const distribution = {
+                id: 'DIST-' + Date.now(),
+                warehouse: warehouse,
+                branch: branch,
+                productId: productId,
+                productName: item.productName,
+                quantity: quantity,
+                date: date,
+                notes: notes,
+                createdBy: currentUser?.username || 'system',
+                createdAt: new Date().toISOString()
+            };
+            
+            distributionHistory.unshift(distribution);
+            saveStockData();
+            displayWindhoekStock();
+            displayOndangwaStock();
+            displayDistributionHistory();
+            alert('Stock distributed to branch successfully!');
+            document.getElementById('distributeStockForm').reset();
+        });
+        
+        // Display functions
+        function displayCountryStock() {
+            const container = document.getElementById('countryStockList');
+            if (!container) return;
+            
+            loadStockData();
+            
+            if (countryStock.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock received yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = countryStock.map(item => `
+                <div class="client-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h4>${item.productName}</h4>
+                            <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
+                            <p><strong>Quantity:</strong> ${item.quantity} ${item.unit} | <strong>Batch:</strong> ${item.batchNumber}</p>
+                            <p><strong>Expiry:</strong> ${item.expiryDate} | <strong>Supplier:</strong> ${item.supplier}</p>
+                            <p><strong>Cost:</strong> N$ ${item.cost.toFixed(2)} per unit</p>
+                            <p><strong>Received:</strong> ${new Date(item.receivedDate).toLocaleString()}</p>
+                            ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                        </div>
+                        <button class="btn btn-success" onclick="transferToWarehouse('${item.id}', 'country')">Transfer</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayWindhoekStock() {
+            const container = document.getElementById('windhoekStockList');
+            if (!container) return;
+            
+            loadStockData();
+            
+            if (windhoekStock.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Windhoek Warehouse.</p>';
+                return;
+            }
+            
+            container.innerHTML = windhoekStock.map(item => `
+                <div class="client-card ${item.quantity < 10 ? 'low-stock' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h4>${item.productName}</h4>
+                            <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
+                            <p><strong>Quantity:</strong> ${item.quantity} ${item.unit} ${item.quantity < 10 ? '⚠️ LOW STOCK' : ''}</p>
+                            <p><strong>Batch:</strong> ${item.batchNumber} | <strong>Expiry:</strong> ${item.expiryDate}</p>
+                            ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                        </div>
+                        <button class="btn btn-primary" onclick="distributeToBranch('windhoek', '${item.id}')">Distribute</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayOndangwaStock() {
+            const container = document.getElementById('ondangwaStockList');
+            if (!container) return;
+            
+            loadStockData();
+            
+            if (ondangwaStock.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Ondangwa Warehouse.</p>';
+                return;
+            }
+            
+            container.innerHTML = ondangwaStock.map(item => `
+                <div class="client-card ${item.quantity < 10 ? 'low-stock' : ''}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h4>${item.productName}</h4>
+                            <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
+                            <p><strong>Quantity:</strong> ${item.quantity} ${item.unit} ${item.quantity < 10 ? '⚠️ LOW STOCK' : ''}</p>
+                            <p><strong>Batch:</strong> ${item.batchNumber} | <strong>Expiry:</strong> ${item.expiryDate}</p>
+                            ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                        </div>
+                        <button class="btn btn-primary" onclick="distributeToBranch('ondangwa', '${item.id}')">Distribute</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayDistributionHistory() {
+            const container = document.getElementById('distributionHistoryList');
+            if (!container) return;
+            
+            loadStockData();
+            
+            if (distributionHistory.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No distribution history.</p>';
+                return;
+            }
+            
+            container.innerHTML = distributionHistory.map(dist => `
+                <div class="client-card">
+                    <h4>${dist.productName}</h4>
+                    <p><strong>From:</strong> ${dist.warehouse === 'windhoek' ? 'Windhoek Warehouse' : 'Ondangwa Warehouse'}</p>
+                    <p><strong>To:</strong> ${dist.branch}</p>
+                    <p><strong>Quantity:</strong> ${dist.quantity} units</p>
+                    <p><strong>Date:</strong> ${dist.date}</p>
+                    <p><strong>Distributed by:</strong> ${dist.createdBy}</p>
+                    ${dist.notes ? `<p><em>${dist.notes}</em></p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        // Show stock tab
+        function showStockTab(tabName) {
+            document.querySelectorAll('.stock-tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('#stock .tabs button').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            event.target.classList.add('active');
+            
+            // Load data when switching tabs
+            if (tabName === 'countryStock') displayCountryStock();
+            else if (tabName === 'windhoek') displayWindhoekStock();
+            else if (tabName === 'ondangwa') displayOndangwaStock();
+            else if (tabName === 'distribution') displayDistributionHistory();
+        }
+        
+        // Helper functions
+        function clearStockForm() {
+            document.getElementById('receiveStockForm').reset();
+        }
+        
+        function transferToWarehouse(productId, source) {
+            const item = countryStock.find(s => s.id === productId);
+            if (!item) return;
+            
+            const warehouse = prompt(`Transfer ${item.productName} to which warehouse?\n1. Windhoek\n2. Ondangwa`, '1');
+            if (!warehouse) return;
+            
+            const quantity = prompt(`Enter quantity to transfer (Available: ${item.quantity}):`, '');
+            if (!quantity || parseInt(quantity) > item.quantity) {
+                alert('Invalid quantity!');
+                return;
+            }
+            
+            if (warehouse === '1') {
+                document.getElementById('windhoekSource').value = 'country';
+                document.getElementById('windhoekProduct').value = productId;
+                document.getElementById('windhoekQuantity').value = quantity;
+                showStockTab('windhoek');
+            } else {
+                document.getElementById('ondangwaSource').value = 'country';
+                document.getElementById('ondangwaProduct').value = productId;
+                document.getElementById('ondangwaQuantity').value = quantity;
+                showStockTab('ondangwa');
+            }
+        }
+        
+        function distributeToBranch(warehouse, productId) {
+            document.getElementById('distributionWarehouse').value = warehouse;
+            document.getElementById('distributionProduct').value = productId;
+            document.getElementById('distributionDate').value = new Date().toISOString().split('T')[0];
+            showStockTab('distribution');
+        }
+        
+        function loadBranchesForDistribution() {
+            const branchSelect = document.getElementById('distributionBranch');
+            if (!branchSelect) return;
+            
+            branchSelect.innerHTML = '<option value="">Select Branch</option>';
+            branches.forEach(branch => {
+                branchSelect.innerHTML += `<option value="${branch.id}">${branch.name}</option>`;
+            });
+        }
+        
+        function searchCountryStock() {
+            const search = document.getElementById('countryStockSearch')?.value.toLowerCase() || '';
+            loadStockData();
+            const filtered = countryStock.filter(item => 
+                item.productName.toLowerCase().includes(search) ||
+                item.productCode.toLowerCase().includes(search) ||
+                item.category.toLowerCase().includes(search)
+            );
+            
+            const container = document.getElementById('countryStockList');
+            if (!container) return;
+            
+            container.innerHTML = filtered.map(item => `
+                <div class="client-card">
+                    <h4>${item.productName}</h4>
+                    <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
+                    <p><strong>Quantity:</strong> ${item.quantity} ${item.unit}</p>
+                    <p><strong>Batch:</strong> ${item.batchNumber} | <strong>Expiry:</strong> ${item.expiryDate}</p>
+                </div>
+            `).join('');
+        }
+        
+        function searchWindhoekStock() {
+            const search = document.getElementById('windhoekSearch')?.value.toLowerCase() || '';
+            loadStockData();
+            const filtered = windhoekStock.filter(item => 
+                item.productName.toLowerCase().includes(search) ||
+                item.productCode.toLowerCase().includes(search)
+            );
+            
+            const container = document.getElementById('windhoekStockList');
+            if (!container) return;
+            
+            container.innerHTML = filtered.map(item => `
+                <div class="client-card">
+                    <h4>${item.productName}</h4>
+                    <p><strong>Quantity:</strong> ${item.quantity} ${item.unit}</p>
+                </div>
+            `).join('');
+        }
+        
+        function searchOndangwaStock() {
+            const search = document.getElementById('ondangwaSearch')?.value.toLowerCase() || '';
+            loadStockData();
+            const filtered = ondangwaStock.filter(item => 
+                item.productName.toLowerCase().includes(search) ||
+                item.productCode.toLowerCase().includes(search)
+            );
+            
+            const container = document.getElementById('ondangwaStockList');
+            if (!container) return;
+            
+            container.innerHTML = filtered.map(item => `
+                <div class="client-card">
+                    <h4>${item.productName}</h4>
+                    <p><strong>Quantity:</strong> ${item.quantity} ${item.unit}</p>
+                </div>
+            `).join('');
+        }
+        
+        function searchDistribution() {
+            const search = document.getElementById('distributionSearch')?.value.toLowerCase() || '';
+            loadStockData();
+            const filtered = distributionHistory.filter(dist => 
+                dist.productName.toLowerCase().includes(search) ||
+                dist.branch.toLowerCase().includes(search) ||
+                dist.warehouse.toLowerCase().includes(search)
+            );
+            
+            const container = document.getElementById('distributionHistoryList');
+            if (!container) return;
+            
+            container.innerHTML = filtered.map(dist => `
+                <div class="client-card">
+                    <h4>${dist.productName}</h4>
+                    <p><strong>From:</strong> ${dist.warehouse} | <strong>To:</strong> ${dist.branch}</p>
+                    <p><strong>Quantity:</strong> ${dist.quantity}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showLowStockWindhoek() {
+            loadStockData();
+            const lowStock = windhoekStock.filter(item => item.quantity < 10);
+            
+            const container = document.getElementById('windhoekStockList');
+            if (!container) return;
+            
+            if (lowStock.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: green;">✓ No low stock items!</p>';
+                return;
+            }
+            
+            container.innerHTML = lowStock.map(item => `
+                <div class="client-card" style="border-left: 4px solid red;">
+                    <h4>${item.productName}</h4>
+                    <p><strong>Current Stock:</strong> ${item.quantity} ${item.unit} ⚠️</p>
+                    <p><strong>Code:</strong> ${item.productCode}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showLowStockOndangwa() {
+            loadStockData();
+            const lowStock = ondangwaStock.filter(item => item.quantity < 10);
+            
+            const container = document.getElementById('ondangwaStockList');
+            if (!container) return;
+            
+            if (lowStock.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: green;">✓ No low stock items!</p>';
+                return;
+            }
+            
+            container.innerHTML = lowStock.map(item => `
+                <div class="client-card" style="border-left: 4px solid red;">
+                    <h4>${item.productName}</h4>
+                    <p><strong>Current Stock:</strong> ${item.quantity} ${item.unit} ⚠️</p>
+                    <p><strong>Code:</strong> ${item.productCode}</p>
+                </div>
+            `).join('');
+        }
+        
+        // Initialize stock data on load
         window.onload = async function() {
+            // Load stock data
+            loadStockData();
+            
             // Load distributors first
             await loadDistributors();
             distributorsLoaded = true;
