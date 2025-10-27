@@ -10501,9 +10501,16 @@
                         rows.push(values);
                     }
                     
-                    console.log('CSV file loaded. Headers:', header);
+                        console.log('CSV file loaded. Headers:', header);
                     console.log('Total rows:', rows.length);
+                    if (rows.length > 0) {
+                        console.log('First row sample:', rows[0]);
+                    }
                 }
+                
+                console.log('\n=== DEBUGGING INFO ===');
+                console.log('All headers found:', header);
+                console.log('Total data rows:', rows.length);
                 
                 // Map Excel columns to our distributor object
                 const columnMap = {
@@ -10536,27 +10543,36 @@
                 
                 // Parse data rows
                 const newDistributors = [];
+                console.log('\n=== PARSING ROWS ===');
                 for (let i = 0; i < rows.length; i++) {
                     const values = rows[i];
                     const distributor = { id: 'DIST-' + Date.now() + '-' + i };
                     
+                    console.log(`\nRow ${i + 1}:`, values);
+                    console.log('Headers:', header);
+                    
                     header.forEach((colName, index) => {
                         const mappedKey = columnMap[colName];
                         const value = values[index];
+                        console.log(`  ${colName} -> ${mappedKey}: "${value}"`);
                         if (mappedKey && value && String(value).trim() !== '') {
                             distributor[mappedKey] = String(value).trim();
                         }
                     });
                     
+                    console.log('Distributor object created:', distributor);
+                    
                     // Require at minimum the distributor code
                     if (distributor.distributorCode && distributor.distributorCode !== '') {
                         newDistributors.push(distributor);
+                        console.log(`✓ Row ${i + 1} added (has distributorCode: ${distributor.distributorCode})`);
                     } else {
-                        console.log('Skipping row', i + 1, 'due to missing distributor code. Values:', values);
+                        console.log(`✗ Row ${i + 1} skipped - missing distributorCode. Distributor object:`, distributor);
                     }
                 }
                 
-                console.log('Parsed', newDistributors.length, 'distributors from', rows.length, 'data rows');
+                console.log('\n=== SUMMARY ===');
+                console.log(`Parsed ${newDistributors.length} distributors from ${rows.length} data rows`);
                 
                 // Check for duplicates
                 const existingCodes = distributors.map(d => d.distributorCode || d.code);
