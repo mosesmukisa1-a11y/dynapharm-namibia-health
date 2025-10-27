@@ -1754,14 +1754,25 @@
                     </div>
                 </div>
                 
-                <div style="border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                    <h4 style="margin-bottom: 15px;">📦 Add Products</h4>
-                    <div class="search-box" style="margin-bottom: 15px;">
-                        <input type="text" id="walkInProductSearch" placeholder="Search products by name..." onkeyup="searchProductsForWalkIn()">
-                        <button type="button" class="btn" onclick="searchProductsForWalkIn()">🔍 Search</button>
+                <!-- Distributor Referral Field for Customers -->
+                <div id="customerReferralField" style="display: none; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
+                    <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Required: Distributor Referral</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div class="form-group">
+                            <label style="color: #856404;">Distributor Name *</label>
+                            <input type="text" id="distributorReferralName" placeholder="Distributor full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: #856404;">Distributor ID/Number *</label>
+                            <input type="text" id="distributorReferralId" placeholder="Distributor ID" required>
+                        </div>
                     </div>
-                    <div id="walkInProductsList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
-                        <p style="text-align: center; color: #7f8c8d;">Search for products to add to cart</p>
+                </div>
+                
+                <div style="border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">📦 Select Products</h4>
+                    <div id="walkInProductsList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
+                        <p style="text-align: center; color: #7f8c8d;">Loading products...</p>
                     </div>
                 </div>
                 
@@ -10035,8 +10046,11 @@
             const title = customerType === 'distributor' ? '🏢 Distributor Purchase' : '👤 Walk-in Customer Purchase';
             document.getElementById('walkInSaleTitle').textContent = title;
             
-            // Show/hide distributor fields
+            // Show/hide distributor fields and referral fields
             toggleDistributorFields();
+            
+            // Load and display all products
+            loadAllProductsForSale();
             
             // Clear cart display
             updateWalkInCart();
@@ -10048,12 +10062,47 @@
         function toggleDistributorFields() {
             const customerType = document.getElementById('walkInCustomerType').value;
             const distributorFields = document.getElementById('distributorFields');
+            const referralField = document.getElementById('customerReferralField');
             
             if (customerType === 'distributor') {
                 distributorFields.style.display = 'block';
+                if (referralField) referralField.style.display = 'none';
             } else {
                 distributorFields.style.display = 'none';
+                if (referralField) referralField.style.display = 'block';
             }
+        }
+
+        function loadAllProductsForSale() {
+            const customerType = document.getElementById('walkInCustomerType').value;
+            displayAllProducts(customerType);
+        }
+
+        function displayAllProducts(customerType) {
+            const productsList = document.getElementById('walkInProductsList');
+            const showDP = customerType === 'distributor';
+            
+            if (PRICE_LIST.length === 0) {
+                productsList.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No products available</p>';
+                return;
+            }
+            
+            productsList.innerHTML = PRICE_LIST.map(product => {
+                const displayPrice = showDP ? product.dp : product.cp;
+                const priceLabel = showDP ? 'DP' : 'CP';
+                
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp})">
+                        <div style="flex: 1;">
+                            <strong style="font-size: 0.95rem;">${product.description}</strong>
+                            <div style="font-size: 0.85rem; color: #c41e3a; margin-top: 3px;">
+                                <strong>${priceLabel}: N$ ${displayPrice.toFixed(2)}</strong>
+                            </div>
+                        </div>
+                        <button class="btn" style="padding: 5px 15px; background: #c41e3a; color: white; border: none; border-radius: 5px;">➕ Add</button>
+                    </div>
+                `;
+            }).join('');
         }
 
         function searchProductsForWalkIn() {
@@ -10178,9 +10227,21 @@
             const email = document.getElementById('walkInEmail').value;
             const customerType = document.getElementById('walkInCustomerType').value;
             
+            // Validation
             if (!customerName || !phone || walkInCart.length === 0) {
                 alert('Please fill in all required fields and add products to cart');
                 return;
+            }
+            
+            // For customers, require distributor referral
+            if (customerType === 'customer') {
+                const referralName = document.getElementById('distributorReferralName').value;
+                const referralId = document.getElementById('distributorReferralId').value;
+                
+                if (!referralName || !referralId) {
+                    alert('⚠️ Required: Please provide distributor referral information for customers');
+                    return;
+                }
             }
             
             const useDP = customerType === 'distributor'; // Distributors get DP pricing
@@ -10204,6 +10265,10 @@
                 customerType: customerType,
                 companyName: document.getElementById('distributorCompany').value || '',
                 taxId: document.getElementById('distributorTaxId').value || '',
+                distributorReferral: customerType === 'customer' ? {
+                    name: document.getElementById('distributorReferralName').value,
+                    id: document.getElementById('distributorReferralId').value
+                } : null,
                 discountRate: discountRate,
                 creditTerms: document.getElementById('distributorCreditTerms').value || 'cash',
                 products: walkInCart,
