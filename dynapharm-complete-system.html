@@ -1703,7 +1703,9 @@
                         <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
                             Upload CSV or Excel (.xlsx, .xls) files with distributor information.<br>
                             <strong>Supported formats:</strong> CSV (Comma Separated Values) or Excel (.xlsx, .xls)<br>
-                            <strong>Important:</strong> DRN column contains the NB numbers and is required for purchases.
+                            <strong style="color: #c41e3a;">Required columns:</strong> DRN, NAME (DRN contains NB numbers for purchases)<br>
+                            <strong>Example format:</strong> DRN[tab]NAME or DRN,NAME<br>
+                            <em>Note: Only DRN and NAME are required. Other columns are optional.</em>
                         </p>
                         <div style="margin-bottom: 10px; padding: 8px; background: white; border-radius: 5px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
                             <span><strong>💾 Storage:</strong> <span id="storageInfo">Loading...</span></span>
