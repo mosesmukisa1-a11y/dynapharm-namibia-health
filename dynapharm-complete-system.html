@@ -1631,6 +1631,14 @@
                 </div>
                 
                 <div class="form-section">
+                    <h3>💾 Data Management</h3>
+                    <button class="btn btn-primary" onclick="exportData()">📥 Export All Data</button>
+                    <button class="btn btn-success" onclick="importData()">📤 Import Data</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="handleFileImport(event)">
+                    <div id="dataStatus" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;"></div>
+                </div>
+                
+                <div class="form-section">
                     <h3>🔧 System Maintenance</h3>
                     <button class="btn btn-info" onclick="updateExistingReportsPricing()">💰 Fix Package Pricing</button>
                     <button class="btn btn-info" onclick="fixExistingClientNBNumbers()">🆔 Fix NB Numbers</button>
@@ -9757,6 +9765,75 @@
                     alert('Error deleting branch. Please try again.');
                 }
             }
+        }
+
+        // Export all data to JSON file
+        function exportData() {
+            const data = {
+                clients: clients || [],
+                users: users || [],
+                branches: branches || [],
+                reports: reports || [],
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dynapharm-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('dataStatus').innerHTML = 
+                `<p style="color: green;">✅ Data exported successfully!</p>` +
+                `<p>Clients: ${data.clients.length} | Users: ${data.users.length} | Branches: ${data.branches.length} | Reports: ${data.reports.length}</p>`;
+        }
+
+        // Import data from JSON file
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.clients) clients = data.clients;
+                    if (data.users) users = data.users;
+                    if (data.branches) branches = data.branches;
+                    if (data.reports) reports = data.reports;
+                    
+                    // Save to localStorage
+                    if (clients) localStorage.setItem('dyna_clients', JSON.stringify(clients));
+                    if (users) localStorage.setItem('dyna_users', JSON.stringify(users));
+                    if (branches) localStorage.setItem('dyna_branches', JSON.stringify(branches));
+                    if (reports) localStorage.setItem('dyna_reports', JSON.stringify(reports));
+                    
+                    document.getElementById('dataStatus').innerHTML = 
+                        `<p style="color: green;">✅ Data imported successfully!</p>` +
+                        `<p>Clients: ${clients.length} | Users: ${users.length} | Branches: ${branches.length} | Reports: ${reports.length}</p>` +
+                        `<p style="color: orange;">⚠️ Please refresh the page to see the changes.</p>`;
+                    
+                    alert('Data imported successfully! Please refresh the page.');
+                } catch (error) {
+                    console.error('Import error:', error);
+                    document.getElementById('dataStatus').innerHTML = 
+                        `<p style="color: red;">❌ Error importing data: ${error.message}</p>`;
+                    alert('Error importing data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
         }
 
         function closeModal(modalId) {
