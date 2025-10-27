@@ -1695,6 +1695,26 @@
                 </div>
                 
                 <div class="form-section">
+                    <h3>👥 Distributor Management</h3>
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <h4>📤 Upload Distributor Data</h4>
+                        <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+                            Upload an Excel file with distributor information. Required columns: Distributor Name, Distributor Code, Mobile No., Email ID, Address, City, State, Pin Code, GST No., PAN No., Bank Name, Account No., IFSC Code, Account Holder Name, Commission Rate, Status, Date of Joining, Referred By.
+                        </p>
+                        <input type="file" id="distributorFile" accept=".xlsx,.xls" style="padding: 8px; margin-right: 10px;">
+                        <button class="btn btn-success" onclick="uploadDistributorFile()">📤 Upload Excel</button>
+                        <div id="distributorUploadStatus" style="margin-top: 10px;"></div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="distributorSearch" placeholder="Search distributors..." onkeyup="searchDistributors()" style="flex: 1;">
+                        <button class="btn btn-success" onclick="showAllDistributors()">📋 Show All</button>
+                        <button class="btn btn-warning" onclick="exportDistributors()">📥 Export Data</button>
+                        <button class="btn btn-danger" onclick="clearAllDistributors()">🗑️ Clear All</button>
+                    </div>
+                    <div id="distributorList" style="margin-top: 15px; max-height: 500px; overflow-y: auto;"></div>
+                </div>
+                
+                <div class="form-section">
                     <h3>📦 Inventory Management</h3>
                     <div class="search-box">
                         <input type="text" id="inventorySearch" placeholder="Search products..." onkeyup="searchInventory()">
@@ -1738,14 +1758,19 @@
                 <!-- Distributor Referral Field for Customers -->
                 <div id="customerReferralField" style="display: block; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
                     <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Required: Distributor Referral</h4>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <div class="form-group">
-                            <label style="color: #856404;">Distributor Name *</label>
-                            <input type="text" id="distributorReferralName" placeholder="Distributor full name" required>
+                            <label style="color: #856404;">Select Distributor *</label>
+                            <select id="distributorReferralSelect" onchange="onDistributorSelected()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;" required>
+                                <option value="">-- Select Distributor --</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label style="color: #856404;">Distributor ID/Number *</label>
-                            <input type="text" id="distributorReferralId" placeholder="Distributor ID" required>
+                        <div id="selectedDistributorInfo" style="display: none; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">
+                            <div style="font-size: 0.9rem;">
+                                <strong>Selected:</strong> <span id="selectedDistributorName"></span><br>
+                                <strong>Code:</strong> <span id="selectedDistributorCode"></span> | 
+                                <strong>Mobile:</strong> <span id="selectedDistributorMobile"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -10046,6 +10071,13 @@
         // Walk-in Sales Functions
         let walkInCart = [];
         const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+        
+        // Distributors Management
+        let distributors = JSON.parse(localStorage.getItem('dyna_distributors') || '[]');
+        
+        function saveDistributors() {
+            localStorage.setItem('dyna_distributors', JSON.stringify(distributors));
+        }
 
         function showWalkInSaleModal(customerType) {
             // Reset form
@@ -10056,6 +10088,9 @@
             // Update title
             document.getElementById('walkInSaleTitle').textContent = '👤 Walk-in Customer Purchase';
             
+            // Load distributor dropdown
+            loadDistributorDropdown();
+            
             // Load and display all products with CP pricing
             loadAllProductsForSale();
             
@@ -10064,6 +10099,40 @@
             
             // Show modal
             document.getElementById('walkInSaleModal').style.display = 'block';
+        }
+        
+        function loadDistributorDropdown() {
+            const select = document.getElementById('distributorReferralSelect');
+            select.innerHTML = '<option value="">-- Select Distributor --</option>';
+            
+            if (distributors.length === 0) {
+                select.innerHTML += '<option value="" disabled>No distributors available. Please upload distributor data in Admin Portal.</option>';
+                return;
+            }
+            
+            distributors.filter(d => d.status === 'Active' || !d.status).forEach(distributor => {
+                const option = document.createElement('option');
+                option.value = distributor.distributorCode || distributor.code;
+                option.textContent = `${distributor.distributorName || distributor.name} (${distributor.distributorCode || distributor.code})`;
+                option.dataset.data = JSON.stringify(distributor);
+                select.appendChild(option);
+            });
+        }
+        
+        function onDistributorSelected() {
+            const select = document.getElementById('distributorReferralSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            const infoDiv = document.getElementById('selectedDistributorInfo');
+            
+            if (select.value) {
+                const distributor = JSON.parse(selectedOption.dataset.data);
+                document.getElementById('selectedDistributorName').textContent = distributor.distributorName || distributor.name;
+                document.getElementById('selectedDistributorCode').textContent = distributor.distributorCode || distributor.code;
+                document.getElementById('selectedDistributorMobile').textContent = distributor.mobileNo || distributor.mobile || 'N/A';
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
         }
 
         function loadAllProductsForSale() {
@@ -10214,13 +10283,25 @@
             }
             
             // Require distributor referral
-            const referralName = document.getElementById('distributorReferralName').value;
-            const referralId = document.getElementById('distributorReferralId').value;
+            const distributorCode = document.getElementById('distributorReferralSelect').value;
             
-            if (!referralName || !referralId) {
-                alert('⚠️ Required: Please provide distributor referral information');
+            if (!distributorCode) {
+                alert('⚠️ Required: Please select a distributor referral');
                 return;
             }
+            
+            // Find distributor details
+            const selectedDistributor = distributors.find(d => 
+                (d.distributorCode || d.code) === distributorCode
+            );
+            
+            if (!selectedDistributor) {
+                alert('⚠️ Error: Selected distributor not found');
+                return;
+            }
+            
+            const referralName = selectedDistributor.distributorName || selectedDistributor.name;
+            const referralId = selectedDistributor.distributorCode || selectedDistributor.code;
             
             // Walk-in customers always use CP pricing
             const subtotal = walkInCart.reduce((sum, item) => {
@@ -10340,6 +10421,192 @@
                 }
             } catch (error) {
                 console.log('Could not load reports from file:', error.message);
+            }
+        }
+
+        // ========== Distributor Management Functions ==========
+        
+        async function uploadDistributorFile() {
+            const fileInput = document.getElementById('distributorFile');
+            const file = fileInput.files[0];
+            const statusDiv = document.getElementById('distributorUploadStatus');
+            
+            if (!file) {
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select a file</p>';
+                return;
+            }
+            
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select an Excel file (.xlsx or .xls)</p>';
+                return;
+            }
+            
+            statusDiv.innerHTML = '<p style="color: #f39c12;">⏳ Uploading and processing file...</p>';
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                
+                // Simple CSV parsing for now (Excel files can be parsed by converting to CSV)
+                const text = new TextDecoder().decode(data);
+                const lines = text.split('\n').filter(line => line.trim());
+                
+                if (lines.length < 2) {
+                    throw new Error('File must contain headers and at least one data row');
+                }
+                
+                // Parse header
+                const header = lines[0].split(',').map(h => h.trim());
+                
+                // Map Excel columns to our distributor object
+                const columnMap = {
+                    'Distributor Name': 'distributorName',
+                    'Distributor Code': 'distributorCode',
+                    'Mobile No.': 'mobileNo',
+                    'Email ID': 'email',
+                    'Address': 'address',
+                    'City': 'city',
+                    'State': 'state',
+                    'Pin Code': 'pinCode',
+                    'GST No.': 'gstNo',
+                    'PAN No.': 'panNo',
+                    'Bank Name': 'bankName',
+                    'Account No.': 'accountNo',
+                    'IFSC Code': 'ifscCode',
+                    'Account Holder Name': 'accountHolderName',
+                    'Commission Rate': 'commissionRate',
+                    'Status': 'status',
+                    'Date of Joining': 'dateOfJoining',
+                    'Referred By': 'referredBy'
+                };
+                
+                // Parse data rows
+                const newDistributors = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',').map(v => v.trim());
+                    const distributor = { id: 'DIST-' + Date.now() + '-' + i };
+                    
+                    header.forEach((colName, index) => {
+                        const mappedKey = columnMap[colName];
+                        if (mappedKey && values[index]) {
+                            distributor[mappedKey] = values[index];
+                        }
+                    });
+                    
+                    if (distributor.distributorCode) {
+                        newDistributors.push(distributor);
+                    }
+                }
+                
+                // Check for duplicates
+                const existingCodes = distributors.map(d => d.distributorCode || d.code);
+                const duplicates = newDistributors.filter(d => existingCodes.includes(d.distributorCode));
+                
+                if (duplicates.length > 0) {
+                    const duplicateCodes = duplicates.map(d => d.distributorCode).join(', ');
+                    statusDiv.innerHTML = `<p style="color: #e74c3c;">⚠️ Found ${duplicates.length} duplicate(s): ${duplicateCodes}</p>`;
+                    return;
+                }
+                
+                // Add new distributors
+                distributors.push(...newDistributors);
+                saveDistributors();
+                
+                statusDiv.innerHTML = `<p style="color: #27ae60;">✅ Successfully uploaded ${newDistributors.length} distributor(s)!</p>`;
+                fileInput.value = '';
+                
+                // Refresh distributor list
+                displayDistributorList();
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: #e74c3c;">❌ Error: ${error.message}</p>`;
+                console.error('Upload error:', error);
+            }
+        }
+        
+        function displayDistributorList() {
+            const listDiv = document.getElementById('distributorList');
+            
+            if (distributors.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No distributors uploaded yet</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = distributors.map((dist, index) => `
+                <div style="background: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid ${dist.status === 'Active' ? '#27ae60' : '#95a5a6'};">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 5px 0; color: #2c3e50;">${dist.distributorName || dist.name || 'N/A'}</h4>
+                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                                <strong>Code:</strong> ${dist.distributorCode || dist.code || 'N/A'} | 
+                                <strong>Mobile:</strong> ${dist.mobileNo || dist.mobile || 'N/A'} | 
+                                <strong>Status:</strong> ${dist.status || 'Unknown'}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666;">
+                                ${dist.city || ''} ${dist.state || ''} ${dist.pinCode || ''}
+                            </div>
+                            ${dist.referredBy ? `<div style="font-size: 0.85rem; color: #f39c12; margin-top: 5px;">Referred By: ${dist.referredBy}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function searchDistributors() {
+            const searchTerm = document.getElementById('distributorSearch').value.toLowerCase();
+            const filtered = distributors.filter(d => 
+                (d.distributorName || d.name || '').toLowerCase().includes(searchTerm) ||
+                (d.distributorCode || d.code || '').toLowerCase().includes(searchTerm) ||
+                (d.mobileNo || d.mobile || '').includes(searchTerm)
+            );
+            
+            const listDiv = document.getElementById('distributorList');
+            if (filtered.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No distributors found</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = filtered.map((dist, index) => `
+                <div style="background: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid ${dist.status === 'Active' ? '#27ae60' : '#95a5a6'};">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 5px 0; color: #2c3e50;">${dist.distributorName || dist.name || 'N/A'}</h4>
+                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                                <strong>Code:</strong> ${dist.distributorCode || dist.code || 'N/A'} | 
+                                <strong>Mobile:</strong> ${dist.mobileNo || dist.mobile || 'N/A'} | 
+                                <strong>Status:</strong> ${dist.status || 'Unknown'}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666;">
+                                ${dist.city || ''} ${dist.state || ''} ${dist.pinCode || ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showAllDistributors() {
+            document.getElementById('distributorSearch').value = '';
+            displayDistributorList();
+        }
+        
+        function exportDistributors() {
+            const dataStr = JSON.stringify(distributors, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'distributors.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function clearAllDistributors() {
+            if (confirm('⚠️ Are you sure you want to delete ALL distributors? This action cannot be undone.')) {
+                distributors = [];
+                saveDistributors();
+                displayDistributorList();
+                alert('✅ All distributors cleared');
             }
         }
 
