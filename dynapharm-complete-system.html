@@ -1699,10 +1699,11 @@
                     <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                         <h4>📤 Upload Distributor Data</h4>
                         <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
-                            Upload an Excel file with distributor information. Required columns: Distributor Name, Distributor Code, Mobile No., Email ID, Address, City, State, Pin Code, GST No., PAN No., Bank Name, Account No., IFSC Code, Account Holder Name, Commission Rate, Status, Date of Joining, Referred By.
+                            <strong>Note:</strong> Please save your Excel file as CSV before uploading, or upload a CSV file directly.<br>
+                            Required columns: S.No., Distributor Name, Distributor Code, Mobile No., Email ID, Address, City, State, Pin Code, GST No., PAN No., Bank Name, Account No., IFSC Code, Account Holder Name, Commission Rate, Status, Date of Joining, Referred By.
                         </p>
-                        <input type="file" id="distributorFile" accept=".xlsx,.xls" style="padding: 8px; margin-right: 10px;">
-                        <button class="btn btn-success" onclick="uploadDistributorFile()">📤 Upload Excel</button>
+                        <input type="file" id="distributorFile" accept=".xlsx,.xls,.csv" style="padding: 8px; margin-right: 10px;">
+                        <button class="btn btn-success" onclick="uploadDistributorFile()">📤 Upload File</button>
                         <div id="distributorUploadStatus" style="margin-top: 10px;"></div>
                     </div>
                     <div class="search-box">
@@ -10436,8 +10437,8 @@
                 return;
             }
             
-            if (!file.name.match(/\.(xlsx|xls)$/)) {
-                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select an Excel file (.xlsx or .xls)</p>';
+            if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select a CSV file or Excel file (.xlsx, .xls, or .csv). Note: For Excel files, please save as CSV first.</p>';
                 return;
             }
             
@@ -10445,33 +10446,54 @@
             
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                const data = new Uint8Array(arrayBuffer);
                 
-                // Simple CSV parsing for now (Excel files can be parsed by converting to CSV)
-                const text = new TextDecoder().decode(data);
+                // Try to parse as CSV first (simple format)
+                let text = '';
+                try {
+                    const data = new Uint8Array(arrayBuffer);
+                    text = new TextDecoder().decode(data);
+                } catch (e) {
+                    statusDiv.innerHTML = '<p style="color: #e74c3c;">❌ Error: Could not read file. Please save Excel file as CSV (.csv) or upload a CSV file.</p>';
+                    return;
+                }
+                
                 const lines = text.split('\n').filter(line => line.trim());
                 
                 if (lines.length < 2) {
                     throw new Error('File must contain headers and at least one data row');
                 }
                 
-                // Parse header
-                const header = lines[0].split(',').map(h => h.trim());
+                // Parse header - handle both tab and comma delimiters
+                let delimiter = ',';
+                if (lines[0].includes('\t')) {
+                    delimiter = '\t';
+                }
+                
+                const header = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+                
+                console.log('Headers found:', header);
                 
                 // Map Excel columns to our distributor object
                 const columnMap = {
+                    'S.No.': 'serialNo',
                     'Distributor Name': 'distributorName',
                     'Distributor Code': 'distributorCode',
                     'Mobile No.': 'mobileNo',
+                    'Mobile Number': 'mobileNo',
                     'Email ID': 'email',
+                    'Email': 'email',
                     'Address': 'address',
                     'City': 'city',
                     'State': 'state',
                     'Pin Code': 'pinCode',
+                    'PIN Code': 'pinCode',
                     'GST No.': 'gstNo',
+                    'GST Number': 'gstNo',
                     'PAN No.': 'panNo',
+                    'PAN Number': 'panNo',
                     'Bank Name': 'bankName',
                     'Account No.': 'accountNo',
+                    'Account Number': 'accountNo',
                     'IFSC Code': 'ifscCode',
                     'Account Holder Name': 'accountHolderName',
                     'Commission Rate': 'commissionRate',
@@ -10483,20 +10505,25 @@
                 // Parse data rows
                 const newDistributors = [];
                 for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(',').map(v => v.trim());
+                    const values = lines[i].split(delimiter).map(v => v.trim().replace(/["']/g, ''));
                     const distributor = { id: 'DIST-' + Date.now() + '-' + i };
                     
                     header.forEach((colName, index) => {
                         const mappedKey = columnMap[colName];
-                        if (mappedKey && values[index]) {
+                        if (mappedKey && values[index] && values[index] !== '') {
                             distributor[mappedKey] = values[index];
                         }
                     });
                     
-                    if (distributor.distributorCode) {
+                    // Require at minimum the distributor code
+                    if (distributor.distributorCode && distributor.distributorCode !== '') {
                         newDistributors.push(distributor);
+                    } else {
+                        console.log('Skipping row', i, 'due to missing distributor code. Values:', values);
                     }
                 }
+                
+                console.log('Parsed', newDistributors.length, 'distributors from', lines.length - 1, 'data rows');
                 
                 // Check for duplicates
                 const existingCodes = distributors.map(d => d.distributorCode || d.code);
