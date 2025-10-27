@@ -10176,8 +10176,8 @@
             }
         }
         
-        // Load distributors on page load
-        loadDistributors();
+        // Flag to track if distributors are loaded
+        let distributorsLoaded = false;
 
         function showWalkInSaleModal(customerType) {
             // Reset form
@@ -10205,6 +10205,12 @@
         }
         
         function searchDistributorsForReferral() {
+            // Check if distributors are loaded
+            if (!distributorsLoaded || distributors.length === 0) {
+                console.warn('Distributors not loaded yet');
+                return;
+            }
+            
             const searchTerm = document.getElementById('distributorReferralSearch').value.trim();
             const dropdown = document.getElementById('distributorReferralDropdown');
             const searchInput = document.getElementById('distributorReferralSearch');
@@ -10278,6 +10284,12 @@
         }
         
         function searchDistributorsForCustomerName() {
+            // Check if distributors are loaded
+            if (!distributorsLoaded || distributors.length === 0) {
+                console.warn('Distributors not loaded yet');
+                return;
+            }
+            
             const searchTerm = document.getElementById('walkInCustomerName').value.trim();
             const customerType = document.getElementById('walkInCustomerType').value;
             
@@ -11414,7 +11426,12 @@
         }
 
         window.onload = async function() {
-            // Load reports from file first, then initialize
+            // Load distributors first
+            await loadDistributors();
+            distributorsLoaded = true;
+            console.log('Distributors loaded and ready for use!');
+            
+            // Then load reports and initialize
             await loadReportsFromFile();
             await init();
         };
