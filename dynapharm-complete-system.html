@@ -9861,19 +9861,24 @@
                 if (response.ok) {
                     const reportsData = await response.json();
                     if (reportsData && reportsData.length > 0) {
-                        // Only set if localStorage is empty
+                        // Always load reports data from file to ensure we have the latest
                         const existingReports = localStorage.getItem('dyna_reports');
-                        if (!existingReports || existingReports === '[]' || existingReports === 'null') {
-                            localStorage.setItem('dyna_reports', JSON.stringify(reportsData));
+                        const existingCount = existingReports ? JSON.parse(existingReports).length : 0;
+                        
+                        localStorage.setItem('dyna_reports', JSON.stringify(reportsData));
+                        reports = reportsData;
+                        
+                        if (existingCount === 0) {
                             console.log(`✅ Loaded ${reportsData.length} reports from reports_data.json`);
-                            reports = reportsData;
                         } else {
-                            console.log('Reports already exist in localStorage, skipping load');
+                            console.log(`✅ Updated ${reportsData.length} reports from reports_data.json (had ${existingCount} before)`);
                         }
                     }
+                } else {
+                    console.log('No reports_data.json file found, using localStorage only');
                 }
             } catch (error) {
-                console.log('Could not load reports from file (this is OK if file does not exist)');
+                console.log('Could not load reports from file:', error.message);
             }
         }
 
