@@ -1701,11 +1701,12 @@
                     <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                         <h4>📤 Upload Distributor Data</h4>
                         <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
-                            Upload Excel (.xlsx, .xls) or CSV files with distributor information.<br>
+                            Upload CSV or Excel (.xlsx, .xls) files with distributor information.<br>
+                            <strong>Supported formats:</strong> CSV (Comma Separated Values) or Excel (.xlsx, .xls)<br>
                             Required columns: S.No., Distributor Name, Distributor Code, Mobile No., Email ID, Address, City, State, Pin Code, GST No., PAN No., Bank Name, Account No., IFSC Code, Account Holder Name, Commission Rate, Status, Date of Joining, Referred By.
                         </p>
-                        <input type="file" id="distributorFile" accept=".xlsx,.xls,.csv" style="padding: 8px; margin-right: 10px;">
-                        <button class="btn btn-success" onclick="uploadDistributorFile()">📤 Upload File</button>
+                        <input type="file" id="distributorFile" accept=".csv,.xlsx,.xls" style="padding: 8px; margin-right: 10px;">
+                        <button class="btn btn-success" onclick="uploadDistributorFile()">📤 Upload CSV/Excel File</button>
                         <div id="distributorUploadStatus" style="margin-top: 10px;"></div>
                     </div>
                     <div class="search-box">
@@ -10440,11 +10441,12 @@
             }
             
             if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
-                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select an Excel file (.xlsx, .xls) or CSV file (.csv)</p>';
+                statusDiv.innerHTML = '<p style="color: #e74c3c;">⚠️ Please select a CSV (.csv) or Excel (.xlsx, .xls) file</p>';
                 return;
             }
             
-            statusDiv.innerHTML = '<p style="color: #f39c12;">⏳ Uploading and processing file...</p>';
+            const fileType = file.name.endsWith('.csv') ? 'CSV' : 'Excel';
+            statusDiv.innerHTML = `<p style="color: #f39c12;">⏳ Uploading and processing ${fileType} file...</p>`;
             
             try {
                 const arrayBuffer = await file.arrayBuffer();
