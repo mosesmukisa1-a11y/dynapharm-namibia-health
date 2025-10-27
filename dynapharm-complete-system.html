@@ -1746,10 +1746,11 @@
             
             <form id="walkInSaleForm">
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label>Customer Name *</label>
                         <input type="text" id="walkInCustomerName" placeholder="Full Name" required>
                         <input type="hidden" id="walkInCustomerCode">
+                        <div id="customerNameDropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); top: 100%; left: 0; margin-top: 5px;"></div>
                     </div>
                     <div class="form-group">
                         <label>Phone Number (Optional)</label>
@@ -10190,6 +10191,7 @@
             document.getElementById('distributorReferralValue').value = '';
             document.getElementById('distributorReferralDropdown').style.display = 'none';
             document.getElementById('selectedDistributorInfo').style.display = 'none';
+            document.getElementById('customerNameDropdown').style.display = 'none';
             
             // Update title
             document.getElementById('walkInSaleTitle').textContent = '👤 Walk-in Sale';
@@ -10290,8 +10292,8 @@
             // Only search if customer type is distributor
             if (customerType !== 'distributor') return;
             
-            // Reuse the referral dropdown
-            const dropdown = document.getElementById('distributorReferralDropdown');
+            // Use the customer name dropdown
+            const dropdown = document.getElementById('customerNameDropdown');
             const searchInput = document.getElementById('walkInCustomerName');
             
             if (!searchTerm) {
@@ -10344,7 +10346,7 @@
         function selectDistributorForCustomerName(code, name) {
             document.getElementById('walkInCustomerName').value = name;
             document.getElementById('walkInCustomerCode').value = code;
-            document.getElementById('distributorReferralDropdown').style.display = 'none';
+            document.getElementById('customerNameDropdown').style.display = 'none';
         }
         
         function onCustomerTypeChange() {
@@ -10360,6 +10362,9 @@
                 // Hide referral field - distributor doesn't need a referral
                 referralField.style.display = 'none';
                 document.getElementById('distributorReferralValue').required = false;
+                
+                // Hide the customer name dropdown
+                document.getElementById('customerNameDropdown').style.display = 'none';
             } else {
                 // Regular customer - manual name entry
                 customerNameField.placeholder = 'Full Name';
@@ -10370,6 +10375,9 @@
                 // Show referral field - customer needs a referral
                 referralField.style.display = 'block';
                 document.getElementById('distributorReferralValue').required = true;
+                
+                // Hide the customer name dropdown
+                document.getElementById('customerNameDropdown').style.display = 'none';
             }
             
             // Update product pricing based on customer type
