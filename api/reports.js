@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 export default function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,22 +12,23 @@ export default function handler(req, res) {
         return;
     }
     
-    // Simple in-memory storage (in production, use a database)
-    if (!global.reports) {
-        global.reports = [
-            {
-                id: 1,
-                title: "Monthly Sales Report",
-                type: "sales",
-                branch: "Windhoek Main",
-                data: {
-                    total_sales: 150000,
-                    new_clients: 25,
-                    revenue: 75000
-                },
-                created_at: new Date().toISOString()
+    // Load reports from file if not already loaded
+    if (!global.reports || global.reports.length === 0) {
+        try {
+            const reportsFilePath = path.join(process.cwd(), 'reports_data.json');
+            if (fs.existsSync(reportsFilePath)) {
+                const fileData = fs.readFileSync(reportsFilePath, 'utf8');
+                global.reports = JSON.parse(fileData);
+                console.log(`✅ Loaded ${global.reports.length} reports from file`);
+            } else {
+                // Fallback to empty array if file doesn't exist
+                global.reports = [];
+                console.log('⚠️ reports_data.json not found, starting with empty array');
             }
-        ];
+        } catch (error) {
+            console.error('❌ Error loading reports:', error);
+            global.reports = [];
+        }
     }
     
     if (req.method === 'GET') {
