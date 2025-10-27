@@ -10065,32 +10065,12 @@
                 return;
             }
             
-            // Get products from price list data
-            const priceList = JSON.parse(localStorage.getItem('dyna_price_list') || '[]');
+            // Use official PRICE_LIST from the system
+            const filteredProducts = PRICE_LIST.filter(p => 
+                p.description.toLowerCase().includes(searchTerm)
+            ).slice(0, 15);
             
-            if (priceList.length === 0) {
-                // Load products from reports
-                const allProducts = [];
-                reports.forEach(report => {
-                    if (report.medicines) {
-                        report.medicines.forEach(med => {
-                            if (med.name && !allProducts.find(p => p.name === med.name)) {
-                                allProducts.push({
-                                    name: med.name,
-                                    price: med.currentPrice?.cp || 0,
-                                    dp: med.currentPrice?.dp || 0
-                                });
-                            }
-                        });
-                    }
-                });
-                
-                const filteredProducts = allProducts.filter(p => 
-                    p.name.toLowerCase().includes(searchTerm)
-                ).slice(0, 10);
-                
-                displayWalkInProducts(filteredProducts);
-            }
+            displayWalkInProducts(filteredProducts);
         }
 
         function displayWalkInProducts(products) {
@@ -10102,11 +10082,11 @@
             }
             
             productsList.innerHTML = products.map(product => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.name}', ${product.price}, ${product.dp})">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'" onclick="addToWalkInCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp})">
                     <div>
-                        <strong>${product.name}</strong>
+                        <strong>${product.description}</strong>
                         <div style="font-size: 0.9rem; color: #666;">
-                            DP: N$ ${product.dp.toFixed(2)} | CP: N$ ${product.price.toFixed(2)}
+                            DP: N$ ${product.dp.toFixed(2)} | CP: N$ ${product.cp.toFixed(2)}
                         </div>
                     </div>
                     <button class="btn" style="padding: 5px 15px;">➕ Add</button>
@@ -10114,7 +10094,7 @@
             `).join('');
         }
 
-        function addToWalkInCart(productName, price, dp) {
+        function addToWalkInCart(productName, cp, dp) {
             const existingItem = walkInCart.find(item => item.name === productName);
             
             if (existingItem) {
@@ -10122,7 +10102,7 @@
             } else {
                 walkInCart.push({
                     name: productName,
-                    price: price,
+                    cp: cp,
                     dp: dp,
                     quantity: 1
                 });
@@ -10145,29 +10125,42 @@
                 return;
             }
             
-            cartList.innerHTML = walkInCart.map((item, index) => `
+            const customerType = document.getElementById('walkInCustomerType').value;
+            const useDP = customerType === 'distributor'; // Distributors get DP pricing
+            
+            cartList.innerHTML = walkInCart.map((item, index) => {
+                const unitPrice = useDP ? item.dp : item.cp;
+                const totalPrice = unitPrice * item.quantity;
+                
+                return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
                     <div style="flex: 1;">
                         <strong>${item.name}</strong>
                         <div style="font-size: 0.9rem; color: #666;">
-                            N$ ${item.price.toFixed(2)} × ${item.quantity}
+                            ${useDP ? 'DP' : 'CP'}: N$ ${unitPrice.toFixed(2)} × ${item.quantity}
                         </div>
                     </div>
                     <div style="margin: 0 15px;">
-                        <strong>N$ ${(item.price * item.quantity).toFixed(2)}</strong>
+                        <strong>N$ ${totalPrice.toFixed(2)}</strong>
                     </div>
                     <button class="btn" onclick="removeFromWalkInCart(${index})" style="padding: 5px 10px;">❌</button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             updateWalkInTotals();
         }
 
         function updateWalkInTotals() {
             const customerType = document.getElementById('walkInCustomerType').value;
+            const useDP = customerType === 'distributor'; // Distributors get DP pricing
             const discountRate = customerType === 'distributor' ? parseFloat(document.getElementById('distributorDiscount').value || 0) : 0;
             
-            const subtotal = walkInCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const subtotal = walkInCart.reduce((sum, item) => {
+                const unitPrice = useDP ? item.dp : item.cp;
+                return sum + (unitPrice * item.quantity);
+            }, 0);
+            
             const discount = subtotal * (discountRate / 100);
             const afterDiscount = subtotal - discount;
             const tax = afterDiscount * 0.15;
@@ -10190,8 +10183,14 @@
                 return;
             }
             
+            const useDP = customerType === 'distributor'; // Distributors get DP pricing
             const discountRate = customerType === 'distributor' ? parseFloat(document.getElementById('distributorDiscount').value || 0) : 0;
-            const subtotal = walkInCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            const subtotal = walkInCart.reduce((sum, item) => {
+                const unitPrice = useDP ? item.dp : item.cp;
+                return sum + (unitPrice * item.quantity);
+            }, 0);
+            
             const discount = subtotal * (discountRate / 100);
             const afterDiscount = subtotal - discount;
             const tax = afterDiscount * 0.15;
