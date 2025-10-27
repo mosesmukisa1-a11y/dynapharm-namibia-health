@@ -10560,85 +10560,69 @@
                 console.log('\n=== DEBUGGING INFO ===');
                 console.log('All headers found:', header);
                 console.log('Total data rows:', rows.length);
+                if (rows.length > 0) {
+                    console.log('Sample row values:', rows[0]);
+                    console.log('Number of values in sample row:', rows[0].length);
+                }
                 
-                // Map Excel columns to our distributor object
-                const columnMap = {
-                    // Serial numbers
-                    'S.No.': 'serialNo',
-                    'SN': 'serialNo',
-                    // DRN is the most important - contains NB numbers
-                    'DRN': 'distributorCode',
-                    // Name variations
-                    'Distributor Name': 'distributorName',
-                    'NAME': 'distributorName',
-                    'Name': 'distributorName',
-                    // Code variations
-                    'Distributor Code': 'distributorCode',
-                    'ID NO.': 'distributorCode',
-                    'ID NO': 'distributorCode',
-                    'ID No.': 'distributorCode',
-                    // Mobile variations
-                    'Mobile No.': 'mobileNo',
-                    'MOBILE NO.': 'mobileNo',
-                    'Mobile Number': 'mobileNo',
-                    'Mobile': 'mobileNo',
-                    // Email variations
-                    'Email ID': 'email',
-                    'EMAIL': 'email',
-                    'Email': 'email',
-                    // Address
-                    'Address': 'address',
-                    'ADD1': 'address',
-                    'ADD2': 'address2',
-                    'ADD3': 'address3',
-                    // City
-                    'City': 'city',
-                    'CITY': 'city',
-                    // State
-                    'State': 'state',
-                    'STATE': 'state',
-                    // Pin Code
-                    'Pin Code': 'pinCode',
-                    'PIN Code': 'pinCode',
-                    'POST CODE': 'pinCode',
-                    'Post Code': 'pinCode',
-                    // GST
-                    'GST No.': 'gstNo',
-                    'GST Number': 'gstNo',
-                    'GST': 'gstNo',
-                    // PAN
-                    'PAN No.': 'panNo',
-                    'PAN Number': 'panNo',
-                    'PAN': 'panNo',
-                    // Bank details
-                    'Bank Name': 'bankName',
-                    'Bank': 'bankName',
-                    'Account No.': 'accountNo',
-                    'Account Number': 'accountNo',
-                    'Account': 'accountNo',
-                    'IFSC Code': 'ifscCode',
-                    'IFSC': 'ifscCode',
-                    'Account Holder Name': 'accountHolderName',
-                    // Commission
-                    'Commission Rate': 'commissionRate',
-                    'Commission': 'commissionRate',
-                    // Status
-                    'Status': 'status',
-                    'STATUS': 'status',
-                    // Date of joining
-                    'Date of Joining': 'dateOfJoining',
-                    'DATE JOINED': 'dateOfJoining',
-                    'Date Joined': 'dateOfJoining',
-                    // Referral
-                    'Referred By': 'referredBy',
-                    'SPONSOR. CODE': 'referredBy',
-                    'Sponsor Code': 'referredBy',
-                    // Additional
-                    'BIRTH DATE': 'birthDate',
-                    'Birth Date': 'birthDate',
-                    'NATIONAL': 'nationality',
-                    'Nationality': 'nationality'
+                // Create a normalized column map (all keys uppercase for case-insensitive matching)
+                const createColumnMap = () => {
+                    const map = {
+                        // Serial numbers
+                        'S.NO.': 'serialNo',
+                        'SN': 'serialNo',
+                        // DRN is the most important - contains NB numbers
+                        'DRN': 'distributorCode',
+                        // Name variations
+                        'DISTRIBUTOR NAME': 'distributorName',
+                        'NAME': 'distributorName',
+                        'DISTRIBUTOR CODE': 'distributorCode',
+                        'ID NO.': 'distributorCode',
+                        'ID NO': 'distributorCode',
+                        'ID NO.': 'distributorCode',
+                        'MOBILE NO.': 'mobileNo',
+                        'MOBILE NUMBER': 'mobileNo',
+                        'MOBILE': 'mobileNo',
+                        'EMAIL ID': 'email',
+                        'EMAIL': 'email',
+                        'ADDRESS': 'address',
+                        'ADD1': 'address',
+                        'ADD2': 'address2',
+                        'ADD3': 'address3',
+                        'CITY': 'city',
+                        'STATE': 'state',
+                        'PIN CODE': 'pinCode',
+                        'POST CODE': 'pinCode',
+                        'GST NO.': 'gstNo',
+                        'GST NUMBER': 'gstNo',
+                        'GST': 'gstNo',
+                        'PAN NO.': 'panNo',
+                        'PAN NUMBER': 'panNo',
+                        'PAN': 'panNo',
+                        'BANK NAME': 'bankName',
+                        'BANK': 'bankName',
+                        'ACCOUNT NO.': 'accountNo',
+                        'ACCOUNT NUMBER': 'accountNo',
+                        'ACCOUNT': 'accountNo',
+                        'IFSC CODE': 'ifscCode',
+                        'IFSC': 'ifscCode',
+                        'ACCOUNT HOLDER NAME': 'accountHolderName',
+                        'COMMISSION RATE': 'commissionRate',
+                        'COMMISSION': 'commissionRate',
+                        'STATUS': 'status',
+                        'DATE OF JOINING': 'dateOfJoining',
+                        'DATE JOINED': 'dateOfJoining',
+                        'REFERRED BY': 'referredBy',
+                        'SPONSOR. CODE': 'referredBy',
+                        'SPONSOR CODE': 'referredBy',
+                        'BIRTH DATE': 'birthDate',
+                        'NATIONAL': 'nationality',
+                        'NATIONALITY': 'nationality'
+                    };
+                    return map;
                 };
+                
+                const columnMap = createColumnMap();
                 
                 // Parse data rows
                 const newDistributors = [];
@@ -10650,9 +10634,12 @@
                     console.log(`\nRow ${i + 1}:`, values);
                     console.log('Headers:', header);
                     
-                    // Map columns based on header
+                    // Map columns based on header (case-insensitive)
                     header.forEach((colName, index) => {
-                        const mappedKey = columnMap[colName];
+                        // Normalize column name to uppercase for case-insensitive matching
+                        const upperColName = colName.toUpperCase().trim();
+                        const mappedKey = columnMap[upperColName];
+                        
                         const value = values[index];
                         
                         // Only process if we have a mapped key
@@ -10660,7 +10647,10 @@
                             const trimmedValue = String(value).trim();
                             if (trimmedValue !== '') {
                                 distributor[mappedKey] = trimmedValue;
+                                console.log(`  Mapped "${colName}" -> ${mappedKey}: "${trimmedValue}"`);
                             }
+                        } else {
+                            console.log(`  Column "${colName}" not mapped (normalized: "${upperColName}")`);
                         }
                     });
                     
