@@ -1574,19 +1574,8 @@
                     <!-- Will be populated by displayCashDrawerStatus() -->
                 </div>
                 
-                <div class="search-box">
-                    <input type="text" id="dispenserSearch" placeholder="Search prescriptions by client name, report ID, or consultant...">
-                    <button class="btn" onclick="searchPrescriptions('dispenser')">🔍 Search</button>
-                    <button class="btn btn-info" onclick="showAllPrescriptions('dispenser')">💊 Show All Prescriptions</button>
-                    <button class="btn btn-warning" onclick="updateExistingReportsPricing()">💰 Update Pricing</button>
-                    <button class="btn btn-primary" onclick="showDailyStatementModal()">📊 Daily Statement</button>
-                    <button class="btn btn-success" onclick="refreshDispenserData()">🔄 Refresh Data</button>
-                </div>
-
-                <div id="prescriptionList"></div>
-
                 <!-- Walk-in Sales Section -->
-                <div class="form-section" style="margin-top: 30px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 8px; padding: 20px;">
+                <div class="form-section" style="margin-bottom: 30px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 8px; padding: 20px;">
                     <h3 style="color: #f39c12; margin-bottom: 20px;">🛒 Walk-in Sales (No Prescription Required)</h3>
                     <p style="color: #856404; margin-bottom: 20px; font-size: 0.95rem;">For customers and distributors purchasing directly without a prescription</p>
                     
@@ -1611,6 +1600,17 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="search-box">
+                    <input type="text" id="dispenserSearch" placeholder="Search prescriptions by client name, report ID, or consultant...">
+                    <button class="btn" onclick="searchPrescriptions('dispenser')">🔍 Search</button>
+                    <button class="btn btn-info" onclick="showAllPrescriptions('dispenser')">💊 Show All Prescriptions</button>
+                    <button class="btn btn-warning" onclick="updateExistingReportsPricing()">💰 Update Pricing</button>
+                    <button class="btn btn-primary" onclick="showDailyStatementModal()">📊 Daily Statement</button>
+                    <button class="btn btn-success" onclick="refreshDispenserData()">🔄 Refresh Data</button>
+                </div>
+
+                <div id="prescriptionList"></div>
 
                 <!-- Business Intelligence Dashboard -->
                 <div class="form-section" style="margin-top: 30px;">
