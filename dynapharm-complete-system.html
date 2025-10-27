@@ -10599,12 +10599,29 @@
                     console.log(`\nRow ${i + 1}:`, values);
                     console.log('Headers:', header);
                     
+                    // Map columns based on header
                     header.forEach((colName, index) => {
                         const mappedKey = columnMap[colName];
                         const value = values[index];
-                        console.log(`  ${colName} -> ${mappedKey}: "${value}"`);
-                        if (mappedKey && value && String(value).trim() !== '') {
-                            distributor[mappedKey] = String(value).trim();
+                        
+                        // Only process if we have a mapped key
+                        if (mappedKey && value !== undefined && value !== null) {
+                            const trimmedValue = String(value).trim();
+                            if (trimmedValue !== '') {
+                                distributor[mappedKey] = trimmedValue;
+                            }
+                        }
+                    });
+                    
+                    // Preserve original column order by storing in array
+                    distributor._originalColumns = {};
+                    header.forEach((colName, index) => {
+                        const value = values[index];
+                        if (value !== undefined && value !== null) {
+                            const trimmedValue = String(value).trim();
+                            if (trimmedValue !== '') {
+                                distributor._originalColumns[colName] = trimmedValue;
+                            }
                         }
                     });
                     
@@ -10656,24 +10673,40 @@
                 return;
             }
             
-            listDiv.innerHTML = distributors.map((dist, index) => `
-                <div style="background: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid ${dist.status === 'Active' ? '#27ae60' : '#95a5a6'};">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div style="flex: 1;">
-                            <h4 style="margin: 0 0 5px 0; color: #2c3e50;">${dist.distributorName || dist.name || 'N/A'}</h4>
-                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
-                                <strong>Code:</strong> ${dist.distributorCode || dist.code || 'N/A'} | 
-                                <strong>Mobile:</strong> ${dist.mobileNo || dist.mobile || 'N/A'} | 
-                                <strong>Status:</strong> ${dist.status || 'Unknown'}
-                            </div>
-                            <div style="font-size: 0.85rem; color: #666;">
-                                ${dist.city || ''} ${dist.state || ''} ${dist.pinCode || ''}
-                            </div>
-                            ${dist.referredBy ? `<div style="font-size: 0.85rem; color: #f39c12; margin-top: 5px;">Referred By: ${dist.referredBy}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            // Get headers from first distributor's _originalColumns (in original CSV order)
+            let headers = [];
+            if (distributors[0] && distributors[0]._originalColumns) {
+                headers = Object.keys(distributors[0]._originalColumns);
+            }
+            
+            // Build table
+            let html = `
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; background: white;">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); color: white;">
+                            ${headers.map(h => `<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            distributors.forEach((dist, index) => {
+                html += `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        ${headers.map(h => {
+                            const value = dist._originalColumns && dist._originalColumns[h] ? dist._originalColumns[h] : 'N/A';
+                            return `<td style="padding: 8px; border: 1px solid #ddd;">${value}</td>`;
+                        }).join('')}
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            listDiv.innerHTML = html;
         }
         
         function searchDistributors() {
