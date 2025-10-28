@@ -14421,26 +14421,76 @@
         document.getElementById('transferToWindhoekForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
             const source = document.getElementById('windhoekSource').value;
-            const productId = document.getElementById('windhoekProduct').value;
+            const productName = document.getElementById('windhoekProduct').value; // Changed from productId to productName
             const quantity = parseInt(document.getElementById('windhoekQuantity').value);
             
-            let sourceStock = source === 'country' ? countryStock : ondangwaStock;
-            let item = sourceStock.find(s => s.id === productId);
-            
-            if (!item || item.quantity < quantity) {
-                alert('Insufficient stock available!');
-                return;
+            if (source === 'country') {
+                // Look in both countryStock and barcode stock
+                let item = countryStock.find(s => s.productName === productName);
+                let barcodeItem = null;
+                
+                // Check barcode stock if item not found in countryStock
+                if (!item) {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    const matchingBatches = barcodeStock.filter(b => 
+                        b.description === productName && 
+                        b.location === 'country_stock' && 
+                        b.status === 'available'
+                    );
+                    const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
+                    
+                    if (totalBarcodeQty >= quantity) {
+                        barcodeItem = { description: productName, totalAvailable: totalBarcodeQty, batches: matchingBatches };
+                    }
+                }
+                
+                if ((!item && !barcodeItem) || (item && item.quantity < quantity) || (barcodeItem && barcodeItem.totalAvailable < quantity)) {
+                    alert('Insufficient stock available!');
+                    return;
+                }
+                
+                // Deduct from source
+                if (item) {
+                    item.quantity -= quantity;
+                } else if (barcodeItem) {
+                    // Deduct from barcode stock batches
+                    let remainingQty = quantity;
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    
+                    barcodeItem.batches.forEach(batch => {
+                        if (remainingQty <= 0) return;
+                        const deduct = Math.min(remainingQty, batch.remainingQuantity);
+                        batch.remainingQuantity -= deduct;
+                        remainingQty -= deduct;
+                        if (batch.remainingQuantity === 0) {
+                            batch.status = 'transferred';
+                        }
+                    });
+                    
+                    localStorage.setItem('dyna_barcode_stock', JSON.stringify(barcodeStock));
+                }
+            } else {
+                // Source is ondangwa
+                let item = ondangwaStock.find(s => s.productName === productName);
+                if (!item || item.quantity < quantity) {
+                    alert('Insufficient stock available!');
+                    return;
+                }
+                item.quantity -= quantity;
             }
             
-            // Deduct from source
-            item.quantity -= quantity;
-            
             // Add to Windhoek
-            let windhoekItem = windhoekStock.find(s => s.id === item.id);
+            let windhoekItem = windhoekStock.find(s => s.productName === productName);
             if (windhoekItem) {
                 windhoekItem.quantity += quantity;
             } else {
-                let newItem = {...item, quantity: quantity};
+                let newItem = {
+                    id: 'WIND-' + Date.now(),
+                    productName: productName,
+                    quantity: quantity,
+                    unit: 'units',
+                    location: 'windhoek'
+                };
                 windhoekStock.push(newItem);
             }
             
@@ -14456,26 +14506,76 @@
         document.getElementById('transferToOndangwaForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
             const source = document.getElementById('ondangwaSource').value;
-            const productId = document.getElementById('ondangwaProduct').value;
+            const productName = document.getElementById('ondangwaProduct').value; // Changed from productId to productName
             const quantity = parseInt(document.getElementById('ondangwaQuantity').value);
             
-            let sourceStock = source === 'country' ? countryStock : windhoekStock;
-            let item = sourceStock.find(s => s.id === productId);
-            
-            if (!item || item.quantity < quantity) {
-                alert('Insufficient stock available!');
-                return;
+            if (source === 'country') {
+                // Look in both countryStock and barcode stock
+                let item = countryStock.find(s => s.productName === productName);
+                let barcodeItem = null;
+                
+                // Check barcode stock if item not found in countryStock
+                if (!item) {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    const matchingBatches = barcodeStock.filter(b => 
+                        b.description === productName && 
+                        b.location === 'country_stock' && 
+                        b.status === 'available'
+                    );
+                    const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
+                    
+                    if (totalBarcodeQty >= quantity) {
+                        barcodeItem = { description: productName, totalAvailable: totalBarcodeQty, batches: matchingBatches };
+                    }
+                }
+                
+                if ((!item && !barcodeItem) || (item && item.quantity < quantity) || (barcodeItem && barcodeItem.totalAvailable < quantity)) {
+                    alert('Insufficient stock available!');
+                    return;
+                }
+                
+                // Deduct from source
+                if (item) {
+                    item.quantity -= quantity;
+                } else if (barcodeItem) {
+                    // Deduct from barcode stock batches
+                    let remainingQty = quantity;
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    
+                    barcodeItem.batches.forEach(batch => {
+                        if (remainingQty <= 0) return;
+                        const deduct = Math.min(remainingQty, batch.remainingQuantity);
+                        batch.remainingQuantity -= deduct;
+                        remainingQty -= deduct;
+                        if (batch.remainingQuantity === 0) {
+                            batch.status = 'transferred';
+                        }
+                    });
+                    
+                    localStorage.setItem('dyna_barcode_stock', JSON.stringify(barcodeStock));
+                }
+            } else {
+                // Source is windhoek
+                let item = windhoekStock.find(s => s.productName === productName);
+                if (!item || item.quantity < quantity) {
+                    alert('Insufficient stock available!');
+                    return;
+                }
+                item.quantity -= quantity;
             }
             
-            // Deduct from source
-            item.quantity -= quantity;
-            
             // Add to Ondangwa
-            let ondangwaItem = ondangwaStock.find(s => s.id === item.id);
+            let ondangwaItem = ondangwaStock.find(s => s.productName === productName);
             if (ondangwaItem) {
                 ondangwaItem.quantity += quantity;
             } else {
-                let newItem = {...item, quantity: quantity};
+                let newItem = {
+                    id: 'OND-' + Date.now(),
+                    productName: productName,
+                    quantity: quantity,
+                    unit: 'units',
+                    location: 'ondangwa'
+                };
                 ondangwaStock.push(newItem);
             }
             
@@ -17045,15 +17145,44 @@
                     ...productSelectIds.map(id => document.getElementById(id)).filter(Boolean),
                     ...Array.from(document.querySelectorAll('.request-product-select'))
                 ];
+                
+                // Load actual stock to populate dropdowns
+                loadStockData();
+                
+                // Get unique product names from all stock sources
+                const allStockProducts = new Set();
+                
+                // From country stock
+                (countryStock || []).forEach(item => {
+                    if (item.productName) allStockProducts.add(item.productName);
+                });
+                
+                // From barcode stock
+                const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                barcodeStock.forEach(batch => {
+                    if (batch.description && batch.location === 'country_stock' && batch.status === 'available') {
+                        allStockProducts.add(batch.description);
+                    }
+                });
+                
+                // Combine with PRICE_LIST for full coverage
+                const productsToShow = Array.from(allStockProducts).length > 0 
+                    ? Array.from(allStockProducts).sort()
+                    : PRICE_LIST.map(p => p.description);
+                
                 allSelects.forEach(select => {
                     select.innerHTML = '<option value="">Select Product</option>';
-                    (PRICE_LIST || []).forEach(p => {
+                    productsToShow.forEach(productName => {
                         const opt = document.createElement('option');
-                        opt.value = p.description;
-                        opt.textContent = `${p.description}`;
-                        opt.setAttribute('data-dp', p.dp);
-                        opt.setAttribute('data-cp', p.cp);
-                        opt.setAttribute('data-bv', p.bv);
+                        opt.value = productName;
+                        opt.textContent = productName;
+                        // Try to get price data
+                        const priceData = PRICE_LIST.find(p => p.description === productName);
+                        if (priceData) {
+                            opt.setAttribute('data-dp', priceData.dp);
+                            opt.setAttribute('data-cp', priceData.cp);
+                            opt.setAttribute('data-bv', priceData.bv);
+                        }
                         select.appendChild(opt);
                     });
                 });
