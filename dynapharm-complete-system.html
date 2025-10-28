@@ -2972,6 +2972,34 @@
                 </div>
             </div>
 
+            <!-- Monthly Summary -->
+            <div class="form-section">
+                <h3>📊 Monthly Financial Summary</h3>
+                <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">
+                    <select id="summaryMonth" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="summaryYear" min="2020" max="2030" value="2025" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px; width: 100px;">
+                    <button class="btn btn-primary" onclick="generateMonthlySummary()">Generate Summary</button>
+                    <button class="btn btn-success" onclick="exportMonthlySummaryCSV()">📥 Export CSV</button>
+                    <button class="btn btn-info" onclick="printMonthlySummary()">🖨️ Print</button>
+                </div>
+                <div id="monthlySummaryTable" style="max-height: 600px; overflow-x: auto; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">Select month and year, then click 'Generate Summary'</p>
+                </div>
+            </div>
+
             <!-- Financial Reports -->
             <div class="form-section">
                 <h3>📋 Financial Reports</h3>
@@ -3941,7 +3969,10 @@
         let lastDataHash = null;
         
         // API Configuration
-        const API_BASE = 'http://192.168.178.182:8001/api';
+        // Try Railway deployment first, then local backup
+        const API_BASE = 'https://dynapharm-backend-production.up.railway.app/api';
+        const API_BASE_LOCAL = 'http://192.168.178.182:8001/api';
+        const USE_OFFLINE_MODE = true; // Fall back to localStorage if backend is unavailable
 
         // Safe JSON parse with default fallback
         function safeParseFromStorage(key, defaultJsonString) {
@@ -4624,10 +4655,25 @@
                     options.body = JSON.stringify(data);
                 }
                 
-                const response = await fetch(`${API_BASE}${endpoint}`, options);
-                const result = await response.json();
-                updateRealtimeStatus('online');
-                return result;
+                // Try Railway API first
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint}`, options);
+                    const result = await response.json();
+                    updateRealtimeStatus('online');
+                    return result;
+                } catch (railwayError) {
+                    // Try local API as fallback
+                    try {
+                        const response = await fetch(`${API_BASE_LOCAL}${endpoint}`, options);
+                        const result = await response.json();
+                        updateRealtimeStatus('online');
+                        console.log('Using local API as fallback');
+                        return result;
+                    } catch (localError) {
+                        console.error('Both APIs failed, using localStorage');
+                        throw localError;
+                    }
+                }
             } catch (error) {
                 console.error('API Error:', error);
                 updateRealtimeStatus('offline');
@@ -5047,33 +5093,79 @@
             try {
                 updateRealtimeStatus('syncing');
                 
-                // Test API connectivity
-                const response = await fetch(`${API_BASE}/clients`);
-                const data = await response.json();
+                // Test API connectivity with fallback
+                let response;
+                let data;
+                let connectedTo = 'Unknown';
+                
+                // Try primary API
+                try {
+                    response = await fetch(`${API_BASE}/clients`);
+                    data = await response.json();
+                    connectedTo = 'Railway Cloud';
+                } catch (e1) {
+                    // Try local API
+                    try {
+                        response = await fetch(`${API_BASE_LOCAL}/clients`);
+                        data = await response.json();
+                        connectedTo = 'Local Server';
+                    } catch (e2) {
+                        // Fall back to local storage
+                        data = clients;
+                        connectedTo = 'Offline Mode (Local Storage)';
+                    }
+                }
                 
                 updateRealtimeStatus('online');
                 
-                alert(`✅ Network sync test successful!\n\nConnected to: ${API_BASE}\nTotal clients in system: ${data.length}\n\nLatest clients:\n${data.slice(-3).map(c => `- ${c.fullName} (${c.referenceNumber})`).join('\n')}`);
+                alert(`✅ Network sync test successful!\n\nConnected to: ${connectedTo}\nTotal clients in system: ${data.length}\n\nLatest clients:\n${data.slice(-3).map(c => `- ${c.fullName} (${c.referenceNumber})`).join('\n')}`);
                 
             } catch (error) {
                 updateRealtimeStatus('offline');
-                alert(`❌ Network sync test failed!\n\nError: ${error.message}\n\nPlease check:\n1. Backend server is running\n2. Network connection\n3. Firewall settings`);
+                const localClients = safeParseFromStorage('clients', '[]');
+                alert(`⚠️ Network connection failed!\n\nError: ${error.message}\n\n📦 Current Status:\n- ${localClients.length} clients in local storage\n- Working in OFFLINE MODE\n\nNote: The app will continue working with local data. Sync will resume when connection is restored.`);
             }
         }
 
         async function checkConnectionStatus() {
             try {
                 const startTime = Date.now();
-                const response = await fetch(`${API_BASE}/clients`);
+                let response;
+                let data;
+                let endpoint = 'Unknown';
+                let connectionStatus = '❌ Disconnected';
+                
+                // Try primary API
+                try {
+                    response = await fetch(`${API_BASE}/clients`);
+                    data = await response.json();
+                    endpoint = 'Railway Cloud';
+                    connectionStatus = '✅ Connected';
+                } catch (e1) {
+                    // Try local API
+                    try {
+                        response = await fetch(`${API_BASE_LOCAL}/clients`);
+                        data = await response.json();
+                        endpoint = 'Local Server';
+                        connectionStatus = '✅ Connected';
+                    } catch (e2) {
+                        // Fall back to local storage
+                        data = clients;
+                        endpoint = 'Offline Mode';
+                        connectionStatus = '⚠️ Offline (Using Local Storage)';
+                    }
+                }
+                
                 const endTime = Date.now();
                 const responseTime = endTime - startTime;
                 
-                const data = await response.json();
+                const localData = safeParseFromStorage('clients', '[]');
                 
-                alert(`📡 Connection Status Report\n\n✅ API Server: Connected\n🌐 Endpoint: ${API_BASE}\n⏱️ Response Time: ${responseTime}ms\n📊 Total Clients: ${data.length}\n🔄 Auto-refresh: ${autoRefreshInterval ? 'Active (5s intervals)' : 'Inactive'}\n👤 Current User: ${currentUser ? currentUser.fullName : 'Not logged in'}`);
+                alert(`📡 Connection Status Report\n\n${connectionStatus}\n🌐 Endpoint: ${endpoint}\n⏱️ Response Time: ${responseTime}ms\n📊 Total Clients: ${data.length}\n💾 Local Storage: ${localData.length} records\n🔄 Auto-refresh: ${autoRefreshInterval ? 'Active (5s intervals)' : 'Inactive'}\n👤 Current User: ${currentUser ? currentUser.fullName : 'Not logged in'}`);
                 
             } catch (error) {
-                alert(`❌ Connection Status Report\n\n❌ API Server: Disconnected\n🌐 Endpoint: ${API_BASE}\n⚠️ Error: ${error.message}\n\nTroubleshooting:\n1. Check if backend server is running\n2. Verify network connectivity\n3. Check firewall settings`);
+                const localClients = safeParseFromStorage('clients', '[]');
+                alert(`❌ Connection Status Report\n\n❌ API Server: Disconnected\n🌐 Primary: ${API_BASE}\n🌐 Local: ${API_BASE_LOCAL}\n⚠️ Error: ${error.message}\n\n💾 Local Storage: ${localClients.length} records available\n\nThe app will continue working with local data until connection is restored.`);
             }
         }
 
@@ -14837,6 +14929,7 @@
             else if (tabName === 'windhoek') displayWindhoekStock();
             else if (tabName === 'ondangwa') displayOndangwaStock();
             else if (tabName === 'distribution') displayDistributionHistory();
+            else if (tabName === 'inventory') displayInventoryMovements();
         }
         
         // Stock Import Functions with Barcode and FEFO
