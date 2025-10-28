@@ -3488,14 +3488,57 @@
                     <label>Expense Category *</label>
                     <select id="expenseCategory" required>
                         <option value="">Select Category</option>
-                        <option value="salaries">Salaries</option>
-                        <option value="rent">Rent</option>
-                        <option value="utilities">Utilities</option>
-                        <option value="supplies">Supplies</option>
-                        <option value="marketing">Marketing</option>
-                        <option value="travel">Travel</option>
-                        <option value="insurance">Insurance</option>
-                        <option value="other">Other</option>
+                        <optgroup label="OPERATING EXPENSES">
+                            <option value="cleaning-materials">Cleaning Materials & equipment</option>
+                            <option value="transportation-taxi">Transportation/Taxi fare</option>
+                            <option value="fuel">Fuel</option>
+                            <option value="telephone-internet">Telephone & internet</option>
+                            <option value="printing-photocopy">Printing & photocopy</option>
+                            <option value="meals">Meals</option>
+                            <option value="car-repair">Repair & Maintenance (car)</option>
+                            <option value="nampost-courier">Nampost courier services</option>
+                            <option value="stationary">Stationary</option>
+                            <option value="office-equipment">Office equipment</option>
+                            <option value="bonus">Bonus</option>
+                            <option value="fitness-certificate">Fitness certificate</option>
+                            <option value="marketing-expos">Marketing/Expos/Conference halls</option>
+                            <option value="bad-debts">Bad debts/Losses and Thefts</option>
+                            <option value="miscellaneous">Miscellaneous</option>
+                            <option value="advertisement-promotions">Advertisement & promotions</option>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="company-stock">Stock for company use (NON CASH PRODUCTS)</option>
+                            <option value="bank-charges">Bank charges</option>
+                            <option value="cash-back">Cash back</option>
+                            <option value="field-work">Field work</option>
+                            <option value="consistency">Consistency</option>
+                            <option value="payroll-processing">Payroll Processing Services</option>
+                            <option value="social-security">Social Security</option>
+                            <option value="payroll-taxes">Payroll Taxes</option>
+                            <option value="website-development">Website development</option>
+                            <option value="business-licenses">Business Licenses and permits</option>
+                            <option value="labour">Labour</option>
+                            <option value="carpenter-plumbing">Carpenter/Plumbing services (fixtures & fittings)</option>
+                            <option value="salaries">Salaries</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="periodic-expenses">Periodic Expenses</option>
+                            <option value="foreign-affairs-paperwork">Foreign affairs: paperwork</option>
+                            <option value="visas">Visas</option>
+                            <option value="foreign-affairs-flights">Foreign affairs: flight tickets</option>
+                            <option value="gift-promotions">Gift Promotions</option>
+                            <option value="management-travel">Management Travel Expenses</option>
+                        </optgroup>
+                        <optgroup label="VARIABLE EXPENSES">
+                            <option value="water-bill">Water Bill</option>
+                            <option value="electricity-bill">Electricity Bill</option>
+                            <option value="security-services">Security Services</option>
+                            <option value="rent">Rent</option>
+                            <option value="body-corporate">Body Corporate</option>
+                        </optgroup>
+                        <optgroup label="INTEREST & TAXES">
+                            <option value="interest-income">Interest (income)</option>
+                            <option value="interest-expenses">Interest Expenses</option>
+                            <option value="interest-expenses-taxes">Interest (income), expenses & Taxes</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="form-group">
@@ -14798,16 +14841,16 @@
             e.preventDefault();
             const warehouse = document.getElementById('distributionWarehouse').value;
             const branch = document.getElementById('distributionBranch').value;
-            const productId = document.getElementById('distributionProduct').value;
+            const productName = document.getElementById('distributionProduct').value; // Changed from productId to productName
             const quantity = parseInt(document.getElementById('distributionQuantity').value);
             const date = document.getElementById('distributionDate').value || new Date().toISOString().split('T')[0];
             const notes = document.getElementById('distributionNotes').value;
             
             let warehouseStock = warehouse === 'windhoek' ? windhoekStock : ondangwaStock;
-            let item = warehouseStock.find(s => s.id === productId);
+            let item = warehouseStock.find(s => s.productName === productName); // Changed from s.id to s.productName
             
             if (!item || item.quantity < quantity) {
-                alert('Insufficient stock available in warehouse!');
+                alert(`Insufficient stock available in warehouse! Available: ${item ? item.quantity : 0}, Requested: ${quantity}`);
                 return;
             }
             
@@ -14819,8 +14862,7 @@
                 id: 'DIST-' + Date.now(),
                 warehouse: warehouse,
                 branch: branch,
-                productId: productId,
-                productName: item.productName,
+                productName: productName,
                 quantity: quantity,
                 date: date,
                 notes: notes,
@@ -14921,7 +14963,7 @@
                             <p><strong>Batch:</strong> ${item.batchNumber} | <strong>Expiry:</strong> ${item.expiryDate}</p>
                             ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
                         </div>
-                        <button class="btn btn-primary" onclick="distributeToBranch('windhoek', '${item.id}')">Distribute</button>
+                        <button class="btn btn-primary" onclick="distributeToBranch('windhoek', '${item.productName}')">Distribute</button>
                     </div>
                 </div>
             `).join('');
@@ -14948,7 +14990,7 @@
                             <p><strong>Batch:</strong> ${item.batchNumber} | <strong>Expiry:</strong> ${item.expiryDate}</p>
                             ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
                         </div>
-                        <button class="btn btn-primary" onclick="distributeToBranch('ondangwa', '${item.id}')">Distribute</button>
+                        <button class="btn btn-primary" onclick="distributeToBranch('ondangwa', '${item.productName}')">Distribute</button>
                     </div>
                 </div>
             `).join('');
@@ -15179,9 +15221,9 @@
             }
         }
         
-        function distributeToBranch(warehouse, productId) {
+        function distributeToBranch(warehouse, productName) {
             document.getElementById('distributionWarehouse').value = warehouse;
-            document.getElementById('distributionProduct').value = productId;
+            document.getElementById('distributionProduct').value = productName; // Now using productName instead of productId
             document.getElementById('distributionDate').value = new Date().toISOString().split('T')[0];
             showStockTab('distribution');
         }
