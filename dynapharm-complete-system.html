@@ -12621,6 +12621,27 @@
         // Flag to track if distributors are loaded
         let distributorsLoaded = false;
 
+        // Initialize default distributors on page load
+        async function initializeDefaultDistributors() {
+            if (distributors.length === 0) {
+                // Default distributors from sample data
+                const defaultDistributors = [
+                    { id: 'DIST001', distributorCode: 'NB001544', distributorName: 'OTTILIE NN SHEYA', mobileNo: '', email: '', commissionRate: 0 },
+                    { id: 'DIST002', distributorCode: 'NB001868', distributorName: 'SHANAAZ SULAYMAN', mobileNo: '', email: '', commissionRate: 0 },
+                    { id: 'DIST003', distributorCode: 'NB002099', distributorName: 'MONICA KATUMBU', mobileNo: '', email: '', commissionRate: 0 },
+                    { id: 'DIST004', distributorCode: 'NB002393', distributorName: 'KARELESTHER TUTEKULA', mobileNo: '', email: '', commissionRate: 0 }
+                ];
+                
+                distributors = [...defaultDistributors];
+                try {
+                    await saveDistributors();
+                    console.log('Initialized default distributors');
+                } catch (error) {
+                    console.error('Error initializing default distributors:', error);
+                }
+            }
+        }
+
         function showWalkInSaleModal(customerType) {
             // Reset form
             document.getElementById('walkInSaleForm').reset();
