@@ -16321,6 +16321,24 @@
                 // Any DP/CP/BV chips in DOM can be updated here if needed later
             } catch (e) { console.warn('updatePriceBadges error', e); }
         }
+        
+        // Populate product dropdown for an import row
+        function populateImportRowProductDropdown(rowEl) {
+            try {
+                const select = rowEl.querySelector('.stock-description');
+                if (!select) return;
+                select.innerHTML = '<option value="">Select Product</option>';
+                (PRICE_LIST || []).forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.description;
+                    opt.textContent = p.description;
+                    opt.setAttribute('data-dp', p.dp);
+                    opt.setAttribute('data-cp', p.cp);
+                    opt.setAttribute('data-bv', p.bv);
+                    select.appendChild(opt);
+                });
+            } catch (e) { console.warn('populateImportRowProductDropdown error', e); }
+        }
 
         async function seedIfEmpty() {
             try {
