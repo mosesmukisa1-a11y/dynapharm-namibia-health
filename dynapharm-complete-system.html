@@ -2492,6 +2492,126 @@
             </div>
         </div>
 
+        <!-- GM Portal -->
+        <div id="gm" class="tab-content">
+            <div id="gmAuth" style="display: block;">
+                <div class="portal-header">
+                    <h2>👔 GM Portal</h2>
+                    <p>General Manager Dashboard - Country Overview & Approvals</p>
+                </div>
+                <div style="text-align: center; padding: 40px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access GM portal</p>
+                    <button class="btn" onclick="showLogin('gm')">🔐 Login</button>
+                    <button class="btn btn-success" onclick="autoLoginGM()" style="margin-left: 10px;">⚡ Auto Login</button>
+                </div>
+            </div>
+            <div id="gmContent" style="display: none;">
+                <div class="user-profile" id="gmProfile"></div>
+                
+                <div class="portal-header">
+                    <h2>👔 GM Portal - Country Overview</h2>
+                    <p>Monitor KPIs, Approve Special Sales, Oversee Operations</p>
+                    <button class="btn btn-primary" onclick="refreshGMData()">🔄 Refresh Data</button>
+                </div>
+                
+                <!-- KPI Dashboard -->
+                <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">💰</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total Revenue</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="gmTotalRevenue">N$ 0.00</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">📦</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">CIF Deposits</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="gmCIFDeposits">N$ 0.00</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">⭐</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total BV Points</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="gmTotalBV">0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">📊</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Gross Margin</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="gmGrossMargin">N$ 0.00</div>
+                    </div>
+                </div>
+                
+                <!-- Pending Approvals -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>⏳ Pending Approvals</h3>
+                    <div id="pendingApprovalsList"></div>
+                </div>
+                
+                <!-- Special Sales Management -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>🎯 Special Sales Campaigns</h3>
+                    <button class="btn btn-success" onclick="showSpecialSalesModal()">➕ Create Campaign</button>
+                    <div id="specialSalesList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Director Portal -->
+        <div id="director" class="tab-content">
+            <div id="directorAuth" style="display: block;">
+                <div class="portal-header">
+                    <h2>🎯 Director Portal</h2>
+                    <p>Executive Dashboard - Strategic KPIs & Oversight</p>
+                </div>
+                <div style="text-align: center; padding: 40px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access Director portal</p>
+                    <button class="btn" onclick="showLogin('director')">🔐 Login</button>
+                    <button class="btn btn-success" onclick="autoLoginDirector()" style="margin-left: 10px;">⚡ Auto Login</button>
+                </div>
+            </div>
+            <div id="directorContent" style="display: none;">
+                <div class="user-profile" id="directorProfile"></div>
+                
+                <div class="portal-header">
+                    <h2>🎯 Director Portal - Executive Overview</h2>
+                    <p>Monitor Revenue, CIF, BV, Margin, and Stock Management</p>
+                    <button class="btn btn-primary" onclick="refreshDirectorData()">🔄 Refresh Data</button>
+                </div>
+                
+                <!-- Executive KPIs -->
+                <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">💰</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Revenue</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="directorRevenue">N$ 0.00</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">🏦</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">CIF</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="directorCIF">N$ 0.00</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">⭐</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">BV</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="directorBV">0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">📊</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Margin</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="directorMargin">N$ 0.00</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white; padding: 25px; border-radius: 15px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">💸</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Remittance</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="directorRemittance">N$ 0.00</div>
+                    </div>
+                </div>
+                
+                <!-- Stock Depletion Dashboard -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>📦 Stock Depletion Overview</h3>
+                    <div id="stockDepletionDashboard"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Admin Portal -->
         <div id="admin" class="tab-content">
             <h2>Admin Portal</h2>
@@ -4516,6 +4636,134 @@
         }
 
         // Global refresh function to update all portals
+        // GM Portal data refresh
+        function refreshGMData() {
+            loadData();
+            calculateGMMetrics();
+            loadPendingApprovals();
+            loadSpecialSales();
+        }
+        
+        // Director Portal data refresh
+        function refreshDirectorData() {
+            loadData();
+            calculateDirectorMetrics();
+            loadStockDepletion();
+        }
+        
+        // Calculate GM metrics
+        function calculateGMMetrics() {
+            let totalRevenue = 0;
+            let totalBV = 0;
+            let totalCIF = 0;
+            
+            // Calculate from reports
+            reports.forEach(report => {
+                const total = calculateReportTotal(report);
+                totalRevenue += total;
+                
+                // Calculate BV from medicines
+                if (report.medicines) {
+                    report.medicines.forEach(med => {
+                        const price = findProductPrice(med.name);
+                        if (price && price.bv) {
+                            totalBV += price.bv;
+                        }
+                    });
+                }
+                
+                // Add CIF if present
+                if (report.cif) {
+                    totalCIF += parseFloat(report.cif);
+                }
+            });
+            
+            const grossMargin = totalRevenue * 0.20; // Assume 20% margin
+            
+            document.getElementById('gmTotalRevenue').textContent = `N$ ${totalRevenue.toFixed(2)}`;
+            document.getElementById('gmTotalBV').textContent = totalBV.toFixed(0);
+            document.getElementById('gmCIFDeposits').textContent = `N$ ${totalCIF.toFixed(2)}`;
+            document.getElementById('gmGrossMargin').textContent = `N$ ${grossMargin.toFixed(2)}`;
+        }
+        
+        // Calculate Director metrics
+        function calculateDirectorMetrics() {
+            let revenue = 0;
+            let cif = 0;
+            let bv = 0;
+            
+            reports.forEach(report => {
+                revenue += calculateReportTotal(report);
+                
+                if (report.cif) cif += parseFloat(report.cif);
+                
+                if (report.medicines) {
+                    report.medicines.forEach(med => {
+                        const price = findProductPrice(med.name);
+                        if (price && price.bv) bv += price.bv;
+                    });
+                }
+            });
+            
+            const margin = revenue * 0.20;
+            const remittance = revenue - cif;
+            
+            document.getElementById('directorRevenue').textContent = `N$ ${revenue.toFixed(2)}`;
+            document.getElementById('directorCIF').textContent = `N$ ${cif.toFixed(2)}`;
+            document.getElementById('directorBV').textContent = bv.toFixed(0);
+            document.getElementById('directorMargin').textContent = `N$ ${margin.toFixed(2)}`;
+            document.getElementById('directorRemittance').textContent = `N$ ${remittance.toFixed(2)}`;
+        }
+        
+        // Load pending approvals
+        function loadPendingApprovals() {
+            const container = document.getElementById('pendingApprovalsList');
+            if (!container) return;
+            
+            container.innerHTML = '<p style="text-align: center; color: #666;">No pending approvals at this time.</p>';
+        }
+        
+        // Load special sales
+        function loadSpecialSales() {
+            const container = document.getElementById('specialSalesList');
+            if (!container) return;
+            
+            container.innerHTML = '<p style="text-align: center; color: #666;">No active special sales campaigns.</p>';
+        }
+        
+        // Load stock depletion
+        function loadStockDepletion() {
+            const container = document.getElementById('stockDepletionDashboard');
+            if (!container) return;
+            
+            const batches = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+            const byProduct = {};
+            
+            batches.forEach(b => {
+                if (!byProduct[b.description]) {
+                    byProduct[b.description] = { total: 0, remaining: 0 };
+                }
+                byProduct[b.description].total += b.quantity;
+                byProduct[b.description].remaining += b.remainingQuantity;
+            });
+            
+            let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr style="background: #c41e3a; color: white;"><th style="padding: 10px;">Product</th><th style="padding: 10px;">Total</th><th style="padding: 10px;">Remaining</th><th style="padding: 10px;">Depleted</th></tr></thead><tbody>';
+            
+            Object.entries(byProduct).forEach(([product, stats]) => {
+                const depleted = stats.total - stats.remaining;
+                const percent = (depleted / stats.total * 100).toFixed(0);
+                html += `<tr><td style="padding: 10px; border: 1px solid #ddd;">${product}</td><td style="padding: 10px; border: 1px solid #ddd;">${stats.total}</td><td style="padding: 10px; border: 1px solid #ddd;">${stats.remaining}</td><td style="padding: 10px; border: 1px solid #ddd;">${percent}%</td></tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // Show special sales modal
+        function showSpecialSalesModal() {
+            alert('Special Sales creation will be available soon!');
+        }
+        
         async function refreshAllData() {
             const previousHash = lastDataHash;
             await loadData();
@@ -5352,6 +5600,66 @@
             // Clear previous values
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+        }
+        
+        // Auto-login for GM portal
+        function autoLoginGM() {
+            currentPortal = 'gm';
+            loadData();
+            
+            let gmUser = users.find(u => u.role === 'gm' || u.username === 'gm');
+            if (!gmUser) {
+                gmUser = {
+                    id: 'USR3000000000001',
+                    username: 'gm',
+                    password: 'gm123',
+                    fullName: 'General Manager',
+                    email: 'gm@dynapharm.com.na',
+                    phone: '0813000000',
+                    role: 'gm',
+                    branch: 'all',
+                    branches: branches.map(b => b.id)
+                };
+            }
+            
+            currentUser = gmUser;
+            document.getElementById('gmAuth').style.display = 'none';
+            document.getElementById('gmContent').style.display = 'block';
+            document.getElementById('gmProfile').innerHTML = `
+                <strong>${gmUser.fullName}</strong> | Role: General Manager | Branch: All
+            `;
+            refreshGMData();
+            alert(`Welcome, ${gmUser.fullName}! You are now logged into the GM Portal.`);
+        }
+        
+        // Auto-login for Director portal
+        function autoLoginDirector() {
+            currentPortal = 'director';
+            loadData();
+            
+            let directorUser = users.find(u => u.role === 'director' || u.username === 'director');
+            if (!directorUser) {
+                directorUser = {
+                    id: 'USR4000000000001',
+                    username: 'director',
+                    password: 'director123',
+                    fullName: 'Director',
+                    email: 'director@dynapharm.com.na',
+                    phone: '0814000000',
+                    role: 'director',
+                    branch: 'all',
+                    branches: branches.map(b => b.id)
+                };
+            }
+            
+            currentUser = directorUser;
+            document.getElementById('directorAuth').style.display = 'none';
+            document.getElementById('directorContent').style.display = 'block';
+            document.getElementById('directorProfile').innerHTML = `
+                <strong>${directorUser.fullName}</strong> | Role: Director | Branch: All
+            `;
+            refreshDirectorData();
+            alert(`Welcome, ${directorUser.fullName}! You are now logged into the Director Portal.`);
         }
         
         // Auto-login for stock portal without requiring credentials
@@ -13951,7 +14259,11 @@
         // Import barcode stock API
         import('/api/barcode-stock.js').then(module => {
             window.barcodeStockAPI = module;
-        }).catch(err => console.log('Barcode Stock API not loaded:', err));
+            console.log('✅ Barcode Stock API loaded successfully');
+        }).catch(err => {
+            console.error('❌ Barcode Stock API not loaded:', err);
+            console.log('Using fallback localStorage method');
+        });
         
         // Handle bulk stock import submission
         document.getElementById('bulkStockImportForm')?.addEventListener('submit', async function(e) {
