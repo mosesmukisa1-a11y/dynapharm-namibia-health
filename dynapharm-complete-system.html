@@ -2768,6 +2768,20 @@
                         <input type="text" id="misSearchInput" placeholder="Type name or NB number..." onkeyup="filterMISReports()" style="padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 5px;">
                     </div>
                 </div>
+                <div class="form-grid" style="margin-top: 10px;">
+                    <div class="form-group">
+                        <label>From (Date & Time)</label>
+                        <input type="datetime-local" id="misDateFrom" onchange="filterMISReports()" style="padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 5px;">
+                    </div>
+                    <div class="form-group">
+                        <label>To (Date & Time)</label>
+                        <input type="datetime-local" id="misDateTo" onchange="filterMISReports()" style="padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 5px;">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end; gap: 10px;">
+                        <button class="btn" onclick="setMISDateToday(); return false;">📅 Today</button>
+                        <button class="btn btn-info" onclick="clearMISDateFilters(); return false;">🧹 Clear</button>
+                    </div>
+                </div>
                 <div style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
                     <strong>📊 Summary:</strong>
                     <span id="misTotalCount" style="margin-left: 10px;">Total Records: 0</span>
@@ -2784,6 +2798,13 @@
                 </div>
                 <div id="misReportsDisplay" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
                     <p style="text-align: center; color: #7f8c8d;">Loading sales receipts...</p>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Daily Receipts Summary by Branch</h3>
+                <div id="misBranchDailySummary" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
+                    <p style="text-align: center; color: #7f8c8d;">Branch summary will appear here.</p>
                 </div>
             </div>
             </div>
@@ -4486,18 +4507,36 @@
         function filterMISReports() {
             const branchId = document.getElementById('misBranchSelect')?.value || 'all';
             const searchTerm = document.getElementById('misSearchInput')?.value?.toLowerCase() || '';
+            const fromInput = document.getElementById('misDateFrom')?.value || '';
+            const toInput = document.getElementById('misDateTo')?.value || '';
+            const fromTs = fromInput ? new Date(fromInput).getTime() : null;
+            const toTs = toInput ? new Date(toInput).getTime() : null;
             
             let filteredReports = reports.filter(report => {
-                // Filter by branch (if branch is specified in report data)
-                // For now, we'll show all reports since they don't have branch info
+                // Branch filter (only applies if report has branch info)
+                if (branchId !== 'all') {
+                    const rptBranch = report.branch || report.clientInfo?.branch || null;
+                    if (!rptBranch || rptBranch !== branchId) {
+                        return false;
+                    }
+                }
+                
+                // Time filter
+                if (fromTs || toTs) {
+                    const rptTs = report.timestamp ? new Date(report.timestamp).getTime() : null;
+                    if (!rptTs) return false;
+                    if (fromTs && rptTs < fromTs) return false;
+                    if (toTs && rptTs > toTs) return false;
+                }
                 
                 // Filter by search term (name or NB number)
                 if (searchTerm) {
                     const name = report.clientInfo?.fullName?.toLowerCase() || '';
                     const nbNumber = report.clientInfo?.nbNumber?.toLowerCase() || '';
                     const receiptId = report.id?.toLowerCase() || '';
+                    const consultant = (report.consultant || '').toLowerCase();
                     
-                    return name.includes(searchTerm) || nbNumber.includes(searchTerm) || receiptId.includes(searchTerm);
+                    return name.includes(searchTerm) || nbNumber.includes(searchTerm) || receiptId.includes(searchTerm) || consultant.includes(searchTerm);
                 }
                 
                 return true;
@@ -4508,8 +4547,14 @@
         }
 
         function displayMISReports() {
-            displayMISReportsTable(reports);
-            updateMISSummary(reports);
+            // Default to today's receipts if no date range selected
+            const fromInput = document.getElementById('misDateFrom');
+            const toInput = document.getElementById('misDateTo');
+            if (fromInput && toInput && !fromInput.value && !toInput.value) {
+                setMISDateToday();
+            } else {
+                filterMISReports();
+            }
         }
 
         function displayMISReportsTable(reportsToDisplay) {
@@ -4525,12 +4570,11 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: #c41e3a; color: white;">
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Receipt ID</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Client Name</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">NB Number</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Phone</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Consultant</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Invoice No.</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Client</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Items Purchased</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Time</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Dispenser</th>
                             <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Total</th>
                         </tr>
                     </thead>
@@ -4538,8 +4582,12 @@
             `;
             
             reportsToDisplay.forEach((report, index) => {
-                const date = new Date(report.timestamp).toLocaleDateString('en-GB');
+                const dt = report.timestamp ? new Date(report.timestamp) : null;
+                const date = dt ? dt.toLocaleDateString('en-GB') : '—';
+                const time = dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
                 const totalAmount = calculateReportTotal(report);
+                const itemsPurchased = getItemsPurchased(report).join('; ');
+                const dispenser = getReportDispenser(report) || '—';
                 
                 const rowColor = index % 2 === 0 ? '#f8f9fa' : 'white';
                 
@@ -4547,10 +4595,9 @@
                     <tr style="background: ${rowColor};">
                         <td style="padding: 10px; border: 1px solid #ddd;">${report.id}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.fullName || 'N/A'}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.nbNumber || 'N/A'}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${report.clientInfo?.phone || 'N/A'}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${report.consultant || 'N/A'}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${date}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${itemsPurchased || '—'}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${time}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${dispenser}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">N$${totalAmount.toFixed(2)}</td>
                     </tr>
                 `;
@@ -4562,6 +4609,51 @@
             `;
             
             displayDiv.innerHTML = html;
+        }
+
+        function getItemsPurchased(report) {
+            if (Array.isArray(report.medicines) && report.medicines.length > 0) {
+                return report.medicines.map(m => m.name).filter(Boolean);
+            }
+            if (Array.isArray(report.products) && report.products.length > 0) {
+                return report.products.map(p => p.name || p.product || p.description).filter(Boolean);
+            }
+            return [];
+        }
+
+        function getReportDispenser(report) {
+            // Prefer dispenser from any dispensed medicine
+            if (Array.isArray(report.medicines)) {
+                const dispensed = report.medicines.find(m => m.dispensedBy);
+                if (dispensed && dispensed.dispensedBy) return dispensed.dispensedBy;
+                const paidBy = report.medicines.find(m => m.paidBy);
+                if (paidBy && paidBy.paidBy) return paidBy.paidBy;
+            }
+            // Fallbacks: consultant or explicit cashier fields if present
+            return report.dispensedBy || report.cashier || report.consultant || null;
+        }
+
+        function setMISDateToday() {
+            const fromInput = document.getElementById('misDateFrom');
+            const toInput = document.getElementById('misDateTo');
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+            const toLocal = (d) => {
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+            if (fromInput) fromInput.value = toLocal(start);
+            if (toInput) toInput.value = toLocal(end);
+            filterMISReports();
+        }
+
+        function clearMISDateFilters() {
+            const fromInput = document.getElementById('misDateFrom');
+            const toInput = document.getElementById('misDateTo');
+            if (fromInput) fromInput.value = '';
+            if (toInput) toInput.value = '';
+            filterMISReports();
         }
 
         function calculateReportTotal(report) {
@@ -4584,9 +4676,16 @@
             }
             
             if (branchSummary) {
-                // Calculate branch breakdown (for now, show total since branches aren't in report data)
-                branchSummary.textContent = `Showing ${reportsToDisplay.length} receipt(s)`;
+                const byBranch = {};
+                reportsToDisplay.forEach(r => {
+                    const key = r.branch || r.clientInfo?.branch || 'Unknown';
+                    byBranch[key] = (byBranch[key] || 0) + 1;
+                });
+                const parts = Object.entries(byBranch).map(([k, v]) => `${k}: ${v}`);
+                branchSummary.textContent = parts.length ? `By Branch: ${parts.join(' | ')}` : `Showing ${reportsToDisplay.length} receipt(s)`;
             }
+
+            renderMISBranchDailySummary(reportsToDisplay);
         }
 
         function refreshMISData() {
@@ -4630,6 +4729,31 @@
 
         function printMISReport() {
             window.print();
+        }
+
+        function renderMISBranchDailySummary(reportsToDisplay) {
+            const container = document.getElementById('misBranchDailySummary');
+            if (!container) return;
+            if (!reportsToDisplay || reportsToDisplay.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No data for selected range.</p>';
+                return;
+            }
+            const groups = {};
+            reportsToDisplay.forEach(r => {
+                const branch = r.branch || r.clientInfo?.branch || 'Unknown';
+                if (!groups[branch]) {
+                    groups[branch] = { count: 0, total: 0 };
+                }
+                groups[branch].count += 1;
+                groups[branch].total += calculateReportTotal(r);
+            });
+            let html = '<table style="width: 100%; border-collapse: collapse;">\n<thead>\n<tr style="background: #2c3e50; color: white;">\n<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Branch</th>\n<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Receipts</th>\n<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Total Amount</th>\n</tr>\n</thead><tbody>';
+            Object.entries(groups).forEach(([branch, stats], i) => {
+                const rowColor = i % 2 === 0 ? '#f8f9fa' : 'white';
+                html += `<tr style="background: ${rowColor};"><td style="padding: 10px; border: 1px solid #ddd;">${branch}</td><td style="padding: 10px; border: 1px solid #ddd;">${stats.count}</td><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">N$${stats.total.toFixed(2)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         function calculateAge() {
