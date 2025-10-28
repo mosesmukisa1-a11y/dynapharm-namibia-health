@@ -16018,6 +16018,8 @@
             
             // Load distributors first
             await loadDistributors();
+            // Initialize default distributors if none exist
+            await initializeDefaultDistributors();
             distributorsLoaded = true;
             console.log('Distributors loaded and ready for use!');
             
