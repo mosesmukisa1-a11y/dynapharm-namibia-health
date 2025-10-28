@@ -13601,6 +13601,156 @@
             else if (tabName === 'distribution') displayDistributionHistory();
         }
         
+        // Stock Import Functions with Barcode and FEFO
+        function addStockImportRow() {
+            const tbody = document.getElementById('stockImportTableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="text" class="stock-carton-no" style="width: 100%; padding: 8px;" placeholder="A1-98" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="text" class="stock-description" style="width: 100%; padding: 8px;" placeholder="Product description" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="text" class="stock-batch-no" style="width: 100%; padding: 8px;" placeholder="DP24265" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="month" class="stock-expiry-date" style="width: 100%; padding: 8px;" placeholder="YYYY-MM" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="number" class="stock-quantity" style="width: 100%; padding: 8px;" placeholder="Qty" min="1" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <input type="number" class="stock-total-ctns" style="width: 100%; padding: 8px;" placeholder="CTNS" min="1" required>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <button type="button" class="btn btn-danger" onclick="removeStockImportRow(this)" style="padding: 5px 10px;">Remove</button>
+                </td>
+            `;
+            tbody.appendChild(newRow);
+        }
+        
+        function removeStockImportRow(btn) {
+            const row = btn.closest('tr');
+            const tbody = document.getElementById('stockImportTableBody');
+            if (tbody.children.length > 1) {
+                row.remove();
+            } else {
+                alert('At least one row must remain');
+            }
+        }
+        
+        function clearStockImportForm() {
+            const tbody = document.getElementById('stockImportTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="text" class="stock-carton-no" style="width: 100%; padding: 8px;" placeholder="A1-98">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="text" class="stock-description" style="width: 100%; padding: 8px;" placeholder="Product description">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="text" class="stock-batch-no" style="width: 100%; padding: 8px;" placeholder="DP24265">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="month" class="stock-expiry-date" style="width: 100%; padding: 8px;" placeholder="YYYY-MM">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="number" class="stock-quantity" style="width: 100%; padding: 8px;" placeholder="Qty" min="1">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <input type="number" class="stock-total-ctns" style="width: 100%; padding: 8px;" placeholder="CTNS" min="1">
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button type="button" class="btn btn-danger" onclick="removeStockImportRow(this)" style="padding: 5px 10px;">Remove</button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Import barcode stock API
+        import('/api/barcode-stock.js').then(module => {
+            window.barcodeStockAPI = module;
+        }).catch(err => console.log('Barcode Stock API not loaded:', err));
+        
+        // Handle bulk stock import submission
+        document.getElementById('bulkStockImportForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const rows = document.querySelectorAll('#stockImportTableBody tr');
+            const items = [];
+            
+            // Validate and collect data
+            for (let row of rows) {
+                const cartonNo = row.querySelector('.stock-carton-no')?.value;
+                const description = row.querySelector('.stock-description')?.value;
+                const batchNo = row.querySelector('.stock-batch-no')?.value;
+                const expiryDate = row.querySelector('.stock-expiry-date')?.value;
+                const quantity = row.querySelector('.stock-quantity')?.value;
+                const totalCtns = row.querySelector('.stock-total-ctns')?.value;
+                
+                if (!cartonNo || !description || !batchNo || !expiryDate || !quantity || !totalCtns) {
+                    alert('Please fill all fields in every row');
+                    return;
+                }
+                
+                items.push({ cartonNo, description, batchNo, expiryDate, quantity, totalCtns });
+            }
+            
+            // Import each item with barcode generation
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (let item of items) {
+                try {
+                    if (window.barcodeStockAPI) {
+                        const result = await window.barcodeStockAPI.importStockWithBarcode(item);
+                        if (result.success) {
+                            successCount++;
+                            console.log(`Imported: ${item.description} - Barcode: ${result.data.barcode}`);
+                        } else {
+                            failCount++;
+                            console.error(`Failed to import: ${item.description}`, result.error);
+                        }
+                    } else {
+                        // Fallback: save to localStorage
+                        const stockBatches = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                        const barcode = 'BC' + Date.now() + Math.random().toString(36).substr(2, 9);
+                        const batch = {
+                            id: 'BATCH' + Date.now(),
+                            barcode: barcode,
+                            cartonNo: item.cartonNo,
+                            description: item.description,
+                            batchNo: item.batchNo,
+                            expiryDate: item.expiryDate,
+                            expiryTimestamp: new Date(item.expiryDate + '-01').getTime(),
+                            quantity: parseInt(item.quantity),
+                            totalCtns: parseInt(item.totalCtns),
+                            importDate: new Date().toISOString(),
+                            location: 'country_stock',
+                            status: 'available',
+                            dispatchedQuantity: 0,
+                            remainingQuantity: parseInt(item.quantity)
+                        };
+                        stockBatches.push(batch);
+                        localStorage.setItem('dyna_barcode_stock', JSON.stringify(stockBatches));
+                        successCount++;
+                    }
+                } catch (error) {
+                    failCount++;
+                    console.error('Import error:', error);
+                }
+            }
+            
+            alert(`✅ Imported ${successCount} items successfully${failCount > 0 ? ' (Failed: ' + failCount + ')' : ''}`);
+            
+            // Clear form and refresh display
+            clearStockImportForm();
+            displayCountryStock();
+        });
+        
         // Helper functions
         function clearStockForm() {
             document.getElementById('receiveStockForm').reset();
