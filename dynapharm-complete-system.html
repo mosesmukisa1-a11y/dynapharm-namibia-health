@@ -2902,14 +2902,57 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
                     <select id="expenseCategoryFilter" onchange="filterExpenses()">
                         <option value="all">All Categories</option>
-                        <option value="salaries">Salaries</option>
-                        <option value="rent">Rent</option>
-                        <option value="utilities">Utilities</option>
-                        <option value="supplies">Supplies</option>
-                        <option value="marketing">Marketing</option>
-                        <option value="travel">Travel</option>
-                        <option value="insurance">Insurance</option>
-                        <option value="other">Other</option>
+                        <optgroup label="OPERATING EXPENSES">
+                            <option value="cleaning-materials">Cleaning Materials & equipment</option>
+                            <option value="transportation-taxi">Transportation/Taxi fare</option>
+                            <option value="fuel">Fuel</option>
+                            <option value="telephone-internet">Telephone & internet</option>
+                            <option value="printing-photocopy">Printing & photocopy</option>
+                            <option value="meals">Meals</option>
+                            <option value="car-repair">Repair & Maintenance (car)</option>
+                            <option value="nampost-courier">Nampost courier services</option>
+                            <option value="stationary">Stationary</option>
+                            <option value="office-equipment">Office equipment</option>
+                            <option value="bonus">Bonus</option>
+                            <option value="fitness-certificate">Fitness certificate</option>
+                            <option value="marketing-expos">Marketing/Expos/Conference halls</option>
+                            <option value="bad-debts">Bad debts/Losses and Thefts</option>
+                            <option value="miscellaneous">Miscellaneous</option>
+                            <option value="advertisement-promotions">Advertisement & promotions</option>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="company-stock">Stock for company use (NON CASH PRODUCTS)</option>
+                            <option value="bank-charges">Bank charges</option>
+                            <option value="cash-back">Cash back</option>
+                            <option value="field-work">Field work</option>
+                            <option value="consistency">Consistency</option>
+                            <option value="payroll-processing">Payroll Processing Services</option>
+                            <option value="social-security">Social Security</option>
+                            <option value="payroll-taxes">Payroll Taxes</option>
+                            <option value="website-development">Website development</option>
+                            <option value="business-licenses">Business Licenses and permits</option>
+                            <option value="labour">Labour</option>
+                            <option value="carpenter-plumbing">Carpenter/Plumbing services (fixtures & fittings)</option>
+                            <option value="salaries">Salaries</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="periodic-expenses">Periodic Expenses</option>
+                            <option value="foreign-affairs-paperwork">Foreign affairs: paperwork</option>
+                            <option value="visas">Visas</option>
+                            <option value="foreign-affairs-flights">Foreign affairs: flight tickets</option>
+                            <option value="gift-promotions">Gift Promotions</option>
+                            <option value="management-travel">Management Travel Expenses</option>
+                        </optgroup>
+                        <optgroup label="VARIABLE EXPENSES">
+                            <option value="water-bill">Water Bill</option>
+                            <option value="electricity-bill">Electricity Bill</option>
+                            <option value="security-services">Security Services</option>
+                            <option value="rent">Rent</option>
+                            <option value="body-corporate">Body Corporate</option>
+                        </optgroup>
+                        <optgroup label="INTEREST & TAXES">
+                            <option value="interest-income">Interest (income)</option>
+                            <option value="interest-expenses">Interest Expenses</option>
+                            <option value="interest-expenses-taxes">Interest (income), expenses & Taxes</option>
+                        </optgroup>
                     </select>
                     <select id="expenseMonthFilter" onchange="filterExpenses()">
                         <option value="all">All Months</option>
@@ -3969,8 +4012,10 @@
         let lastDataHash = null;
         
         // API Configuration
-        // Try Railway deployment first, then local backup
-        const API_BASE = 'https://dynapharm-backend-production.up.railway.app/api';
+        // IMPORTANT: Set your actual Railway/backend URL here
+        // For now, this is commented out. Uncomment and update when you have a deployed backend.
+        // const API_BASE = 'https://dynapharm-backend-production.up.railway.app/api';
+        const API_BASE = 'http://localhost:8001/api'; // Local development server
         const API_BASE_LOCAL = 'http://192.168.178.182:8001/api';
         const USE_OFFLINE_MODE = true; // Fall back to localStorage if backend is unavailable
 
@@ -4655,23 +4700,27 @@
                     options.body = JSON.stringify(data);
                 }
                 
-                // Try Railway API first
+                // Try primary API
                 try {
                     const response = await fetch(`${API_BASE}${endpoint}`, options);
                     const result = await response.json();
                     updateRealtimeStatus('online');
                     return result;
-                } catch (railwayError) {
-                    // Try local API as fallback
-                    try {
-                        const response = await fetch(`${API_BASE_LOCAL}${endpoint}`, options);
-                        const result = await response.json();
-                        updateRealtimeStatus('online');
-                        console.log('Using local API as fallback');
-                        return result;
-                    } catch (localError) {
-                        console.error('Both APIs failed, using localStorage');
-                        throw localError;
+                } catch (primaryError) {
+                    // Try secondary local API as fallback
+                    if (API_BASE_LOCAL !== API_BASE) {
+                        try {
+                            const response = await fetch(`${API_BASE_LOCAL}${endpoint}`, options);
+                            const result = await response.json();
+                            updateRealtimeStatus('online');
+                            console.log('Using secondary local API as fallback');
+                            return result;
+                        } catch (localError) {
+                            console.error('Both APIs failed, using localStorage');
+                            throw localError;
+                        }
+                    } else {
+                        throw primaryError;
                     }
                 }
             } catch (error) {
@@ -5102,14 +5151,20 @@
                 try {
                     response = await fetch(`${API_BASE}/clients`);
                     data = await response.json();
-                    connectedTo = 'Railway Cloud';
+                    connectedTo = 'Primary Server';
                 } catch (e1) {
-                    // Try local API
-                    try {
-                        response = await fetch(`${API_BASE_LOCAL}/clients`);
-                        data = await response.json();
-                        connectedTo = 'Local Server';
-                    } catch (e2) {
+                    // Try secondary local API if different
+                    if (API_BASE_LOCAL !== API_BASE) {
+                        try {
+                            response = await fetch(`${API_BASE_LOCAL}/clients`);
+                            data = await response.json();
+                            connectedTo = 'Secondary Local Server';
+                        } catch (e2) {
+                            // Fall back to local storage
+                            data = clients;
+                            connectedTo = 'Offline Mode (Local Storage)';
+                        }
+                    } else {
                         // Fall back to local storage
                         data = clients;
                         connectedTo = 'Offline Mode (Local Storage)';
@@ -5139,16 +5194,23 @@
                 try {
                     response = await fetch(`${API_BASE}/clients`);
                     data = await response.json();
-                    endpoint = 'Railway Cloud';
+                    endpoint = 'Primary Server';
                     connectionStatus = '✅ Connected';
                 } catch (e1) {
-                    // Try local API
-                    try {
-                        response = await fetch(`${API_BASE_LOCAL}/clients`);
-                        data = await response.json();
-                        endpoint = 'Local Server';
-                        connectionStatus = '✅ Connected';
-                    } catch (e2) {
+                    // Try secondary local API if different
+                    if (API_BASE_LOCAL !== API_BASE) {
+                        try {
+                            response = await fetch(`${API_BASE_LOCAL}/clients`);
+                            data = await response.json();
+                            endpoint = 'Secondary Local Server';
+                            connectionStatus = '✅ Connected';
+                        } catch (e2) {
+                            // Fall back to local storage
+                            data = clients;
+                            endpoint = 'Offline Mode';
+                            connectionStatus = '⚠️ Offline (Using Local Storage)';
+                        }
+                    } else {
                         // Fall back to local storage
                         data = clients;
                         endpoint = 'Offline Mode';
