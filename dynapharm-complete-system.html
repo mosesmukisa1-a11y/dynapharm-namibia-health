@@ -2824,6 +2824,17 @@
                 </div>
             </div>
 
+            <!-- Staff Requests (Approvals) -->
+            <div class="form-section">
+                <h3>👤 Staff Requests - Cash Approval</h3>
+                <div style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-info" onclick="displayFinanceCashRequests()">🔄 Refresh</button>
+                </div>
+                <div id="financeCashRequests" style="max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">No cash requests yet.</p>
+                </div>
+            </div>
+
             <!-- Expense Management -->
             <div class="form-section">
                 <h3>💸 Expense Management</h3>
@@ -9576,12 +9587,58 @@
         
         function submitCashRequest(e) {
             e.preventDefault();
-            alert('Cash request submitted successfully! It will be reviewed by management.');
-            closeModal('cashRequestModal');
+            try {
+                const amount = parseFloat(document.getElementById('cashAmount').value);
+                const purpose = document.getElementById('cashPurpose').value;
+                const urgent = document.getElementById('cashUrgent').checked;
+                const request = {
+                    id: 'CASH' + Date.now(),
+                    employee: currentUser?.fullName || 'Unknown',
+                    employeeId: currentUser?.username || '',
+                    branch: currentBranch || '',
+                    amount,
+                    purpose,
+                    urgent,
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                };
+                const storeKey = 'finance_cash_requests';
+                const existing = JSON.parse(localStorage.getItem(storeKey) || '[]');
+                existing.push(request);
+                localStorage.setItem(storeKey, JSON.stringify(existing));
+                recordDepartmentEvent && recordDepartmentEvent('cash_requested', request);
+                alert('Cash request submitted successfully! It will be reviewed by Finance.');
+                closeModal('cashRequestModal');
+                displayFinanceCashRequests && displayFinanceCashRequests();
+            } catch (err) {
+                console.warn('submitCashRequest error', err);
+                alert('Error submitting cash request.');
+            }
         }
         
         function viewMyCashRequests() {
-            alert('View cash requests - Coming soon!');
+            try {
+                const list = JSON.parse(localStorage.getItem('finance_cash_requests') || '[]');
+                const mine = list.filter(r => r.employeeId === (currentUser?.username || ''));
+                const container = document.getElementById('myCashStatus');
+                if (!container) return;
+                if (mine.length === 0) {
+                    container.innerHTML = '<p style="color: #666;">No cash requests yet.</p>';
+                    return;
+                }
+                container.innerHTML = mine.slice(-10).map(r => `
+                    <div style="background: white; border-left: 4px solid ${r.status === 'approved' ? '#27ae60' : r.status === 'rejected' ? '#e74c3c' : '#3498db'}; padding: 10px; margin-bottom: 8px; border-radius: 6px;">
+                        <div style="display:flex; justify-content: space-between;">
+                            <strong>N$ ${r.amount.toFixed(2)}</strong>
+                            <span style="background:${r.status === 'approved' ? '#27ae60' : r.status === 'rejected' ? '#e74c3c' : '#3498db'}; color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${r.status.toUpperCase()}</span>
+                        </div>
+                        <div style="color:#666; font-size:0.9rem;">${r.purpose}</div>
+                        <div style="color:#999; font-size:0.8rem;">${new Date(r.createdAt).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.warn('viewMyCashRequests error', e);
+            }
         }
         
         function loadMyStaffStatus() {
@@ -15855,6 +15912,28 @@
             leaveRequests = leaveData ? JSON.parse(leaveData) : [];
             displayLeaveRequests();
         }
+
+        function approveLeave(leaveId) {
+            const idx = leaveRequests.findIndex(l => l.id === leaveId);
+            if (idx === -1) return;
+            leaveRequests[idx].status = 'approved';
+            leaveRequests[idx].approvedBy = currentUser?.fullName || 'Approver';
+            leaveRequests[idx].approvedAt = new Date().toISOString();
+            localStorage.setItem('hr_leave', JSON.stringify(leaveRequests));
+            displayLeaveRequests();
+            recordDepartmentEvent && recordDepartmentEvent('leave_approved', leaveRequests[idx]);
+        }
+
+        function rejectLeave(leaveId) {
+            const idx = leaveRequests.findIndex(l => l.id === leaveId);
+            if (idx === -1) return;
+            leaveRequests[idx].status = 'rejected';
+            leaveRequests[idx].rejectedBy = currentUser?.fullName || 'Approver';
+            leaveRequests[idx].rejectedAt = new Date().toISOString();
+            localStorage.setItem('hr_leave', JSON.stringify(leaveRequests));
+            displayLeaveRequests();
+            recordDepartmentEvent && recordDepartmentEvent('leave_rejected', leaveRequests[idx]);
+        }
         
         function displayLeaveRequests() {
             const listDiv = document.getElementById('leaveList');
@@ -15876,6 +15955,12 @@
                     <p style="margin: 5px 0;"><strong>Status:</strong> <span style="background: ${
                         leave.status === 'approved' ? '#27ae60' : leave.status === 'rejected' ? '#e74c3c' : '#f39c12'
                     }; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${leave.status.toUpperCase()}</span></p>
+                    ${leave.status === 'pending' ? `
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <button class="btn btn-success" onclick="approveLeave('${leave.id}')">✅ Approve</button>
+                            <button class="btn btn-danger" onclick="rejectLeave('${leave.id}')">❌ Reject</button>
+                        </div>
+                    ` : ''}
                 </div>
             `).join('');
         }
@@ -16562,6 +16647,69 @@
                 }
                 // Any DP/CP/BV chips in DOM can be updated here if needed later
             } catch (e) { console.warn('updatePriceBadges error', e); }
+        }
+
+        // Finance - Cash Requests approval list
+        function displayFinanceCashRequests() {
+            try {
+                const container = document.getElementById('financeCashRequests');
+                if (!container) return;
+                const list = JSON.parse(localStorage.getItem('finance_cash_requests') || '[]');
+                if (list.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No cash requests yet.</p>';
+                    return;
+                }
+                container.innerHTML = list.slice().reverse().map(r => `
+                    <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid ${r.status === 'approved' ? '#27ae60' : r.status === 'rejected' ? '#e74c3c' : '#3498db'};">
+                        <div style="display:flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${r.employee}</strong>
+                                <div style="color:#999; font-size: 0.85rem;">${new Date(r.createdAt).toLocaleString()}</div>
+                            </div>
+                            <div>
+                                <span style="background:${r.status === 'approved' ? '#27ae60' : r.status === 'rejected' ? '#e74c3c' : '#3498db'}; color:white; padding:2px 8px; border-radius: 12px; font-size:0.8rem;">${r.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px; color:#555;">Purpose: ${r.purpose}</div>
+                        <div style="margin-top:4px; color:#2c3e50; font-weight:600;">Amount: N$ ${Number(r.amount).toFixed(2)}</div>
+                        ${r.status === 'pending' ? `
+                        <div style="margin-top: 10px; display:flex; gap:10px;">
+                            <button class="btn btn-success" onclick="approveCashRequest('${r.id}')">✅ Approve</button>
+                            <button class="btn btn-danger" onclick="rejectCashRequest('${r.id}')">❌ Reject</button>
+                        </div>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) { console.warn('displayFinanceCashRequests error', e); }
+        }
+
+        function approveCashRequest(id) {
+            try {
+                const key = 'finance_cash_requests';
+                const list = JSON.parse(localStorage.getItem(key) || '[]');
+                const i = list.findIndex(r => r.id === id);
+                if (i === -1) return;
+                list[i].status = 'approved';
+                list[i].approvedBy = currentUser?.fullName || 'Finance';
+                list[i].approvedAt = new Date().toISOString();
+                localStorage.setItem(key, JSON.stringify(list));
+                displayFinanceCashRequests();
+                recordDepartmentEvent && recordDepartmentEvent('cash_approved', list[i]);
+            } catch (e) { console.warn('approveCashRequest error', e); }
+        }
+
+        function rejectCashRequest(id) {
+            try {
+                const key = 'finance_cash_requests';
+                const list = JSON.parse(localStorage.getItem(key) || '[]');
+                const i = list.findIndex(r => r.id === id);
+                if (i === -1) return;
+                list[i].status = 'rejected';
+                list[i].rejectedBy = currentUser?.fullName || 'Finance';
+                list[i].rejectedAt = new Date().toISOString();
+                localStorage.setItem(key, JSON.stringify(list));
+                displayFinanceCashRequests();
+                recordDepartmentEvent && recordDepartmentEvent('cash_rejected', list[i]);
+            } catch (e) { console.warn('rejectCashRequest error', e); }
         }
         
         // Populate product dropdown for an import row
