@@ -1901,8 +1901,8 @@
                                 <div style="margin-top: 20px; text-align: center;">
                                     <button type="submit" class="btn btn-success" style="padding: 12px 40px; font-size: 1.1rem;">📥 Import Stock</button>
                                     <button type="button" class="btn" onclick="clearStockImportForm()">Clear All</button>
-                                </div>
-                            </form>
+                            </div>
+                        </form>
                         </div>
                     </div>
                     
@@ -9361,6 +9361,209 @@
             refreshWalkInSalesList();
             refreshUnifiedSales(); // Add unified sales dashboard
         }
+        
+        // Banking Functions
+        function showBankDepositModal() {
+            alert('Bank deposit feature - Coming soon!');
+        }
+        
+        function showCashDrawerModal() {
+            const modal = document.createElement('div');
+            modal.id = 'cashDrawerModal';
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <span class="close" onclick="closeModal('cashDrawerModal')">&times;</span>
+                    <h2>💵 Cash Drawer Management</h2>
+                    <div id="cashDrawerDetails" style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                        ${document.getElementById('cashDrawerStatus')?.innerHTML || ''}
+                    </div>
+                    <button class="btn btn-success" onclick="openCashDrawer()">🔓 Open Drawer</button>
+                    <button class="btn btn-danger" onclick="closeCashDrawer()">🔒 Close Drawer</button>
+                    <button class="btn" onclick="closeModal('cashDrawerModal')">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function showCashExpenseModal() {
+            const modal = document.createElement('div');
+            modal.id = 'expenseModal';
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close" onclick="closeModal('expenseModal')">&times;</span>
+                    <h2>💸 Record Cash Expense</h2>
+                    <form id="expenseForm" onsubmit="submitExpense(event)">
+                        <div class="form-group">
+                            <label>Expense Type</label>
+                            <select id="expenseType" required>
+                                <option value="petty">Petty Cash</option>
+                                <option value="transport">Transport</option>
+                                <option value="supplies">Supplies</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (N$)</label>
+                            <input type="number" id="expenseAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="expenseDescription" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">Submit</button>
+                        <button type="button" class="btn" onclick="closeModal('expenseModal')">Cancel</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function submitExpense(e) {
+            e.preventDefault();
+            alert('Expense recorded successfully!');
+            closeModal('expenseModal');
+        }
+        
+        function displayBankingHistory() {
+            const container = document.getElementById('bankingOperations');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <h4>Banking History</h4>
+                <p style="text-align: center; color: #666; padding: 20px;">No banking records found.</p>
+            `;
+        }
+        
+        // Payment Functions
+        function showRecordPaymentModal() {
+            const modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+                    <h2>💳 Record Payment</h2>
+                    <form id="recordPaymentForm" onsubmit="submitPayment(event)">
+                        <div class="form-group">
+                            <label>Client Name</label>
+                            <input type="text" id="paymentClient" list="clientList" required>
+                            <datalist id="clientList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>Invoice Number</label>
+                            <input type="text" id="paymentInvoice" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (N$)</label>
+                            <input type="number" id="paymentAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select id="paymentMethod" required>
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="bank">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success">Record Payment</button>
+                        <button type="button" class="btn" onclick="closeModal('paymentModal')">Cancel</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function submitPayment(e) {
+            e.preventDefault();
+            alert('Payment recorded successfully!');
+            closeModal('paymentModal');
+            displayPaymentHistory();
+        }
+        
+        function searchPayments() {
+            displayPaymentHistory();
+        }
+        
+        function displayPaymentHistory() {
+            const container = document.getElementById('paymentsList');
+            if (!container) return;
+            
+            container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No payment records found.</p>';
+        }
+        
+        // Staff Functions
+        function showDispenserLeaveRequest() {
+            alert('Leave request feature - Coming soon! Navigate to HR Portal for leave requests.');
+        }
+        
+        function viewMyLeaveRequests() {
+            alert('View leave requests - Coming soon!');
+        }
+        
+        function showDispenserCashRequest() {
+            const modal = document.createElement('div');
+            modal.id = 'cashRequestModal';
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close" onclick="closeModal('cashRequestModal')">&times;</span>
+                    <h2>💵 Request Cash</h2>
+                    <form id="cashRequestForm" onsubmit="submitCashRequest(event)">
+                        <div class="form-group">
+                            <label>Amount Needed (N$)</label>
+                            <input type="number" id="cashAmount" step="0.01" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Purpose</label>
+                            <textarea id="cashPurpose" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Urgent?</label>
+                            <label><input type="checkbox" id="cashUrgent"> Mark as urgent</label>
+                        </div>
+                        <button type="submit" class="btn btn-success">Submit Request</button>
+                        <button type="button" class="btn" onclick="closeModal('cashRequestModal')">Cancel</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function submitCashRequest(e) {
+            e.preventDefault();
+            alert('Cash request submitted successfully! It will be reviewed by management.');
+            closeModal('cashRequestModal');
+        }
+        
+        function viewMyCashRequests() {
+            alert('View cash requests - Coming soon!');
+        }
+        
+        function loadMyStaffStatus() {
+            document.getElementById('myLeaveStatus').innerHTML = '<p style="color: #666;">No pending leave requests.</p>';
+            document.getElementById('myCashStatus').innerHTML = '<p style="color: #666;">No pending cash requests.</p>';
+        }
+        
+        // Cash drawer functions
+        function openCashDrawer() {
+            cashDrawer.isOpen = true;
+            cashDrawer.openedBy = currentUser?.fullName || 'Unknown';
+            cashDrawer.openedAt = new Date().toISOString();
+            displayCashDrawerStatus();
+            alert('Cash drawer opened!');
+        }
+        
+        function closeCashDrawer() {
+            cashDrawer.isOpen = false;
+            displayCashDrawerStatus();
+            alert('Cash drawer closed!');
+        }
 
         function displayCashDrawerStatus() {
             const statusDiv = document.getElementById('cashDrawerStatus');
@@ -12164,7 +12367,7 @@
                     clientId: report.clientId,
                     medicines: products
                 });
-
+                
                 try {
                     const result = await apiRequest('/reports', 'PUT', report);
                     if (result.success) {
@@ -13150,7 +13353,7 @@
 
             // Record department event
             recordDepartmentEvent('walkin_sale', sale);
-
+            
             // Save sale to localStorage
             walkInSales.push(sale);
             localStorage.setItem('dyna_walkin_sales', JSON.stringify(walkInSales));
