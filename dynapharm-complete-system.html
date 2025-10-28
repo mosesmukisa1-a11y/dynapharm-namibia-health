@@ -4113,6 +4113,7 @@
 
             medicines.forEach(med => {
                 const price = findProductPrice(med.name);
+                const quantity = med.quantity || 1; // Get quantity, default to 1
                 
                 // Check if it's a package and calculate based on dispensed items
                 let effectivePrice;
@@ -4125,11 +4126,27 @@
                     
                     // Get full package price
                 if (clientMembershipStatus === 'member') {
-                        packageFullPrice = { dp: packagePricing.packageTotal.dp, cp: packagePricing.packageTotal.dp, bv: packagePricing.packageTotal.bv };
-                        packageDispensedPrice = { dp: packagePricing.dp, cp: packagePricing.dp, bv: packagePricing.bv };
+                        packageFullPrice = { 
+                            dp: packagePricing.packageTotal.dp * quantity, 
+                            cp: packagePricing.packageTotal.dp * quantity, 
+                            bv: packagePricing.packageTotal.bv * quantity 
+                        };
+                        packageDispensedPrice = { 
+                            dp: packagePricing.dp * quantity, 
+                            cp: packagePricing.dp * quantity, 
+                            bv: packagePricing.bv * quantity 
+                        };
                     } else {
-                        packageFullPrice = { dp: 0, cp: packagePricing.packageTotal.cp, bv: 0 };
-                        packageDispensedPrice = { dp: 0, cp: packagePricing.cp, bv: 0 };
+                        packageFullPrice = { 
+                            dp: 0, 
+                            cp: packagePricing.packageTotal.cp * quantity, 
+                            bv: 0 
+                        };
+                        packageDispensedPrice = { 
+                            dp: 0, 
+                            cp: packagePricing.cp * quantity, 
+                            bv: 0 
+                        };
                     }
                     
                     // Calculate pending price (full package - dispensed items)
@@ -4141,9 +4158,17 @@
                 } else {
                     // Individual product pricing
                     if (clientMembershipStatus === 'member') {
-                    effectivePrice = { dp: price.dp, cp: price.dp, bv: price.bv };
+                    effectivePrice = { 
+                        dp: price.dp * quantity, 
+                        cp: price.cp * quantity, 
+                        bv: price.bv * quantity 
+                    };
                 } else {
-                    effectivePrice = { dp: 0, cp: price.cp, bv: 0 };
+                    effectivePrice = { 
+                        dp: 0, 
+                        cp: price.cp * quantity, 
+                        bv: 0 
+                    };
                     }
                 }
                 
@@ -5211,7 +5236,8 @@
             
             return report.medicines.reduce((total, med) => {
                 if (med.currentPrice) {
-                    return total + (med.currentPrice.cp || 0);
+                    const quantity = med.quantity || 1;
+                    return total + ((med.currentPrice.cp || 0) * quantity);
                 }
                 return total;
             }, 0);
