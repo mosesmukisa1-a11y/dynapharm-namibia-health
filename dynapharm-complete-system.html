@@ -1840,6 +1840,7 @@
                     <button class="tab-button" onclick="showStockTab('windhoek')">🏢 Windhoek Warehouse</button>
                     <button class="tab-button" onclick="showStockTab('ondangwa')">🏢 Ondangwa Warehouse</button>
                     <button class="tab-button" onclick="showStockTab('distribution')">🚚 Distribution</button>
+                    <button class="tab-button" onclick="showStockTab('inventory')">📊 Inventory Management</button>
                 </div>
                 
                 <!-- Country Stock Tab -->
@@ -2060,6 +2061,57 @@
                             <button class="btn btn-success" onclick="displayDistributionHistory()">Refresh</button>
                         </div>
                         <div id="distributionHistoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Inventory Management Tab -->
+                <div id="inventoryTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>📊 Inventory Management - All Stock Movements</h3>
+                        <p style="margin-bottom: 20px; color: #666;">Track all stock movements across country, warehouses, and branches</p>
+                        
+                        <!-- Filters -->
+                        <div class="form-grid" style="margin-bottom: 20px;">
+                            <div class="form-group">
+                                <label>Location</label>
+                                <select id="inventoryLocationFilter" onchange="filterInventoryMovements()">
+                                    <option value="all">All Locations</option>
+                                    <option value="country">Country Stock</option>
+                                    <option value="windhoek">Windhoek Warehouse</option>
+                                    <option value="ondangwa">Ondangwa Warehouse</option>
+                                    <option value="barcode">Barcode Stock</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Movement Type</label>
+                                <select id="inventoryMovementFilter" onchange="filterInventoryMovements()">
+                                    <option value="all">All Movements</option>
+                                    <option value="import">Import</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="distribution">Distribution</option>
+                                    <option value="adjustment">Adjustment</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Search Product</label>
+                                <input type="text" id="inventoryProductSearch" placeholder="Search by product name..." onkeyup="filterInventoryMovements()">
+                            </div>
+                            <div class="form-group">
+                                <label>Date Range</label>
+                                <input type="date" id="inventoryDateFrom" onchange="filterInventoryMovements()">
+                                <input type="date" id="inventoryDateTo" onchange="filterInventoryMovements()">
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <button class="btn btn-success" onclick="displayInventoryMovements()">🔄 Refresh</button>
+                            <button class="btn btn-primary" onclick="exportInventoryMovements()">📥 Export</button>
+                            <button class="btn btn-warning" onclick="printInventoryReport()">🖨️ Print Report</button>
+                        </div>
+                        
+                        <div id="inventoryMovementsList" style="max-height: 600px; overflow-y: auto;">
+                            <p style="text-align: center; padding: 20px; color: #666;">Loading inventory movements...</p>
+                        </div>
                     </div>
                 </div>
             </div>
