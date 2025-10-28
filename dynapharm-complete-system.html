@@ -15266,6 +15266,102 @@
             loadPerformanceReviews();
         }
         
+        // ==========================
+        // Global population helpers
+        // ==========================
+        function populateBranchDropdowns() {
+            try {
+                const branchSelectIds = [
+                    'branchSelect',
+                    'distributionBranch',
+                    'requestBranch',
+                    'financeBranchSelect',
+                    'misBranchSelect'
+                ];
+                branchSelectIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const isAllSupported = (id === 'financeBranchSelect' || id === 'misBranchSelect');
+                    el.innerHTML = isAllSupported ? '<option value="all">All Branches</option>' : '<option value="">Select Branch</option>';
+                    (branches || []).forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.id || b.name || '';
+                        opt.textContent = b.name || b.id;
+                        el.appendChild(opt);
+                    });
+                });
+            } catch (e) { console.warn('populateBranchDropdowns error', e); }
+        }
+
+        function populateProductDropdowns() {
+            try {
+                const productSelectIds = [
+                    'windhoekProduct',
+                    'ondangwaProduct',
+                    'distributionProduct'
+                ];
+                const allSelects = [
+                    ...productSelectIds.map(id => document.getElementById(id)).filter(Boolean),
+                    ...Array.from(document.querySelectorAll('.request-product-select'))
+                ];
+                allSelects.forEach(select => {
+                    select.innerHTML = '<option value="">Select Product</option>';
+                    (PRICE_LIST || []).forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.description;
+                        opt.textContent = `${p.description}`;
+                        opt.setAttribute('data-dp', p.dp);
+                        opt.setAttribute('data-cp', p.cp);
+                        opt.setAttribute('data-bv', p.bv);
+                        select.appendChild(opt);
+                    });
+                });
+            } catch (e) { console.warn('populateProductDropdowns error', e); }
+        }
+
+        function updatePriceBadges() {
+            try {
+                // Walk-in POS product cards
+                if (typeof displayWalkInProducts === 'function') {
+                    // Trigger refresh using current filtered list if any
+                    displayWalkInProducts(PRICE_LIST);
+                }
+                // Any DP/CP/BV chips in DOM can be updated here if needed later
+            } catch (e) { console.warn('updatePriceBadges error', e); }
+        }
+
+        async function seedIfEmpty() {
+            try {
+                // Seed branches in localStorage if missing
+                const storedBranches = localStorage.getItem('dyna_branches_seeded');
+                if (!storedBranches) {
+                    if (Array.isArray(branches) && branches.length > 0) {
+                        localStorage.setItem('dyna_branches', JSON.stringify(branches));
+                        localStorage.setItem('dyna_branches_seeded', '1');
+                    }
+                }
+                // Seed products
+                const storedProducts = localStorage.getItem('dyna_products_seeded');
+                if (!storedProducts) {
+                    const seeded = (PRICE_LIST || []).map((p, i) => ({
+                        id: 'PRDSEED' + i,
+                        sku: p.description.toUpperCase().replace(/\s+/g, '-'),
+                        name: p.description,
+                        description: p.description,
+                        category: 'General',
+                        unit: 'Unit',
+                        dp: p.dp,
+                        cp: p.cp,
+                        bv: p.bv,
+                        isActive: true
+                    }));
+                    localStorage.setItem('dyna_products', JSON.stringify(seeded));
+                    localStorage.setItem('dyna_price_history', JSON.stringify([]));
+                    localStorage.setItem('dyna_products_seeded', '1');
+                }
+            } catch (e) { console.warn('seedIfEmpty error', e); }
+        }
+        
         // Initialize stock data on load
         window.onload = async function() {
             // Load stock data
@@ -15279,6 +15375,12 @@
             // Then load reports and initialize
             await loadReportsFromFile();
             await init();
+            
+            // Seed and populate global dropdowns
+            await seedIfEmpty();
+            populateBranchDropdowns();
+            populateProductDropdowns();
+            updatePriceBadges();
             
             // Initialize HR Portal
             initHRPortal();
