@@ -15125,11 +15125,32 @@
         // Refresh expenses
         function refreshExpenses() {
             loadFinancialData();
+            
+            // Load cash bonuses from localStorage
+            const bonuses = JSON.parse(localStorage.getItem('dynapharm_cash_bonuses') || '[]');
+            
+            // Convert bonuses to expense format for unified display
+            const bonusExpenses = bonuses.map(b => ({
+                id: b.id,
+                category: 'other',
+                description: `Cash Bonus - ${b.distributorNB || 'N/A'} (${b.branch || 'All'}) - ${b.reason || ''}`,
+                amount: parseFloat(b.amount || 0),
+                date: b.date || b.createdAt,
+                paymentMethod: 'cash',
+                notes: `Distributor: ${b.distributorNB || 'N/A'}, Approved by: ${b.approvedBy || 'N/A'}`,
+                createdAt: b.createdAt,
+                createdBy: b.approvedBy || 'system',
+                type: 'bonus'
+            }));
+            
+            // Combine expenses and bonuses
+            const allExpenses = [...expenses, ...bonusExpenses];
+            
             const category = document.getElementById('expenseCategoryFilter')?.value || 'all';
             const month = document.getElementById('expenseMonthFilter')?.value || 'all';
             const search = document.getElementById('expenseSearch')?.value.toLowerCase() || '';
             
-            let filtered = expenses;
+            let filtered = allExpenses;
             if (category !== 'all') filtered = filtered.filter(e => e.category === category);
             if (month !== 'all') filtered = filtered.filter(e => e.date.startsWith(month));
             if (search) filtered = filtered.filter(e => e.description.toLowerCase().includes(search));
@@ -15148,18 +15169,19 @@
             }
             
             container.innerHTML = expenseList.map(expense => `
-                <div class="client-card">
+                <div class="client-card" style="${expense.type === 'bonus' ? 'border-left: 4px solid #3498db;' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div style="flex: 1;">
-                            <h4>${expense.description}</h4>
+                            <h4>${expense.description} ${expense.type === 'bonus' ? '<span style="background: #3498db; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">BONUS</span>' : ''}</h4>
                             <p><strong>Category:</strong> ${expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}</p>
                             <p><strong>Date:</strong> ${new Date(expense.date).toLocaleDateString()}</p>
                             <p><strong>Payment:</strong> ${expense.paymentMethod}</p>
                             ${expense.notes ? `<p><strong>Notes:</strong> ${expense.notes}</p>` : ''}
+                            ${expense.type === 'bonus' && expense.createdBy ? `<p><strong>Recorded by:</strong> ${expense.createdBy}</p>` : ''}
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;">N$ ${expense.amount.toFixed(2)}</div>
-                            <button class="btn btn-danger" onclick="deleteExpense('${expense.id}')" style="margin-top: 10px; padding: 5px 15px;">🗑️ Delete</button>
+                            ${expense.type !== 'bonus' ? `<button class="btn btn-danger" onclick="deleteExpense('${expense.id}')" style="margin-top: 10px; padding: 5px 15px;">🗑️ Delete</button>` : ''}
                         </div>
                     </div>
                 </div>
