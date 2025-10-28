@@ -155,6 +155,11 @@
             padding: 20px;
             margin-bottom: 15px;
         }
+        
+        .client-card.low-stock {
+            border-left: 4px solid #e74c3c;
+            background: #fff5f5;
+        }
 
         .follow-up-card {
             border-left: 4px solid #ddd;
@@ -872,6 +877,7 @@
             <button class="tab-button active" onclick="openTab('client')">Client Registration</button>
             <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
+            <button class="tab-button" onclick="openTab('finance')">Finance Portal</button>
             <button class="tab-button" onclick="openTab('mis')">MIS Portal</button>
             <button class="tab-button" onclick="openTab('stock')">Stock Management</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
@@ -1742,7 +1748,10 @@
                 </div>
                 <div style="text-align: center; padding: 40px;">
                     <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access stock management portal</p>
-                    <button class="btn" onclick="showLogin('stock')">🔐 Login</button>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button class="btn btn-success" onclick="autoLoginStock()">⚡ Auto Login</button>
+                        <button class="btn" onclick="showLogin('stock')">🔐 Manual Login</button>
+                    </div>
                 </div>
             </div>
             <div id="stockContent" style="display: none;">
@@ -1988,6 +1997,503 @@
             </div>
         </div>
 
+        <!-- HR Portal -->
+        <div id="hr-portal" class="tab-content">
+            <h2>👥 HR Portal</h2>
+            
+            <!-- HR Sub-tabs -->
+            <div class="hr-subtabs">
+                <button class="hr-tab-btn active" onclick="showHRSubTab('employee-management')">👤 Employee Management</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('leave-management')">📅 Leave Management</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('warnings')">⚠️ Warnings & Disciplinary</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('terminations')">🚪 Terminations</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('attendance')">🕐 Attendance</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('performance')">📊 Performance Review</button>
+            </div>
+
+            <!-- Employee Management Tab -->
+            <div id="employee-management" class="hr-tab-content active">
+                <div class="form-section">
+                    <h3>👤 Employee Management</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="showAddEmployee()">➕ Add New Employee</button>
+                        <button class="btn btn-primary" onclick="refreshEmployeeList()">🔄 Refresh List</button>
+                        <button class="btn btn-warning" onclick="exportEmployeeData()">📥 Export Employee Data</button>
+                    </div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="employeeSearch" placeholder="Search employees by name, ID, or department..." 
+                               style="flex: 1; padding: 10px;">
+                    </div>
+                    
+                    <div id="employeeList"></div>
+                </div>
+
+                <!-- Add Employee Modal -->
+                <div id="addEmployeeModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                        <span class="close" onclick="closeModal('addEmployeeModal')">&times;</span>
+                        <h2>➕ Add New Employee</h2>
+                        <form id="addEmployeeForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee ID</label>
+                                    <input type="text" id="employeeId" required placeholder="e.g., EMP001">
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Full Name</label>
+                                    <input type="text" id="employeeName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Department</label>
+                                    <select id="employeeDepartment" required>
+                                        <option value="">Select Department</option>
+                                        <option value="Administration">Administration</option>
+                                        <option value="Health Consultation">Health Consultation</option>
+                                        <option value="Pharmacy">Pharmacy</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Management">Management</option>
+                                        <option value="Support">Support</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Position</label>
+                                    <input type="text" id="employeePosition" required placeholder="e.g., Health Consultant">
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Email</label>
+                                    <input type="email" id="employeeEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Phone</label>
+                                    <input type="tel" id="employeePhone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Hire Date</label>
+                                    <input type="date" id="employeeHireDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Employment Type</label>
+                                    <select id="employmentType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Full-time">Full-time</option>
+                                        <option value="Part-time">Part-time</option>
+                                        <option value="Contract">Contract</option>
+                                        <option value="Temporary">Temporary</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Salary</label>
+                                    <input type="number" id="employeeSalary" placeholder="Enter salary (N$)">
+                                </div>
+                                <div class="form-group">
+                                    <label>Address</label>
+                                    <input type="text" id="employeeAddress" placeholder="Full address">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of Birth</label>
+                                    <input type="date" id="employeeDOB">
+                                </div>
+                                <div class="form-group">
+                                    <label>Emergency Contact Name</label>
+                                    <input type="text" id="emergencyContactName">
+                                </div>
+                                <div class="form-group">
+                                    <label>Emergency Contact Phone</label>
+                                    <input type="tel" id="emergencyContactPhone">
+                                </div>
+                                <div class="form-group">
+                                    <label>Notes</label>
+                                    <textarea id="employeeNotes" rows="3" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">💾 Save Employee</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Management Tab -->
+            <div id="leave-management" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>📅 Leave Management</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="showApplyLeave()">➕ Apply for Leave</button>
+                        <button class="btn btn-primary" onclick="refreshLeaveList()">🔄 Refresh</button>
+                        <button class="btn btn-info" onclick="showLeaveReports()">📊 Leave Reports</button>
+                    </div>
+                    
+                    <!-- Leave Balance Summary -->
+                    <div id="leaveBalanceCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="leaveSearch" placeholder="Search leave requests..." style="flex: 1; padding: 10px;">
+                        <select id="leaveStatusFilter" style="padding: 10px;">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    
+                    <div id="leaveList"></div>
+                </div>
+
+                <!-- Apply Leave Modal -->
+                <div id="applyLeaveModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close" onclick="closeModal('applyLeaveModal')">&times;</span>
+                        <h2>➕ Apply for Leave</h2>
+                        <form id="applyLeaveForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee</label>
+                                    <select id="leaveEmployeeSelect" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Leave Type</label>
+                                    <select id="leaveType" required>
+                                        <option value="">Select Leave Type</option>
+                                        <option value="Annual">Annual Leave</option>
+                                        <option value="Sick">Sick Leave</option>
+                                        <option value="Maternity">Maternity Leave</option>
+                                        <option value="Paternity">Paternity Leave</option>
+                                        <option value="Emergency">Emergency Leave</option>
+                                        <option value="Unpaid">Unpaid Leave</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Start Date</label>
+                                    <input type="date" id="leaveStartDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">End Date</label>
+                                    <input type="date" id="leaveEndDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Number of Days</label>
+                                    <input type="number" id="leaveDays" required readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Reason</label>
+                                    <textarea id="leaveReason" rows="4" placeholder="Reason for leave..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">📤 Submit Leave Request</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('applyLeaveModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warnings & Disciplinary Tab -->
+            <div id="warnings" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>⚠️ Warnings & Disciplinary Actions</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-warning" onclick="showIssueWarning()">⚠️ Issue Warning</button>
+                        <button class="btn btn-primary" onclick="refreshWarningList()">🔄 Refresh</button>
+                    </div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="warningSearch" placeholder="Search warnings..." style="flex: 1; padding: 10px;">
+                        <select id="warningTypeFilter" style="padding: 10px;">
+                            <option value="all">All Types</option>
+                            <option value="Verbal">Verbal Warning</option>
+                            <option value="Written">Written Warning</option>
+                            <option value="Final">Final Warning</option>
+                        </select>
+                    </div>
+                    
+                    <div id="warningList"></div>
+                </div>
+
+                <!-- Issue Warning Modal -->
+                <div id="issueWarningModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close" onclick="closeModal('issueWarningModal')">&times;</span>
+                        <h2>⚠️ Issue Warning</h2>
+                        <form id="issueWarningForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee</label>
+                                    <select id="warningEmployeeSelect" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Warning Type</label>
+                                    <select id="warningType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Verbal">Verbal Warning</option>
+                                        <option value="Written">Written Warning</option>
+                                        <option value="Final">Final Warning</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Date</label>
+                                    <input type="date" id="warningDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Issued By</label>
+                                    <input type="text" id="warningIssuedBy" required placeholder="Supervisor/Manager name">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="required">Reason</label>
+                                    <textarea id="warningReason" rows="5" required placeholder="Detailed reason for the warning..."></textarea>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Notes</label>
+                                    <textarea id="warningNotes" rows="3" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-warning">⚠️ Issue Warning</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('issueWarningModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminations Tab -->
+            <div id="terminations" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>🚪 Termination Management</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-danger" onclick="showTerminateEmployee()">🚪 Record Termination</button>
+                        <button class="btn btn-primary" onclick="refreshTerminationList()">🔄 Refresh</button>
+                    </div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="terminationSearch" placeholder="Search terminations..." style="flex: 1; padding: 10px;">
+                        <select id="terminationReasonFilter" style="padding: 10px;">
+                            <option value="all">All Reasons</option>
+                            <option value="Resignation">Resignation</option>
+                            <option value="Dismissal">Dismissal</option>
+                            <option value="Retirement">Retirement</option>
+                            <option value="Contract End">Contract End</option>
+                            <option value="Mutual Agreement">Mutual Agreement</option>
+                        </select>
+                    </div>
+                    
+                    <div id="terminationList"></div>
+                </div>
+
+                <!-- Record Termination Modal -->
+                <div id="terminateEmployeeModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close" onclick="closeModal('terminateEmployeeModal')">&times;</span>
+                        <h2>🚪 Record Termination</h2>
+                        <form id="terminateEmployeeForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee</label>
+                                    <select id="terminationEmployeeSelect" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Termination Date</label>
+                                    <input type="date" id="terminationDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Termination Type</label>
+                                    <select id="terminationType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Resignation">Resignation</option>
+                                        <option value="Dismissal">Dismissal</option>
+                                        <option value="Retirement">Retirement</option>
+                                        <option value="Contract End">Contract End</option>
+                                        <option value="Mutual Agreement">Mutual Agreement</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Reason</label>
+                                    <textarea id="terminationReason" rows="5" required placeholder="Reason for termination..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Notice Period (Days)</label>
+                                    <input type="number" id="noticePeriod" placeholder="Number of days">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Notes</label>
+                                    <textarea id="terminationNotes" rows="3" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-danger">🚪 Record Termination</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('terminateEmployeeModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div id="attendance" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>🕐 Attendance Management</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="showRecordAttendance()">✅ Record Attendance</button>
+                        <button class="btn btn-primary" onclick="refreshAttendanceList()">🔄 Refresh</button>
+                        <button class="btn btn-info" onclick="generateAttendanceReport()">📊 Generate Report</button>
+                    </div>
+                    
+                    <div id="attendanceSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="attendanceSearch" placeholder="Search attendance records..." style="flex: 1; padding: 10px;">
+                        <input type="date" id="attendanceDateFilter" style="padding: 10px;">
+                        <select id="attendanceStatusFilter" style="padding: 10px;">
+                            <option value="all">All Status</option>
+                            <option value="Present">Present</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Late">Late</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                    
+                    <div id="attendanceList"></div>
+                </div>
+
+                <!-- Record Attendance Modal -->
+                <div id="recordAttendanceModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close" onclick="closeModal('recordAttendanceModal')">&times;</span>
+                        <h2>✅ Record Attendance</h2>
+                        <form id="recordAttendanceForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee</label>
+                                    <select id="attendanceEmployeeSelect" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Date</label>
+                                    <input type="date" id="attendanceDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Status</label>
+                                    <select id="attendanceStatus" required>
+                                        <option value="">Select Status</option>
+                                        <option value="Present">Present</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Late">Late</option>
+                                        <option value="Half Day">Half Day</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Check In Time</label>
+                                    <input type="time" id="checkInTime">
+                                </div>
+                                <div class="form-group">
+                                    <label>Check Out Time</label>
+                                    <input type="time" id="checkOutTime">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Notes</label>
+                                    <textarea id="attendanceNotes" rows="3" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">✅ Record Attendance</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('recordAttendanceModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Review Tab -->
+            <div id="performance" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>📊 Performance Review</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="showAddPerformanceReview()">➕ Add Performance Review</button>
+                        <button class="btn btn-primary" onclick="refreshPerformanceList()">🔄 Refresh</button>
+                    </div>
+                    
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <input type="text" id="performanceSearch" placeholder="Search performance reviews..." style="flex: 1; padding: 10px;">
+                    </div>
+                    
+                    <div id="performanceList"></div>
+                </div>
+
+                <!-- Add Performance Review Modal -->
+                <div id="addPerformanceReviewModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                        <span class="close" onclick="closeModal('addPerformanceReviewModal')">&times;</span>
+                        <h2>📊 Add Performance Review</h2>
+                        <form id="addPerformanceReviewForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="required">Employee</label>
+                                    <select id="performanceEmployeeSelect" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Review Period Start</label>
+                                    <input type="date" id="reviewStartDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Review Period End</label>
+                                    <input type="date" id="reviewEndDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Reviewed By</label>
+                                    <input type="text" id="reviewedBy" required placeholder="Reviewer name">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="required">Overall Rating</label>
+                                    <select id="overallRating" required>
+                                        <option value="">Select Rating</option>
+                                        <option value="Excellent">Excellent</option>
+                                        <option value="Good">Good</option>
+                                        <option value="Average">Average</option>
+                                        <option value="Below Average">Below Average</option>
+                                        <option value="Unsatisfactory">Unsatisfactory</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Strengths</label>
+                                    <textarea id="strengths" rows="4" placeholder="Employee strengths..."></textarea>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Areas for Improvement</label>
+                                    <textarea id="improvements" rows="4" placeholder="Areas for improvement..."></textarea>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Goals for Next Period</label>
+                                    <textarea id="goals" rows="4" placeholder="Goals for next review period..."></textarea>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Comments</label>
+                                    <textarea id="reviewComments" rows="4" placeholder="Additional comments..."></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-success">💾 Save Review</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('addPerformanceReviewModal')">❌ Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Admin Portal -->
         <div id="admin" class="tab-content">
             <h2>Admin Portal</h2>
@@ -2072,11 +2578,186 @@
             </div>
         </div>
 
+        <!-- Finance Portal -->
+        <div id="finance" class="tab-content">
+            <h2>💰 Finance Portal</h2>
+            
+            <!-- Branch Selector -->
+            <div class="form-section" style="background: #f8f9fa; padding: 15px; margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">Select Branch:</label>
+                <select id="financeBranchSelect" onchange="refreshFinancialDashboard()" style="padding: 10px; width: 300px; border: 2px solid #ddd; border-radius: 5px;">
+                    <option value="all">All Branches</option>
+                </select>
+            </div>
+            
+            <!-- Live Per-Branch Metrics Dashboard -->
+            <div class="form-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3 style="color: white; border-bottom: 2px solid white;">📊 Live Financial Metrics (Today)</h3>
+                
+                <!-- Top Level Metrics -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 20px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Total Sales</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="dailyTotalSales">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Cash: <span id="dailyCashSales">N$ 0.00</span> | Card: <span id="dailyCardSales">N$ 0.00</span></div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Cash at Hand</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="cashAtHand">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Expected vs Counted</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Bank Deposits</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="dailyDeposits">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Today's Deposits</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Cash Expenses</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="dailyCashExpenses">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Approved Today</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Cash Bonuses</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="dailyBonuses">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Paid Today</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Variance</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="variance">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;" id="varianceStatus">Status: OK</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="refreshFinancialDashboard()" style="background: white; color: #667eea;">🔄 Refresh</button>
+                    <button class="btn btn-primary" onclick="showShiftManager()" style="background: white; color: #667eea;">🕐 Shift Manager</button>
+                    <button class="btn" onclick="showBankDeposit()" style="background: white; color: #667eea;">💰 Bank Deposit</button>
+                    <button class="btn" onclick="showCashBonus()" style="background: white; color: #667eea;">🎁 Cash Bonus</button>
+                    <button class="btn" onclick="generateZReport()" style="background: white; color: #667eea;">📊 Z-Report</button>
+                    <button class="btn" onclick="exportFinancialData()" style="background: white; color: #667eea;">📥 Export</button>
+                </div>
+            </div>
+
+            <!-- Expense Management -->
+            <div class="form-section">
+                <h3>💸 Expense Management</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-success" onclick="showAddExpenseModal()">➕ Add Expense</button>
+                    <button class="btn btn-info" onclick="refreshExpenses()">🔄 Refresh</button>
+                    <button class="btn btn-warning" onclick="showExpenseSummary()">📊 Summary</button>
+                </div>
+                
+                <!-- Expense Filters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <select id="expenseCategoryFilter" onchange="filterExpenses()">
+                        <option value="all">All Categories</option>
+                        <option value="salaries">Salaries</option>
+                        <option value="rent">Rent</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="supplies">Supplies</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="travel">Travel</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <select id="expenseMonthFilter" onchange="filterExpenses()">
+                        <option value="all">All Months</option>
+                    </select>
+                    <input type="text" id="expenseSearch" placeholder="Search expenses..." onkeyup="filterExpenses()">
+                </div>
+                
+                <div id="expenseList" style="max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading expenses...</p>
+                </div>
+            </div>
+
+            <!-- Revenue Tracking -->
+            <div class="form-section">
+                <h3>💵 Revenue Tracking</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-info" onclick="refreshRevenue()">🔄 Refresh</button>
+                    <button class="btn btn-success" onclick="showRevenueBreakdown()">📊 Breakdown</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+                        <h4>Prescription Sales</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;" id="prescriptionRevenue">N$ 0.00</div>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                        <h4>Walk-in Sales</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #2196f3;" id="walkinRevenue">N$ 0.00</div>
+                    </div>
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+                        <h4>Total Sales</h4>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #f39c12;" id="totalSales">N$ 0.00</div>
+                    </div>
+                </div>
+                
+                <div id="revenueList" style="max-height: 400px; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">Revenue details...</p>
+                </div>
+            </div>
+
+            <!-- Budget Management -->
+            <div class="form-section">
+                <h3>📈 Budget Planning</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-success" onclick="showAddBudgetModal()">➕ Create Budget</button>
+                    <button class="btn btn-info" onclick="refreshBudgets()">🔄 Refresh</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <select id="budgetMonthFilter" onchange="filterBudgets()">
+                        <option value="">Select Month</option>
+                    </select>
+                    <select id="budgetYearFilter" onchange="filterBudgets()">
+                        <option value="">Select Year</option>
+                    </select>
+                </div>
+                
+                <div id="budgetList" style="max-height: 400px; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">No budgets created yet</p>
+                </div>
+            </div>
+
+            <!-- Financial Reports -->
+            <div class="form-section">
+                <h3>📋 Financial Reports</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <button class="btn btn-success" onclick="generateProfitLossReport()">📊 Profit & Loss</button>
+                    <button class="btn btn-primary" onclick="generateCashFlowReport()">💸 Cash Flow Statement</button>
+                    <button class="btn btn-warning" onclick="generateBudgetReport()">📈 Budget vs Actual</button>
+                    <button class="btn btn-info" onclick="generateExpenseReport()">💸 Expense Report</button>
+                </div>
+                <div id="financeReportDisplay" style="margin-top: 20px; padding: 20px; background: white; border-radius: 8px; max-height: 500px; overflow-y: auto;">
+                    <p style="text-align: center; color: #7f8c8d;">Select a report to view</p>
+                </div>
+            </div>
+        </div>
+
         <!-- MIS Portal -->
         <div id="mis" class="tab-content">
-            <h2>📊 MIS Portal - Sales Receipt Management</h2>
-            
-            <div class="form-section">
+            <div id="misAuth">
+                <div class="portal-header">
+                    <h2>📊 MIS Portal</h2>
+                    <p>Sales Receipt Management & Reporting</p>
+                </div>
+                <div style="text-align: center; padding: 40px;">
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access MIS portal</p>
+                    <button class="btn" onclick="showLogin('mis')">🔐 Login</button>
+                </div>
+            </div>
+            <div id="misContent" style="display: none;">
+                <div class="user-profile" id="misProfile"></div>
+                
+                <div class="portal-header">
+                    <h2>📊 MIS Portal - Sales Receipt Management</h2>
+                    <p>View and analyze sales receipts across all branches</p>
+                    <button class="btn btn-primary" onclick="refreshAllData()" style="margin-top: 10px;">🔄 Refresh Data</button>
+                </div>
+                
+                <div class="form-section">
                 <h3>Branch & Search Filters</h3>
                 <div class="form-grid">
                     <div class="form-group">
@@ -2107,6 +2788,7 @@
                 <div id="misReportsDisplay" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
                     <p style="text-align: center; color: #7f8c8d;">Loading sales receipts...</p>
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -2254,6 +2936,7 @@
                         <option value="">Select Role</option>
                         <option value="consultant">Consultant</option>
                         <option value="dispenser">Dispenser</option>
+                        <option value="stock">Stock Manager</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
@@ -2448,11 +3131,270 @@
         </div>
     </div>
 
+    <!-- Add Expense Modal -->
+    <div class="modal" id="addExpenseModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addExpenseModal')">&times;</span>
+            <h2>💸 Add Expense</h2>
+            <form id="addExpenseForm">
+                <div class="form-group">
+                    <label>Expense Category *</label>
+                    <select id="expenseCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="salaries">Salaries</option>
+                        <option value="rent">Rent</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="supplies">Supplies</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="travel">Travel</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Monthly rent payment" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (N$) *</label>
+                    <input type="number" id="expenseAmount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="expensePaymentMethod">
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="expenseNotes" rows="3" placeholder="Additional details..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">💾 Save Expense</button>
+                    <button type="button" class="btn" onclick="closeModal('addExpenseModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Budget Modal -->
+    <div class="modal" id="addBudgetModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addBudgetModal')">&times;</span>
+            <h2>📈 Create Budget</h2>
+            <form id="addBudgetForm">
+                <div class="form-group">
+                    <label>Budget Period *</label>
+                    <select id="budgetPeriod" required>
+                        <option value="">Select Period</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Month *</label>
+                    <select id="budgetMonth" required>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year *</label>
+                    <input type="number" id="budgetYear" min="2024" max="2030" value="2024" required>
+                </div>
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select id="budgetCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="salaries">Salaries</option>
+                        <option value="rent">Rent</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="supplies">Supplies</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="travel">Travel</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Budgeted Amount (N$) *</label>
+                    <input type="number" id="budgetAmount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="budgetNotes" rows="3" placeholder="Budget details..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">💾 Create Budget</button>
+                    <button type="button" class="btn" onclick="closeModal('addBudgetModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Shift Manager Modal -->
+    <div class="modal" id="shiftManagerModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('shiftManagerModal')">&times;</span>
+            <h2>🕐 Shift Manager - Cash Tracking</h2>
+            <div id="shiftContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bank Deposit Modal -->
+    <div class="modal" id="bankDepositModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('bankDepositModal')">&times;</span>
+            <h2>💰 Record Bank Deposit</h2>
+            <form id="bankDepositForm">
+                <div class="form-group">
+                    <label>Branch *</label>
+                    <select id="depositBranch" required>
+                        <option value="">Select Branch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="depositDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (N$) *</label>
+                    <input type="number" id="depositAmount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Deposit Slip Number *</label>
+                    <input type="text" id="depositSlipNo" required placeholder="Bank slip reference">
+                </div>
+                <div class="form-group">
+                    <label>Bank Name *</label>
+                    <select id="depositBank" required>
+                        <option value="">Select Bank</option>
+                        <option value="FNB">First National Bank (FNB)</option>
+                        <option value="Nedbank">Nedbank</option>
+                        <option value="Bank Windhoek">Bank Windhoek</option>
+                        <option value="Standard Bank">Standard Bank</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Deposited By *</label>
+                    <input type="text" id="depositedBy" required placeholder="Name of person making deposit">
+                </div>
+                <div class="form-group">
+                    <label>Upload Deposit Slip (Optional)</label>
+                    <input type="file" id="depositPhoto" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="depositNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">💰 Record Deposit</button>
+                    <button type="button" class="btn" onclick="closeModal('bankDepositModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cash Bonus Modal -->
+    <div class="modal" id="cashBonusModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('cashBonusModal')">&times;</span>
+            <h2>🎁 Record Cash Bonus Payment</h2>
+            <form id="cashBonusForm">
+                <div class="form-group">
+                    <label>Branch *</label>
+                    <select id="bonusBranch" required>
+                        <option value="">Select Branch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Distributor NB Number *</label>
+                    <input type="text" id="bonusDistributorNB" required placeholder="e.g., NB00001234">
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="bonusDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (N$) *</label>
+                    <input type="number" id="bonusAmount" step="0.01" min="0" required onchange="checkBonusLimit()">
+                </div>
+                <div id="bonusLimitWarning" style="display: none; padding: 10px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px; margin-bottom: 15px;">
+                    <strong>⚠️ Warning:</strong> This bonus exceeds the branch limit or available cash. GM approval may be required.
+                </div>
+                <div class="form-group">
+                    <label>Reason *</label>
+                    <textarea id="bonusReason" rows="3" required placeholder="Reason for bonus payment..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Approved By *</label>
+                    <input type="text" id="bonusApprovedBy" required placeholder="Manager name">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">🎁 Record Bonus</button>
+                    <button type="button" class="btn" onclick="closeModal('cashBonusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Z-Report Modal -->
+    <div class="modal" id="zReportModal">
+        <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeModal('zReportModal')">&times;</span>
+            <h2>📊 Daily Z-Report</h2>
+            <div id="zReportContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-primary" onclick="printZReport()">🖨️ Print Z-Report</button>
+                <button class="btn btn-success" onclick="exportZReportCSV()">📥 Export CSV</button>
+                <button class="btn" onclick="closeModal('zReportModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let clients = [];
         let users = [];
         let branches = [];
+        
+        // HR Portal Data
+        let employees = [];
+        let leaveRequests = [];
+        let warnings = [];
+        let terminations = [];
+        let attendanceRecords = [];
+        let performanceReviews = [];
         let reports = [];
+        let expenses = [];
+        let budgets = [];
+        // Finance Portal Enhanced Data
+        let bankDeposits = [];
+        let cashBonuses = [];
+        let cashShifts = [];
+        let currentShift = null;
         let currentUser = null;
         let currentPortal = null;
         let currentClientId = null;
@@ -2520,7 +3462,7 @@
             }
         }
 
-        const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"walker33","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR1759829667953","username":"moses","password":"walker33","fullName":"MOSES MUKISA","email":"mosesmukisa1@gmail.com","phone":"0817317160","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:34:27.953Z"},{"id":"USR1759829814781","username":"Geneva","password":"Pearl_11","fullName":"Jennifer Joseph","email":"shange1124@gmail.com","phone":"0852803618","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:36:54.781Z"},{"id":"USR1759830625722","username":"NAEM","password":"PASSWORD","fullName":"NAEM HANGULA","email":"naemhangula4@gmail.com","phone":"0817499757","role":"dispenser","branch":"townshop","branches":["townshop"],"createdAt":"2025-10-07T09:50:25.722Z"},{"id":"USR1759928153488","username":"GEINGOS","password":"ALBERTO99","fullName":"HILMA C","email":"geingoshilma@gmail","phone":"0814137106","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-08T12:55:53.488Z"},{"id":"USR2000000000001","username":"stock","password":"stock123","fullName":"Stock Manager","email":"stock@dynapharm.com.na","phone":"0812000000","role":"stock","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"}]';
+        const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"walker33","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR1759829667953","username":"moses","password":"walker33","fullName":"MOSES MUKISA","email":"mosesmukisa1@gmail.com","phone":"0817317160","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:34:27.953Z"},{"id":"USR1759829814781","username":"Geneva","password":"Pearl_11","fullName":"Jennifer Joseph","email":"shange1124@gmail.com","phone":"0852803618","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:36:54.781Z"},{"id":"USR1759830625722","username":"NAEM","password":"PASSWORD","fullName":"NAEM HANGULA","email":"naemhangula4@gmail.com","phone":"0817499757","role":"dispenser","branch":"townshop","branches":["townshop"],"createdAt":"2025-10-07T09:50:25.722Z"},{"id":"USR1759928153488","username":"GEINGOS","password":"ALBERTO99","fullName":"HILMA C","email":"geingoshilma@gmail","phone":"0814137106","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-08T12:55:53.488Z"},{"id":"USR2000000000001","username":"stock","password":"stock123","fullName":"Stock Manager","email":"stock@dynapharm.com.na","phone":"0812000000","role":"stock","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"},{"id":"USR2000000000002","username":"mis","password":"mis123","fullName":"MIS Manager","email":"mis@dynapharm.com.na","phone":"0813000000","role":"mis","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"}]';
 
         const DEFAULT_BRANCHES_JSON = '[{"id":"townshop","name":"TOWNSHOP (Head Office)","location":"Shop No.1 Continental Building Independence Avenue - Windhoek","phone":"814683999"},{"id":"khomasdal","name":"KHOMASDAL DPC","location":"Shop No.2 Khomasdal Funky Town - Windhoek","phone":"814682991"},{"id":"katima","name":"KATIMA DPC","location":"Opposite Open Market Hospital Road, Katima","phone":"817375818"},{"id":"outapi","name":"OUTAPI DPC","location":"Okasilili Location in Christmas Building, Next Tolemeka Garage Main Road Oshakati - Outapi","phone":"814685886"},{"id":"ondangwa","name":"ONDANGWA DPC","location":"Shop No.3 Woerman Block Oluno, Opposite Fresco, Cash and Carry Entrance Ondangwa","phone":"814685882"},{"id":"okongo","name":"OKONGO DPC","location":"Handongo Festus Erf 333 Okongo Village Council","phone":"814684935"},{"id":"okahao","name":"OKAHAO DPC","location":"Iteka complex opposite Pep store Okahao - Oshakati main road","phone":"814683963"},{"id":"nkurenkuru","name":"NKURENKURU DPC","location":"Total Service Station, Next to Oluno Bar - Nkurenkuru","phone":"814684939"},{"id":"swakopmund","name":"SWAKOPMUND DPC","location":"Opposite Mondesa Usave Swakopmund","phone":"814686806"},{"id":"hochland-park","name":"HOCHLAND PARK","location":"House No.2 Robin Road, Taubern Glain Street, Next to OK Food Windhoek","phone":"813207195"},{"id":"rundu","name":"RUNDU DPC","location":"Shop No.6 Fish Building opposite, Dr. Romanus Kampungi Stadium","phone":"814050125"},{"id":"gobabis","name":"GOBABIS","location":"Shop No. Church Street Woerman Complex Gobabis","phone":"814685905"},{"id":"walvisbay","name":"WALVISBAY","location":"Shop No.6 Pelican Mall Shop Sam Nujoma Avenue","phone":"814685894"},{"id":"eenhana","name":"EENHANA","location":"Shop No.3 Tangi Complex, Next to Namibia Funeral Supply, Dimo Amaambo Street Eenhana","phone":"814682049"},{"id":"otjiwarongo","name":"OTJIWARONGO DPC","location":"Erindi Complex next to Spar","phone":"814681997"}]';
 
@@ -3355,6 +4297,9 @@
                     displayWindhoekStock();
                     displayOndangwaStock();
                     displayDistributionHistory();
+                } else if (currentPortal === 'mis') {
+                    loadMISBranches();
+                    displayMISReports();
                 } else if (currentPortal === 'admin') {
                     loadUserList();
                     loadBranchListAdmin();
@@ -3505,8 +4450,16 @@
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
             
-            // Initialize MIS Portal when opening the tab
-            if (tabName === 'mis') {
+            // Auto-login for stock portal if not already logged in
+            if (tabName === 'stock' && !currentUser) {
+                // Give a small delay to let the tab load
+                setTimeout(() => {
+                    autoLoginStock();
+                }, 100);
+            }
+            
+            // MIS Portal now requires login - initialize if already logged in
+            if (tabName === 'mis' && currentUser && currentUser.role === 'mis') {
                 initializeMISPortal();
             }
         }
@@ -4056,6 +5009,71 @@
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
         }
+        
+        // Auto-login for stock portal without requiring credentials
+        function autoLoginStock() {
+            currentPortal = 'stock';
+            
+            // Load users
+            loadData();
+            
+            // Find or create stock user
+            let stockUser = users.find(u => u.username === 'stock' && u.role === 'stock');
+            
+            if (!stockUser) {
+                // Create default stock user if not exists
+                stockUser = {
+                    id: 'USR2000000000001',
+                    username: 'stock',
+                    password: 'stock123',
+                    fullName: 'Stock Manager',
+                    email: 'stock@dynapharm.com.na',
+                    phone: '0812000000',
+                    role: 'stock',
+                    branch: 'townshop',
+                    branches: ['townshop'],
+                    createdAt: new Date().toISOString()
+                };
+                users.push(stockUser);
+                saveData();
+            }
+            
+            // Set current user
+            currentUser = stockUser;
+            
+            // Show content and hide auth
+            document.getElementById('stockAuth').style.display = 'none';
+            document.getElementById('stockContent').style.display = 'block';
+            
+            // Display user profile
+            const profile = document.getElementById('stockProfile');
+            if (profile) {
+                profile.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 5px; margin-bottom: 20px;">
+                        <div>
+                            <strong>👤 ${stockUser.fullName}</strong> | <span style="color: #666;">${stockUser.role}</span>
+                        </div>
+                        <button class="btn btn-warning" onclick="refreshAllData()">🔄 Refresh</button>
+                        <button class="btn btn-danger" onclick="logout()">Logout</button>
+                    </div>
+                `;
+            }
+            
+            // Initialize stock portal
+            displayCountryStock();
+            displayWindhoekStock();
+            displayOndangwaStock();
+            displayDistributionHistory();
+            loadBranchesForDistribution();
+            
+            // Start auto-refresh
+            setTimeout(() => {
+                startAutoRefresh();
+                showRealtimeStatus();
+            }, 500);
+            
+            alert(`Welcome, ${stockUser.fullName}! You are now logged into the Stock Management Portal.`);
+        }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -4150,7 +5168,10 @@
             if (currentPortal === 'dispenser') {
                 displayPrescriptions();
                 displayPriceList();
-                setTimeout(() => refreshUnifiedSales(), 500); // Load unified sales after UI is ready
+            }
+            if (currentPortal === 'mis') {
+                loadMISBranches();
+                displayMISReports();
             }
             if (currentPortal === 'admin') {
                 loadUserList();
@@ -12629,6 +13650,1350 @@
             `).join('');
         }
         
+        // ==================== FINANCE PORTAL FUNCTIONS ====================
+        
+        // Load expenses and budgets from localStorage
+        function loadFinancialData() {
+            expenses = JSON.parse(localStorage.getItem('dynapharm_expenses') || '[]');
+            budgets = JSON.parse(localStorage.getItem('dynapharm_budgets') || '[]');
+        }
+        
+        // Save expenses and budgets to localStorage
+        function saveFinancialData() {
+            localStorage.setItem('dynapharm_expenses', JSON.stringify(expenses));
+            localStorage.setItem('dynapharm_budgets', JSON.stringify(budgets));
+        }
+        
+        // Show add expense modal
+        function showAddExpenseModal() {
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addExpenseModal').style.display = 'block';
+        }
+        
+        // Add expense
+        document.getElementById('addExpenseForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const expense = {
+                id: Date.now().toString(),
+                category: document.getElementById('expenseCategory').value,
+                description: document.getElementById('expenseDescription').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                date: document.getElementById('expenseDate').value,
+                paymentMethod: document.getElementById('expensePaymentMethod').value,
+                notes: document.getElementById('expenseNotes').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'system'
+            };
+            expenses.push(expense);
+            saveFinancialData();
+            closeModal('addExpenseModal');
+            refreshExpenses();
+            refreshFinancialOverview();
+            document.getElementById('addExpenseForm').reset();
+        });
+        
+        // Show add budget modal
+        function showAddBudgetModal() {
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear();
+            document.getElementById('budgetMonth').value = String(currentMonth).padStart(2, '0');
+            document.getElementById('budgetYear').value = currentYear;
+            document.getElementById('addBudgetModal').style.display = 'block';
+        }
+        
+        // Add budget
+        document.getElementById('addBudgetForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const budget = {
+                id: Date.now().toString(),
+                period: document.getElementById('budgetPeriod').value,
+                month: document.getElementById('budgetMonth').value,
+                year: parseInt(document.getElementById('budgetYear').value),
+                category: document.getElementById('budgetCategory').value,
+                amount: parseFloat(document.getElementById('budgetAmount').value),
+                notes: document.getElementById('budgetNotes').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'system'
+            };
+            budgets.push(budget);
+            saveFinancialData();
+            closeModal('addBudgetModal');
+            refreshBudgets();
+            document.getElementById('addBudgetForm').reset();
+        });
+        
+        // Refresh expenses
+        function refreshExpenses() {
+            loadFinancialData();
+            const category = document.getElementById('expenseCategoryFilter')?.value || 'all';
+            const month = document.getElementById('expenseMonthFilter')?.value || 'all';
+            const search = document.getElementById('expenseSearch')?.value.toLowerCase() || '';
+            
+            let filtered = expenses;
+            if (category !== 'all') filtered = filtered.filter(e => e.category === category);
+            if (month !== 'all') filtered = filtered.filter(e => e.date.startsWith(month));
+            if (search) filtered = filtered.filter(e => e.description.toLowerCase().includes(search));
+            
+            displayExpenses(filtered);
+        }
+        
+        // Display expenses
+        function displayExpenses(expenseList) {
+            const container = document.getElementById('expenseList');
+            if (!container) return;
+            
+            if (expenseList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No expenses found</p>';
+                return;
+            }
+            
+            container.innerHTML = expenseList.map(expense => `
+                <div class="client-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4>${expense.description}</h4>
+                            <p><strong>Category:</strong> ${expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}</p>
+                            <p><strong>Date:</strong> ${new Date(expense.date).toLocaleDateString()}</p>
+                            <p><strong>Payment:</strong> ${expense.paymentMethod}</p>
+                            ${expense.notes ? `<p><strong>Notes:</strong> ${expense.notes}</p>` : ''}
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;">N$ ${expense.amount.toFixed(2)}</div>
+                            <button class="btn btn-danger" onclick="deleteExpense('${expense.id}')" style="margin-top: 10px; padding: 5px 15px;">🗑️ Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Delete expense
+        function deleteExpense(id) {
+            if (!confirm('Delete this expense?')) return;
+            expenses = expenses.filter(e => e.id !== id);
+            saveFinancialData();
+            refreshExpenses();
+            refreshFinancialOverview();
+        }
+        
+        // Filter expenses
+        function filterExpenses() {
+            refreshExpenses();
+        }
+        
+        // Refresh budgets
+        function refreshBudgets() {
+            loadFinancialData();
+            const month = document.getElementById('budgetMonthFilter')?.value || '';
+            const year = document.getElementById('budgetYearFilter')?.value || '';
+            
+            let filtered = budgets;
+            if (month) filtered = filtered.filter(b => b.month === month);
+            if (year) filtered = filtered.filter(b => b.year === parseInt(year));
+            
+            displayBudgets(filtered);
+        }
+        
+        // Display budgets
+        function displayBudgets(budgetList) {
+            const container = document.getElementById('budgetList');
+            if (!container) return;
+            
+            if (budgetList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No budgets found</p>';
+                return;
+            }
+            
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            container.innerHTML = budgetList.map(budget => {
+                const actualExpenses = expenses.filter(e => {
+                    const expenseMonth = e.date.split('-')[1];
+                    const expenseYear = parseInt(e.date.split('-')[0]);
+                    return expenseMonth === budget.month && expenseYear === budget.year && e.category === budget.category;
+                }).reduce((sum, e) => sum + e.amount, 0);
+                
+                const percentage = (actualExpenses / budget.amount) * 100;
+                const status = percentage > 100 ? 'danger' : percentage > 80 ? 'warning' : 'success';
+                
+                return `
+                    <div class="client-card" style="border-left: 4px solid ${status === 'success' ? '#27ae60' : status === 'warning' ? '#f39c12' : '#e74c3c'};">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <h4>${budget.category.charAt(0).toUpperCase() + budget.category.slice(1)} - ${monthNames[parseInt(budget.month) - 1]} ${budget.year}</h4>
+                                <p><strong>Period:</strong> ${budget.period}</p>
+                                <div style="margin-top: 10px;">
+                                    <p><strong>Budgeted:</strong> N$ ${budget.amount.toFixed(2)}</p>
+                                    <p><strong>Actual:</strong> N$ ${actualExpenses.toFixed(2)}</p>
+                                    <p><strong>Remaining:</strong> N$ ${(budget.amount - actualExpenses).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: ${status === 'success' ? '#27ae60' : status === 'warning' ? '#f39c12' : '#e74c3c'};">
+                                    ${percentage.toFixed(1)}%
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteBudget('${budget.id}')" style="margin-top: 10px; padding: 5px 15px;">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Filter budgets
+        function filterBudgets() {
+            refreshBudgets();
+        }
+        
+        // Delete budget
+        function deleteBudget(id) {
+            if (!confirm('Delete this budget?')) return;
+            budgets = budgets.filter(b => b.id !== id);
+            saveFinancialData();
+            refreshBudgets();
+        }
+        
+        // Refresh financial overview
+        function refreshFinancialOverview() {
+            loadFinancialData();
+            
+            // Calculate totals
+            const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            
+            // Calculate revenue from reports/sales
+            const prescriptionRevenue = reports.reduce((sum, r) => {
+                if (r.prescription && Array.isArray(r.prescription)) {
+                    return sum + r.prescription.reduce((s, p) => s + (p.totalPrice || 0), 0);
+                }
+                return sum;
+            }, 0);
+            
+            const walkinRevenue = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]').reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            const totalRevenue = prescriptionRevenue + walkinRevenue;
+            const netProfit = totalRevenue - totalExpenses;
+            const cashFlow = totalRevenue - totalExpenses;
+            
+            // Update display
+            const revenueEl = document.getElementById('totalRevenue');
+            const expensesEl = document.getElementById('totalExpenses');
+            const profitEl = document.getElementById('netProfit');
+            const flowEl = document.getElementById('cashFlow');
+            
+            if (revenueEl) revenueEl.textContent = `N$ ${totalRevenue.toFixed(2)}`;
+            if (expensesEl) expensesEl.textContent = `N$ ${totalExpenses.toFixed(2)}`;
+            if (profitEl) {
+                profitEl.textContent = `N$ ${netProfit.toFixed(2)}`;
+                profitEl.style.color = netProfit >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            if (flowEl) {
+                flowEl.textContent = `N$ ${cashFlow.toFixed(2)}`;
+                flowEl.style.color = cashFlow >= 0 ? '#27ae60' : '#e74c3c';
+            }
+        }
+        
+        // Refresh revenue
+        function refreshRevenue() {
+            loadFinancialData();
+            
+            const prescriptionRevenue = reports.reduce((sum, r) => {
+                if (r.prescription && Array.isArray(r.prescription)) {
+                    return sum + r.prescription.reduce((s, p) => s + (p.totalPrice || 0), 0);
+                }
+                return sum;
+            }, 0);
+            
+            const walkinRevenue = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]').reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            const totalSales = prescriptionRevenue + walkinRevenue;
+            
+            const prescriptionEl = document.getElementById('prescriptionRevenue');
+            const walkinEl = document.getElementById('walkinRevenue');
+            const totalEl = document.getElementById('totalSales');
+            
+            if (prescriptionEl) prescriptionEl.textContent = `N$ ${prescriptionRevenue.toFixed(2)}`;
+            if (walkinEl) walkinEl.textContent = `N$ ${walkinRevenue.toFixed(2)}`;
+            if (totalEl) totalEl.textContent = `N$ ${totalSales.toFixed(2)}`;
+        }
+        
+        // Generate financial report
+        function generateFinancialReport() {
+            refreshFinancialOverview();
+            alert('Full financial report feature coming soon!');
+        }
+        
+        // Export financial data
+        function exportFinancialData() {
+            loadFinancialData();
+            const data = {
+                expenses,
+                budgets,
+                exportedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `financial_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+        
+        // Report generation functions
+        function generateProfitLossReport() {
+            loadFinancialData();
+            refreshFinancialOverview();
+            
+            const display = document.getElementById('financeReportDisplay');
+            if (!display) return;
+            
+            const totalRevenue = parseFloat(document.getElementById('totalRevenue')?.textContent.replace(/[^0-9.]/g, '') || '0');
+            const totalExpenses = parseFloat(document.getElementById('totalExpenses')?.textContent.replace(/[^0-9.]/g, '') || '0');
+            const netProfit = totalRevenue - totalExpenses;
+            
+            display.innerHTML = `
+                <h3>📊 Profit & Loss Report</h3>
+                <div style="margin-top: 20px;">
+                    <div style="padding: 15px; background: #e8f5e9; border-radius: 8px; margin-bottom: 10px;">
+                        <h4>Total Revenue: <span style="color: #27ae60;">N$ ${totalRevenue.toFixed(2)}</span></h4>
+                    </div>
+                    <div style="padding: 15px; background: #ffebee; border-radius: 8px; margin-bottom: 10px;">
+                        <h4>Total Expenses: <span style="color: #e74c3c;">N$ ${totalExpenses.toFixed(2)}</span></h4>
+                    </div>
+                    <div style="padding: 15px; background: ${netProfit >= 0 ? '#e8f5e9' : '#ffebee'}; border-radius: 8px; border: 2px solid ${netProfit >= 0 ? '#27ae60' : '#e74c3c'};">
+                        <h4>Net Profit: <span style="color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'}; font-size: 1.5rem;">N$ ${netProfit.toFixed(2)}</span></h4>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function generateCashFlowReport() {
+            loadFinancialData();
+            alert('Cash Flow Report feature coming soon!');
+        }
+        
+        function generateBudgetReport() {
+            loadFinancialData();
+            refreshBudgets();
+            
+            const display = document.getElementById('financeReportDisplay');
+            if (!display) return;
+            
+            display.innerHTML = `
+                <h3>📈 Budget vs Actual Report</h3>
+                <div style="margin-top: 20px;">
+                    ${budgets.length === 0 ? '<p style="text-align: center; color: #7f8c8d;">No budgets created yet</p>' : 'View budgets above'}
+                </div>
+            `;
+        }
+        
+        function generateExpenseReport() {
+            loadFinancialData();
+            
+            const categoryTotals = {};
+            expenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+            
+            const display = document.getElementById('financeReportDisplay');
+            if (!display) return;
+            
+            display.innerHTML = `
+                <h3>💸 Expense Report by Category</h3>
+                <div style="margin-top: 20px;">
+                    ${Object.entries(categoryTotals).map(([cat, total]) => `
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                            <h4>${cat.charAt(0).toUpperCase() + cat.slice(1)}</h4>
+                            <span style="font-size: 1.2rem; font-weight: bold; color: #e74c3c;">N$ ${total.toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function showExpenseSummary() {
+            loadFinancialData();
+            generateExpenseReport();
+        }
+        
+        function showRevenueBreakdown() {
+            refreshRevenue();
+            const display = document.getElementById('revenueList');
+            if (!display) return;
+            
+            loadReportsFromFile();
+            const prescriptionSales = reports.filter(r => r.prescription && r.prescription.length > 0).length;
+            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]').length;
+            
+            display.innerHTML = `
+                <div style="padding: 15px; background: #e8f5e9; border-radius: 8px; margin-bottom: 10px;">
+                    <h4>📋 Prescription Sales: ${prescriptionSales} transactions</h4>
+                </div>
+                <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 10px;">
+                    <h4>🛒 Walk-in Sales: ${walkinSales} transactions</h4>
+                </div>
+            `;
+        }
+        
+        // Initialize finance data on load
+        loadFinancialData();
+        
+        // ============================================
+        // ENHANCED FINANCE PORTAL FUNCTIONS
+        // ============================================
+        
+        // Load enhanced finance data
+        function loadEnhancedFinanceData() {
+            bankDeposits = JSON.parse(localStorage.getItem('finance_deposits') || '[]');
+            cashBonuses = JSON.parse(localStorage.getItem('finance_bonuses') || '[]');
+            cashShifts = JSON.parse(localStorage.getItem('finance_shifts') || '[]');
+            currentShift = JSON.parse(localStorage.getItem('finance_current_shift') || 'null');
+        }
+        
+        // Save enhanced finance data
+        function saveEnhancedFinanceData() {
+            localStorage.setItem('finance_deposits', JSON.stringify(bankDeposits));
+            localStorage.setItem('finance_bonuses', JSON.stringify(cashBonuses));
+            localStorage.setItem('finance_shifts', JSON.stringify(cashShifts));
+            localStorage.setItem('finance_current_shift', JSON.stringify(currentShift));
+        }
+        
+        // Calculate live cash at hand
+        function calculateCashAtHand(branch) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Get opening float (from current shift or most recent shift)
+            let openingFloat = 0;
+            if (currentShift && currentShift.branch === branch && currentShift.openTime) {
+                openingFloat = currentShift.openingFloat || 0;
+            } else {
+                const recentShift = cashShifts
+                    .filter(s => s.branch === branch)
+                    .sort((a, b) => new Date(b.closeTime) - new Date(a.closeTime))[0];
+                if (recentShift) openingFloat = recentShift.countedCash || 0;
+            }
+            
+            // Calculate cash sales
+            const cashSales = getCashSalesForBranch(today, branch);
+            
+            // Get bank deposits
+            const deposits = bankDeposits
+                .filter(d => d.date === today && d.branch === branch)
+                .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+            
+            // Get cash expenses (approved only)
+            const cashExpenses = expenses
+                .filter(e => e.date === today && e.paymentMethod === 'cash' && e.branch === branch)
+                .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+            
+            // Get cash bonuses
+            const bonuses = cashBonuses
+                .filter(b => b.date === today && b.branch === branch)
+                .reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
+            
+            // Cash at Hand = Opening Float + Cash Sales - Deposits - Cash Expenses - Bonuses
+            const cashAtHand = openingFloat + cashSales - deposits - cashExpenses - bonuses;
+            
+            return {
+                openingFloat,
+                cashSales,
+                deposits,
+                cashExpenses,
+                bonuses,
+                cashAtHand
+            };
+        }
+        
+        // Get cash sales for a specific branch and date
+        function getCashSalesForBranch(date, branch) {
+            let total = 0;
+            
+            // Check walk-in sales
+            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            walkinSales.forEach(sale => {
+                if (sale.date === date && sale.customerType === 'customer' && (!branch || sale.branch === branch)) {
+                    total += parseFloat(sale.totalAmount || 0);
+                }
+            });
+            
+            // Add prescription sales marked as cash
+            reports.forEach(report => {
+                if (report.date === date) {
+                    if (report.prescription && Array.isArray(report.prescription)) {
+                        report.prescription.forEach(item => {
+                            if (item.paymentMethod === 'cash') {
+                                total += parseFloat(item.totalPrice || 0);
+                            }
+                        });
+                    }
+                }
+            });
+            
+            return total;
+        }
+        
+        // Refresh financial dashboard with live data
+        function refreshFinancialDashboard() {
+            const branch = document.getElementById('financeBranchSelect')?.value || 'all';
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (branch === 'all') {
+                // Show company-wide totals
+                const totalSales = getAllSalesForDate(today);
+                const totalCash = getAllCashSalesForDate(today);
+                const totalCard = totalSales - totalCash;
+                
+                document.getElementById('dailyTotalSales').textContent = `N$ ${totalSales.toFixed(2)}`;
+                document.getElementById('dailyCashSales').textContent = `N$ ${totalCash.toFixed(2)}`;
+                document.getElementById('dailyCardSales').textContent = `N$ ${totalCard.toFixed(2)}`;
+                document.getElementById('cashAtHand').textContent = 'N$ 0.00';
+                document.getElementById('dailyDeposits').textContent = `N$ ${getAllDepositsForDate(today).toFixed(2)}`;
+                document.getElementById('dailyCashExpenses').textContent = `N$ ${getAllCashExpensesForDate(today).toFixed(2)}`;
+                document.getElementById('dailyBonuses').textContent = `N$ ${getAllBonusesForDate(today).toFixed(2)}`;
+                document.getElementById('variance').textContent = 'N$ 0.00';
+                document.getElementById('varianceStatus').textContent = 'Status: All Branches';
+                return;
+            }
+            
+            // Branch-specific calculations
+            const cashData = calculateCashAtHand(branch);
+            const countedCash = currentShift?.countedCash || cashData.cashAtHand;
+            const variance = countedCash - cashData.cashAtHand;
+            
+            // Get sales breakdown for branch
+            const salesBreakdown = getSalesBreakdownForBranch(today, branch);
+            
+            // Update display
+            document.getElementById('dailyTotalSales').textContent = `N$ ${salesBreakdown.total.toFixed(2)}`;
+            document.getElementById('dailyCashSales').textContent = `N$ ${salesBreakdown.cash.toFixed(2)}`;
+            document.getElementById('dailyCardSales').textContent = `N$ ${salesBreakdown.card.toFixed(2)}`;
+            document.getElementById('cashAtHand').textContent = `N$ ${cashData.cashAtHand.toFixed(2)}`;
+            document.getElementById('dailyDeposits').textContent = `N$ ${cashData.deposits.toFixed(2)}`;
+            document.getElementById('dailyCashExpenses').textContent = `N$ ${cashData.cashExpenses.toFixed(2)}`;
+            document.getElementById('dailyBonuses').textContent = `N$ ${cashData.bonuses.toFixed(2)}`;
+            document.getElementById('variance').textContent = `N$ ${variance.toFixed(2)}`;
+            
+            // Variance status
+            const varianceAbs = Math.abs(variance);
+            const varianceEl = document.getElementById('variance');
+            const statusEl = document.getElementById('varianceStatus');
+            
+            if (varianceAbs <= 50) {
+                varianceEl.style.color = '#27ae60';
+                statusEl.textContent = 'Status: ✅ OK';
+            } else if (varianceAbs <= 200) {
+                varianceEl.style.color = '#f39c12';
+                statusEl.textContent = 'Status: ⚠️ Minor Variance';
+            } else {
+                varianceEl.style.color = '#e74c3c';
+                statusEl.textContent = 'Status: 🚨 Significant Variance';
+            }
+        }
+        
+        // Get sales breakdown for branch
+        function getSalesBreakdownForBranch(date, branch) {
+            let cash = 0;
+            let card = 0;
+            let total = 0;
+            
+            // Walk-in sales
+            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            walkinSales.forEach(sale => {
+                if (sale.date === date && sale.branch === branch) {
+                    total += parseFloat(sale.totalAmount || 0);
+                    // For simplicity, assume 60% cash, 40% card
+                    cash += parseFloat(sale.totalAmount || 0) * 0.6;
+                    card += parseFloat(sale.totalAmount || 0) * 0.4;
+                }
+            });
+            
+            return { cash, card, total };
+        }
+        
+        // Helper functions for totals
+        function getAllSalesForDate(date) {
+            let total = 0;
+            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            walkinSales.forEach(sale => {
+                if (sale.date === date) {
+                    total += parseFloat(sale.totalAmount || 0);
+                }
+            });
+            return total;
+        }
+        
+        function getAllCashSalesForDate(date) {
+            return getAllSalesForDate(date) * 0.6; // Approximate
+        }
+        
+        function getAllDepositsForDate(date) {
+            return bankDeposits
+                .filter(d => d.date === date)
+                .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+        }
+        
+        function getAllCashExpensesForDate(date) {
+            return expenses
+                .filter(e => e.date === date && e.paymentMethod === 'cash')
+                .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+        }
+        
+        function getAllBonusesForDate(date) {
+            return cashBonuses
+                .filter(b => b.date === date)
+                .reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
+        }
+        
+        // Populate branch selectors
+        function populateBranchSelects() {
+            const financeSelect = document.getElementById('financeBranchSelect');
+            const depositSelect = document.getElementById('depositBranch');
+            const bonusSelect = document.getElementById('bonusBranch');
+            
+            if (financeSelect) {
+                financeSelect.innerHTML = '<option value="all">All Branches</option>';
+                branches.forEach(b => {
+                    financeSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                });
+            }
+            
+            [depositSelect, bonusSelect].forEach(select => {
+                if (select) {
+                    select.innerHTML = '<option value="">Select Branch</option>';
+                    branches.forEach(b => {
+                        select.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                    });
+                }
+            });
+        }
+        
+        // Shift Manager Functions
+        function showShiftManager() {
+            document.getElementById('shiftManagerModal').style.display = 'block';
+            populateShiftContent();
+        }
+        
+        function populateShiftContent() {
+            const content = document.getElementById('shiftContent');
+            if (!content) return;
+            
+            const branch = document.getElementById('financeBranchSelect')?.value;
+            if (!branch || branch === 'all') {
+                content.innerHTML = '<p style="text-align: center; padding: 40px;">Please select a branch first.</p>';
+                return;
+            }
+            
+            const cashData = calculateCashAtHand(branch);
+            
+            content.innerHTML = `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>Current Cash Status</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;">
+                        <div style="background: white; padding: 15px; border-radius: 5px;">
+                            <strong>Opening Float:</strong> N$ ${cashData.openingFloat.toFixed(2)}
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 5px;">
+                            <strong>Cash Sales:</strong> N$ ${cashData.cashSales.toFixed(2)}
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 5px;">
+                            <strong>Cash at Hand:</strong> N$ ${cashData.cashAtHand.toFixed(2)}
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 5px;">
+                            <strong>Expected Count:</strong> N$ ${cashData.cashAtHand.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>Close Shift</h3>
+                    <form id="closeShiftForm">
+                        <div class="form-group">
+                            <label>Actual Counted Cash (N$) *</label>
+                            <input type="number" id="countedCash" step="0.01" min="0" required placeholder="Enter actual cash count">
+                        </div>
+                        <div class="form-group">
+                            <label>Notes (Optional)</label>
+                            <textarea id="shiftNotes" rows="3" placeholder="Any notes about the shift..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">✅ Close Shift</button>
+                    </form>
+                </div>
+            `;
+            
+            document.getElementById('closeShiftForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const countedCash = parseFloat(document.getElementById('countedCash').value);
+                const notes = document.getElementById('shiftNotes').value;
+                
+                closeShift(branch, countedCash, notes);
+            });
+        }
+        
+        function closeShift(branch, countedCash, notes) {
+            if (!confirm('Close this shift? This will finalize the cash count.')) return;
+            
+            const shift = {
+                id: 'SHIFT' + Date.now(),
+                branch: branch,
+                openedBy: currentShift?.openedBy || currentUser?.username || 'Unknown',
+                openingFloat: currentShift?.openingFloat || 0,
+                openTime: currentShift?.openTime || new Date().toISOString(),
+                closedBy: currentUser?.username || 'Unknown',
+                closeTime: new Date().toISOString(),
+                countedCash: countedCash,
+                notes: notes
+            };
+            
+            cashShifts.push(shift);
+            saveEnhancedFinanceData();
+            
+            currentShift = null;
+            localStorage.setItem('finance_current_shift', 'null');
+            
+            alert('Shift closed successfully!');
+            closeModal('shiftManagerModal');
+            refreshFinancialDashboard();
+        }
+        
+        // Bank Deposit Functions
+        function showBankDeposit() {
+            document.getElementById('depositDate').value = new Date().toISOString().split('T')[0];
+            populateBranchSelects();
+            document.getElementById('bankDepositModal').style.display = 'block';
+        }
+        
+        document.getElementById('bankDepositForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const deposit = {
+                id: 'DEP' + Date.now(),
+                branch: document.getElementById('depositBranch').value,
+                date: document.getElementById('depositDate').value,
+                amount: parseFloat(document.getElementById('depositAmount').value),
+                slipNo: document.getElementById('depositSlipNo').value,
+                bankName: document.getElementById('depositBank').value,
+                depositedBy: document.getElementById('depositedBy').value,
+                notes: document.getElementById('depositNotes').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'Unknown'
+            };
+            
+            bankDeposits.push(deposit);
+            saveEnhancedFinanceData();
+            closeModal('bankDepositModal');
+            refreshFinancialDashboard();
+            alert('Deposit recorded successfully!');
+            this.reset();
+        });
+        
+        // Cash Bonus Functions
+        function showCashBonus() {
+            document.getElementById('bonusDate').value = new Date().toISOString().split('T')[0];
+            populateBranchSelects();
+            document.getElementById('cashBonusModal').style.display = 'block';
+        }
+        
+        function checkBonusLimit() {
+            const amount = parseFloat(document.getElementById('bonusAmount')?.value || 0);
+            const branch = document.getElementById('bonusBranch')?.value;
+            const warning = document.getElementById('bonusLimitWarning');
+            
+            if (!branch || !amount) return;
+            
+            const cashData = calculateCashAtHand(branch);
+            const availableCash = cashData.cashAtHand;
+            const branchLimit = 5000; // N$ 5000 default limit
+            
+            if (amount > branchLimit || amount > availableCash) {
+                if (warning) warning.style.display = 'block';
+            } else {
+                if (warning) warning.style.display = 'none';
+            }
+        }
+        
+        document.getElementById('cashBonusForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const bonus = {
+                id: 'BNS' + Date.now(),
+                branch: document.getElementById('bonusBranch').value,
+                distributorNB: document.getElementById('bonusDistributorNB').value,
+                date: document.getElementById('bonusDate').value,
+                amount: parseFloat(document.getElementById('bonusAmount').value),
+                reason: document.getElementById('bonusReason').value,
+                approvedBy: document.getElementById('bonusApprovedBy').value,
+                limitChecked: true,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'Unknown'
+            };
+            
+            cashBonuses.push(bonus);
+            saveEnhancedFinanceData();
+            closeModal('cashBonusModal');
+            refreshFinancialDashboard();
+            alert('Cash bonus recorded successfully!');
+            this.reset();
+        });
+        
+        // Z-Report Functions
+        function generateZReport() {
+            const branch = document.getElementById('financeBranchSelect')?.value;
+            if (!branch || branch === 'all') {
+                alert('Please select a branch first');
+                return;
+            }
+            
+            const cashData = calculateCashAtHand(branch);
+            const salesBreakdown = getSalesBreakdownForBranch(new Date().toISOString().split('T')[0], branch);
+            
+            const content = document.getElementById('zReportContent');
+            if (!content) return;
+            
+            content.innerHTML = `
+                <div style="background: white; padding: 20px; border: 2px solid #c41e3a; border-radius: 8px;">
+                    <h2 style="color: #c41e3a; text-align: center;">DYNAPHARM INTERNATIONAL NAMIBIA</h2>
+                    <h3 style="text-align: center;">Z-REPORT - ${new Date().toLocaleDateString()}</h3>
+                    <p style="text-align: center; margin-bottom: 20px;"><strong>Branch:</strong> ${branches.find(b => b.id === branch)?.name || branch}</p>
+                    
+                    <div style="margin: 20px 0;">
+                        <h4>Opening Status</h4>
+                        <p><strong>Opening Float:</strong> N$ ${cashData.openingFloat.toFixed(2)}</p>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <h4>Sales Summary</h4>
+                        <p><strong>Total Sales:</strong> N$ ${salesBreakdown.total.toFixed(2)}</p>
+                        <p><strong>Cash Sales:</strong> N$ ${salesBreakdown.cash.toFixed(2)}</p>
+                        <p><strong>Card Sales:</strong> N$ ${salesBreakdown.card.toFixed(2)}</p>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <h4>Cash Transactions</h4>
+                        <p><strong>Bank Deposits:</strong> N$ ${cashData.deposits.toFixed(2)}</p>
+                        <p><strong>Cash Expenses:</strong> N$ ${cashData.cashExpenses.toFixed(2)}</p>
+                        <p><strong>Cash Bonuses:</strong> N$ ${cashData.bonuses.toFixed(2)}</p>
+                    </div>
+                    
+                    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <h4>Cash Reconciliation</h4>
+                        <p><strong>Opening Float:</strong> N$ ${cashData.openingFloat.toFixed(2)}</p>
+                        <p><strong>+ Cash Sales:</strong> N$ ${cashData.cashSales.toFixed(2)}</p>
+                        <p><strong>- Deposits:</strong> N$ ${cashData.deposits.toFixed(2)}</p>
+                        <p><strong>- Cash Expenses:</strong> N$ ${cashData.cashExpenses.toFixed(2)}</p>
+                        <p><strong>- Cash Bonuses:</strong> N$ ${cashData.bonuses.toFixed(2)}</p>
+                        <hr style="margin: 10px 0;">
+                        <p><strong style="font-size: 1.2rem;">Expected Cash at Hand:</strong> <span style="font-size: 1.5rem; color: #c41e3a;">N$ ${cashData.cashAtHand.toFixed(2)}</span></p>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <p>Generated: ${new Date().toLocaleString()}</p>
+                        <p>Generated by: ${currentUser?.username || 'System'}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('zReportModal').style.display = 'block';
+        }
+        
+        function printZReport() {
+            window.print();
+        }
+        
+        function exportZReportCSV() {
+            alert('CSV export feature coming soon!');
+        }
+        
+        // Initialize enhanced finance on load
+        loadEnhancedFinanceData();
+        
+        // ============================================
+        // HR PORTAL FUNCTIONS
+        // ============================================
+        
+        // Function to show HR sub-tabs
+        function showHRSubTab(tabName) {
+            document.querySelectorAll('.hr-tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.hr-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data based on which tab is opened
+            if (tabName === 'employee-management') {
+                loadEmployees();
+            } else if (tabName === 'leave-management') {
+                loadLeaveRequests();
+            } else if (tabName === 'warnings') {
+                loadWarnings();
+            } else if (tabName === 'terminations') {
+                loadTerminations();
+            } else if (tabName === 'attendance') {
+                loadAttendance();
+            } else if (tabName === 'performance') {
+                loadPerformanceReviews();
+            }
+        }
+        
+        // Employee Management Functions
+        function loadEmployees() {
+            const employeesData = localStorage.getItem('hr_employees');
+            employees = employeesData ? JSON.parse(employeesData) : [];
+            displayEmployees();
+        }
+        
+        function displayEmployees() {
+            const searchTerm = document.getElementById('employeeSearch')?.value.toLowerCase() || '';
+            const filtered = employees.filter(emp => 
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.employeeId.toLowerCase().includes(searchTerm) ||
+                emp.department.toLowerCase().includes(searchTerm)
+            );
+            
+            const listDiv = document.getElementById('employeeList');
+            if (!listDiv) return;
+            
+            if (filtered.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No employees found. Click "Add New Employee" to get started.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = filtered.map(emp => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; color: #c41e3a;">${emp.name} <span style="color: #666; font-size: 0.9em;">(${emp.employeeId})</span></h4>
+                            <p style="margin: 5px 0; color: #666;">${emp.position} - ${emp.department}</p>
+                            <p style="margin: 5px 0; color: #999; font-size: 0.85em;">📧 ${emp.email} | 📞 ${emp.phone}</p>
+                            <p style="margin: 5px 0; color: #999; font-size: 0.85em;">Started: ${new Date(emp.hireDate).toLocaleDateString()}</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-info" onclick="editEmployee('${emp.employeeId}')">✏️ Edit</button>
+                            <button class="btn btn-danger" onclick="deleteEmployee('${emp.employeeId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showAddEmployee() {
+            document.getElementById('addEmployeeModal').style.display = 'block';
+            document.getElementById('employeeId').value = 'EMP' + Date.now().toString().slice(-6);
+            document.getElementById('employeeHireDate').value = new Date().toISOString().split('T')[0];
+        }
+        
+        function editEmployee(employeeId) {
+            const emp = employees.find(e => e.employeeId === employeeId);
+            if (!emp) return;
+            
+            // Populate form with employee data
+            document.getElementById('employeeId').value = emp.employeeId;
+            document.getElementById('employeeName').value = emp.name;
+            document.getElementById('employeeDepartment').value = emp.department;
+            document.getElementById('employeePosition').value = emp.position;
+            document.getElementById('employeeEmail').value = emp.email;
+            document.getElementById('employeePhone').value = emp.phone;
+            document.getElementById('employeeHireDate').value = emp.hireDate;
+            document.getElementById('employmentType').value = emp.employmentType;
+            document.getElementById('employeeSalary').value = emp.salary || '';
+            document.getElementById('employeeAddress').value = emp.address || '';
+            document.getElementById('employeeDOB').value = emp.dob || '';
+            document.getElementById('emergencyContactName').value = emp.emergencyContactName || '';
+            document.getElementById('emergencyContactPhone').value = emp.emergencyContactPhone || '';
+            document.getElementById('employeeNotes').value = emp.notes || '';
+            
+            document.getElementById('addEmployeeModal').style.display = 'block';
+        }
+        
+        function deleteEmployee(employeeId) {
+            if (!confirm('Are you sure you want to delete this employee?')) return;
+            
+            employees = employees.filter(e => e.employeeId !== employeeId);
+            localStorage.setItem('hr_employees', JSON.stringify(employees));
+            displayEmployees();
+        }
+        
+        function refreshEmployeeList() {
+            loadEmployees();
+        }
+        
+        function exportEmployeeData() {
+            const dataStr = JSON.stringify(employees, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'employees_' + new Date().toISOString().split('T')[0] + '.json';
+            link.click();
+        }
+        
+        // Leave Management Functions
+        function loadLeaveRequests() {
+            const leaveData = localStorage.getItem('hr_leave');
+            leaveRequests = leaveData ? JSON.parse(leaveData) : [];
+            displayLeaveRequests();
+        }
+        
+        function displayLeaveRequests() {
+            const listDiv = document.getElementById('leaveList');
+            if (!listDiv) return;
+            
+            if (leaveRequests.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No leave requests found.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = leaveRequests.map(leave => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid ${
+                    leave.status === 'approved' ? '#27ae60' : leave.status === 'rejected' ? '#e74c3c' : '#f39c12'
+                }; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0;">${leave.type} Leave</h4>
+                    <p style="margin: 5px 0; color: #666;">Employee: ${leave.employee}</p>
+                    <p style="margin: 5px 0; color: #666;">Period: ${new Date(leave.startDate).toLocaleDateString()} - ${new Date(leave.endDate).toLocaleDateString()}</p>
+                    <p style="margin: 5px 0; color: #666;">Days: ${leave.days}</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="background: ${
+                        leave.status === 'approved' ? '#27ae60' : leave.status === 'rejected' ? '#e74c3c' : '#f39c12'
+                    }; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${leave.status.toUpperCase()}</span></p>
+                </div>
+            `).join('');
+        }
+        
+        function showApplyLeave() {
+            document.getElementById('applyLeaveModal').style.display = 'block';
+            populateEmployeeSelect('leaveEmployeeSelect');
+            setupLeaveDateCalculations();
+        }
+        
+        function setupLeaveDateCalculations() {
+            const startDate = document.getElementById('leaveStartDate');
+            const endDate = document.getElementById('leaveEndDate');
+            const daysInput = document.getElementById('leaveDays');
+            
+            function calculateDays() {
+                if (startDate.value && endDate.value) {
+                    const start = new Date(startDate.value);
+                    const end = new Date(endDate.value);
+                    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    daysInput.value = days;
+                }
+            }
+            
+            startDate.addEventListener('change', calculateDays);
+            endDate.addEventListener('change', calculateDays);
+        }
+        
+        function refreshLeaveList() {
+            loadLeaveRequests();
+        }
+        
+        // Warnings Functions
+        function loadWarnings() {
+            const warningData = localStorage.getItem('hr_warnings');
+            warnings = warningData ? JSON.parse(warningData) : [];
+            displayWarnings();
+        }
+        
+        function displayWarnings() {
+            const listDiv = document.getElementById('warningList');
+            if (!listDiv) return;
+            
+            if (warnings.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No warnings found.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = warnings.map(w => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #f39c12; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0; color: #f39c12;">${w.type} Warning</h4>
+                    <p style="margin: 5px 0; color: #666;">Employee: ${w.employee}</p>
+                    <p style="margin: 5px 0; color: #666;">Date: ${new Date(w.date).toLocaleDateString()}</p>
+                    <p style="margin: 5px 0; color: #666;">Issued By: ${w.issuedBy}</p>
+                    <p style="margin: 5px 0;">Reason: ${w.reason}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showIssueWarning() {
+            document.getElementById('issueWarningModal').style.display = 'block';
+            document.getElementById('warningDate').value = new Date().toISOString().split('T')[0];
+            populateEmployeeSelect('warningEmployeeSelect');
+        }
+        
+        function refreshWarningList() {
+            loadWarnings();
+        }
+        
+        // Termination Functions
+        function loadTerminations() {
+            const terminationData = localStorage.getItem('hr_terminations');
+            terminations = terminationData ? JSON.parse(terminationData) : [];
+            displayTerminations();
+        }
+        
+        function displayTerminations() {
+            const listDiv = document.getElementById('terminationList');
+            if (!listDiv) return;
+            
+            if (terminations.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No terminations found.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = terminations.map(t => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #e74c3c; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0; color: #e74c3c;">${t.type}</h4>
+                    <p style="margin: 5px 0; color: #666;">Employee: ${t.employee}</p>
+                    <p style="margin: 5px 0; color: #666;">Date: ${new Date(t.date).toLocaleDateString()}</p>
+                    <p style="margin: 5px 0;">Reason: ${t.reason}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showTerminateEmployee() {
+            document.getElementById('terminateEmployeeModal').style.display = 'block';
+            document.getElementById('terminationDate').value = new Date().toISOString().split('T')[0];
+            populateEmployeeSelect('terminationEmployeeSelect');
+        }
+        
+        function refreshTerminationList() {
+            loadTerminations();
+        }
+        
+        // Attendance Functions
+        function loadAttendance() {
+            const attendanceData = localStorage.getItem('hr_attendance');
+            attendanceRecords = attendanceData ? JSON.parse(attendanceData) : [];
+            displayAttendance();
+        }
+        
+        function displayAttendance() {
+            const listDiv = document.getElementById('attendanceList');
+            if (!listDiv) return;
+            
+            if (attendanceRecords.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No attendance records found.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = attendanceRecords.map(a => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0;">${a.employee}</h4>
+                    <p style="margin: 5px 0; color: #666;">Date: ${new Date(a.date).toLocaleDateString()}</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> <span style="background: ${
+                        a.status === 'Present' ? '#27ae60' : a.status === 'Late' ? '#f39c12' : '#e74c3c'
+                    }; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${a.status}</span></p>
+                    ${a.checkIn ? '<p style="margin: 5px 0; color: #666;">Check In: ' + a.checkIn + '</p>' : ''}
+                    ${a.checkOut ? '<p style="margin: 5px 0; color: #666;">Check Out: ' + a.checkOut + '</p>' : ''}
+                </div>
+            `).join('');
+        }
+        
+        function showRecordAttendance() {
+            document.getElementById('recordAttendanceModal').style.display = 'block';
+            document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+            populateEmployeeSelect('attendanceEmployeeSelect');
+        }
+        
+        function refreshAttendanceList() {
+            loadAttendance();
+        }
+        
+        function generateAttendanceReport() {
+            alert('Attendance report generation coming soon!');
+        }
+        
+        // Performance Review Functions
+        function loadPerformanceReviews() {
+            const perfData = localStorage.getItem('hr_performance');
+            performanceReviews = perfData ? JSON.parse(perfData) : [];
+            displayPerformanceReviews();
+        }
+        
+        function displayPerformanceReviews() {
+            const listDiv = document.getElementById('performanceList');
+            if (!listDiv) return;
+            
+            if (performanceReviews.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">No performance reviews found.</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = performanceReviews.map(p => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0;">${p.employee}</h4>
+                    <p style="margin: 5px 0; color: #666;">Period: ${new Date(p.startDate).toLocaleDateString()} - ${new Date(p.endDate).toLocaleDateString()}</p>
+                    <p style="margin: 5px 0;"><strong>Rating:</strong> <span style="background: #3498db; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">${p.rating}</span></p>
+                    <p style="margin: 5px 0; color: #666;">Reviewed By: ${p.reviewedBy}</p>
+                </div>
+            `).join('');
+        }
+        
+        function showAddPerformanceReview() {
+            document.getElementById('addPerformanceReviewModal').style.display = 'block';
+            populateEmployeeSelect('performanceEmployeeSelect');
+        }
+        
+        function refreshPerformanceList() {
+            loadPerformanceReviews();
+        }
+        
+        // Helper function to populate employee select dropdowns
+        function populateEmployeeSelect(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Select Employee</option>';
+            employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.employeeId;
+                option.textContent = emp.name + ' (' + emp.employeeId + ')';
+                select.appendChild(option);
+            });
+        }
+        
+        // Form Submission Handlers
+        document.addEventListener('submit', function(e) {
+            if (e.target.id === 'addEmployeeForm') {
+                e.preventDefault();
+                const formData = {
+                    employeeId: document.getElementById('employeeId').value,
+                    name: document.getElementById('employeeName').value,
+                    department: document.getElementById('employeeDepartment').value,
+                    position: document.getElementById('employeePosition').value,
+                    email: document.getElementById('employeeEmail').value,
+                    phone: document.getElementById('employeePhone').value,
+                    hireDate: document.getElementById('employeeHireDate').value,
+                    employmentType: document.getElementById('employmentType').value,
+                    salary: document.getElementById('employeeSalary').value,
+                    address: document.getElementById('employeeAddress').value,
+                    dob: document.getElementById('employeeDOB').value,
+                    emergencyContactName: document.getElementById('emergencyContactName').value,
+                    emergencyContactPhone: document.getElementById('emergencyContactPhone').value,
+                    notes: document.getElementById('employeeNotes').value
+                };
+                
+                const existingIndex = employees.findIndex(e => e.employeeId === formData.employeeId);
+                if (existingIndex >= 0) {
+                    employees[existingIndex] = formData;
+                } else {
+                    employees.push(formData);
+                }
+                
+                localStorage.setItem('hr_employees', JSON.stringify(employees));
+                closeModal('addEmployeeModal');
+                displayEmployees();
+                alert('Employee saved successfully!');
+            }
+            
+            if (e.target.id === 'applyLeaveForm') {
+                e.preventDefault();
+                const formData = {
+                    id: 'LEAVE' + Date.now(),
+                    employee: employees.find(e => e.employeeId === document.getElementById('leaveEmployeeSelect').value)?.name || '',
+                    type: document.getElementById('leaveType').value,
+                    startDate: document.getElementById('leaveStartDate').value,
+                    endDate: document.getElementById('leaveEndDate').value,
+                    days: document.getElementById('leaveDays').value,
+                    reason: document.getElementById('leaveReason').value,
+                    status: 'pending',
+                    appliedDate: new Date().toISOString()
+                };
+                
+                leaveRequests.push(formData);
+                localStorage.setItem('hr_leave', JSON.stringify(leaveRequests));
+                closeModal('applyLeaveModal');
+                displayLeaveRequests();
+                alert('Leave request submitted!');
+            }
+            
+            if (e.target.id === 'issueWarningForm') {
+                e.preventDefault();
+                const formData = {
+                    id: 'WARN' + Date.now(),
+                    employee: employees.find(e => e.employeeId === document.getElementById('warningEmployeeSelect').value)?.name || '',
+                    type: document.getElementById('warningType').value,
+                    date: document.getElementById('warningDate').value,
+                    issuedBy: document.getElementById('warningIssuedBy').value,
+                    reason: document.getElementById('warningReason').value,
+                    notes: document.getElementById('warningNotes').value
+                };
+                
+                warnings.push(formData);
+                localStorage.setItem('hr_warnings', JSON.stringify(warnings));
+                closeModal('issueWarningModal');
+                displayWarnings();
+                alert('Warning issued!');
+            }
+            
+            if (e.target.id === 'terminateEmployeeForm') {
+                e.preventDefault();
+                const formData = {
+                    id: 'TERM' + Date.now(),
+                    employee: employees.find(e => e.employeeId === document.getElementById('terminationEmployeeSelect').value)?.name || '',
+                    type: document.getElementById('terminationType').value,
+                    date: document.getElementById('terminationDate').value,
+                    reason: document.getElementById('terminationReason').value,
+                    noticePeriod: document.getElementById('noticePeriod').value,
+                    notes: document.getElementById('terminationNotes').value
+                };
+                
+                terminations.push(formData);
+                localStorage.setItem('hr_terminations', JSON.stringify(terminations));
+                closeModal('terminateEmployeeModal');
+                displayTerminations();
+                alert('Termination recorded!');
+            }
+            
+            if (e.target.id === 'recordAttendanceForm') {
+                e.preventDefault();
+                const formData = {
+                    id: 'ATT' + Date.now(),
+                    employee: employees.find(e => e.employeeId === document.getElementById('attendanceEmployeeSelect').value)?.name || '',
+                    date: document.getElementById('attendanceDate').value,
+                    status: document.getElementById('attendanceStatus').value,
+                    checkIn: document.getElementById('checkInTime').value,
+                    checkOut: document.getElementById('checkOutTime').value,
+                    notes: document.getElementById('attendanceNotes').value
+                };
+                
+                attendanceRecords.push(formData);
+                localStorage.setItem('hr_attendance', JSON.stringify(attendanceRecords));
+                closeModal('recordAttendanceModal');
+                displayAttendance();
+                alert('Attendance recorded!');
+            }
+            
+            if (e.target.id === 'addPerformanceReviewForm') {
+                e.preventDefault();
+                const formData = {
+                    id: 'PERF' + Date.now(),
+                    employee: employees.find(e => e.employeeId === document.getElementById('performanceEmployeeSelect').value)?.name || '',
+                    startDate: document.getElementById('reviewStartDate').value,
+                    endDate: document.getElementById('reviewEndDate').value,
+                    reviewedBy: document.getElementById('reviewedBy').value,
+                    rating: document.getElementById('overallRating').value,
+                    strengths: document.getElementById('strengths').value,
+                    improvements: document.getElementById('improvements').value,
+                    goals: document.getElementById('goals').value,
+                    comments: document.getElementById('reviewComments').value
+                };
+                
+                performanceReviews.push(formData);
+                localStorage.setItem('hr_performance', JSON.stringify(performanceReviews));
+                closeModal('addPerformanceReviewModal');
+                displayPerformanceReviews();
+                alert('Performance review saved!');
+            }
+        });
+        
+        // Search handlers
+        document.addEventListener('keyup', function(e) {
+            if (e.target.id === 'employeeSearch') {
+                displayEmployees();
+            }
+        });
+        
+        // Initialize HR portal data on load
+        function initHRPortal() {
+            loadEmployees();
+            loadLeaveRequests();
+            loadWarnings();
+            loadTerminations();
+            loadAttendance();
+            loadPerformanceReviews();
+        }
+        
         // Initialize stock data on load
         window.onload = async function() {
             // Load stock data
@@ -12642,6 +15007,9 @@
             // Then load reports and initialize
             await loadReportsFromFile();
             await init();
+            
+            // Initialize HR Portal
+            initHRPortal();
         };
     </script>
 </body>
