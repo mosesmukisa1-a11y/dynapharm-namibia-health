@@ -15428,6 +15428,287 @@
             `;
         }
         
+        // Monthly Financial Summary Functions
+        function generateMonthlySummary() {
+            const month = document.getElementById('summaryMonth').value;
+            const year = document.getElementById('summaryYear').value;
+            const monthDate = `${year}-${month}`;
+            
+            // Load all reports and sales data
+            const reports = JSON.parse(localStorage.getItem('dyna_reports') || '[]');
+            const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const expenses = JSON.parse(localStorage.getItem('dynapharm_expenses') || '[]');
+            const bonuses = JSON.parse(localStorage.getItem('dynapharm_cash_bonuses') || '[]');
+            const deposits = JSON.parse(localStorage.getItem('dynapharm_deposits') || '[]');
+            
+            // Filter data for the selected month
+            const monthReports = reports.filter(r => r.createdAt && r.createdAt.startsWith(monthDate));
+            const monthSales = walkInSales.filter(s => s.createdAt && s.createdAt.startsWith(monthDate));
+            const monthExpenses = expenses.filter(e => e.date && e.date.startsWith(monthDate));
+            const monthBonuses = bonuses.filter(b => b.date && b.date.startsWith(monthDate));
+            const monthDeposits = deposits.filter(d => d.date && d.date.startsWith(monthDate));
+            
+            // Group by branch
+            const branchData = {};
+            
+            // Process reports (prescription sales)
+            monthReports.forEach(report => {
+                const branch = report.branch || 'Unknown';
+                if (!branchData[branch]) {
+                    branchData[branch] = {
+                        name: branch,
+                        sales: 0,
+                        swiped: 0,
+                        eft: 0,
+                        cashSale: 0,
+                        bonus: 0,
+                        cashBack: 0,
+                        otherExpenses: 0,
+                        totalExpenses: 0,
+                        cashAtHand: 0,
+                        banked: 0
+                    };
+                }
+                
+                report.medicines.forEach(med => {
+                    const price = med.currentPrice || {};
+                    const quantity = med.quantity || 1;
+                    const amount = (price.cp || 0) * quantity;
+                    
+                    if (report.paymentMethod === 'card' || report.paymentMethod === 'swiped') {
+                        branchData[branch].swiped += amount;
+                        branchData[branch].sales += amount;
+                    } else if (report.paymentMethod === 'eft') {
+                        branchData[branch].eft += amount;
+                        branchData[branch].sales += amount;
+                    } else {
+                        branchData[branch].cashSale += amount;
+                        branchData[branch].sales += amount;
+                    }
+                });
+            });
+            
+            // Process walk-in sales
+            monthSales.forEach(sale => {
+                const branch = sale.branch || 'Unknown';
+                if (!branchData[branch]) {
+                    branchData[branch] = {
+                        name: branch,
+                        sales: 0,
+                        swiped: 0,
+                        eft: 0,
+                        cashSale: 0,
+                        bonus: 0,
+                        cashBack: 0,
+                        otherExpenses: 0,
+                        totalExpenses: 0,
+                        cashAtHand: 0,
+                        banked: 0
+                    };
+                }
+                
+                const total = parseFloat(sale.totalAmount || 0);
+                branchData[branch].sales += total;
+                
+                if (sale.paymentMethod === 'card' || sale.paymentMethod === 'swiped') {
+                    branchData[branch].swiped += total;
+                } else if (sale.paymentMethod === 'eft') {
+                    branchData[branch].eft += total;
+                } else {
+                    branchData[branch].cashSale += total;
+                }
+            });
+            
+            // Process bonuses and expenses
+            monthBonuses.forEach(bonus => {
+                const branch = bonus.branch || 'Unknown';
+                const amount = parseFloat(bonus.amount || 0);
+                if (!branchData[branch]) {
+                    branchData[branch] = {
+                        name: branch,
+                        sales: 0,
+                        swiped: 0,
+                        eft: 0,
+                        cashSale: 0,
+                        bonus: 0,
+                        cashBack: 0,
+                        otherExpenses: 0,
+                        totalExpenses: 0,
+                        cashAtHand: 0,
+                        banked: 0
+                    };
+                }
+                branchData[branch].bonus += amount;
+                branchData[branch].totalExpenses += amount;
+            });
+            
+            monthExpenses.forEach(exp => {
+                const branch = exp.branch || 'Unknown';
+                const amount = parseFloat(exp.amount || 0);
+                if (!branchData[branch]) {
+                    branchData[branch] = {
+                        name: branch,
+                        sales: 0,
+                        swiped: 0,
+                        eft: 0,
+                        cashSale: 0,
+                        bonus: 0,
+                        cashBack: 0,
+                        otherExpenses: 0,
+                        totalExpenses: 0,
+                        cashAtHand: 0,
+                        banked: 0
+                    };
+                }
+                
+                if (exp.type === 'bonus') {
+                    branchData[branch].cashBack += amount;
+                } else {
+                    branchData[branch].otherExpenses += amount;
+                }
+                branchData[branch].totalExpenses += amount;
+            });
+            
+            // Process deposits
+            monthDeposits.forEach(deposit => {
+                const branch = deposit.branch || 'Unknown';
+                const amount = parseFloat(deposit.amount || 0);
+                if (!branchData[branch]) {
+                    branchData[branch] = {
+                        name: branch,
+                        sales: 0,
+                        swiped: 0,
+                        eft: 0,
+                        cashSale: 0,
+                        bonus: 0,
+                        cashBack: 0,
+                        otherExpenses: 0,
+                        totalExpenses: 0,
+                        cashAtHand: 0,
+                        banked: 0
+                    };
+                }
+                branchData[branch].banked += amount;
+            });
+            
+            // Calculate final summary
+            const branches = Object.values(branchData);
+            const totals = {
+                name: 'TOTAL',
+                sales: branches.reduce((sum, b) => sum + b.sales, 0),
+                swiped: branches.reduce((sum, b) => sum + b.swiped, 0),
+                eft: branches.reduce((sum, b) => sum + b.eft, 0),
+                cashSale: branches.reduce((sum, b) => sum + b.cashSale, 0),
+                bonus: branches.reduce((sum, b) => sum + b.bonus, 0),
+                cashBack: branches.reduce((sum, b) => sum + b.cashBack, 0),
+                otherExpenses: branches.reduce((sum, b) => sum + b.otherExpenses, 0),
+                totalExpenses: branches.reduce((sum, b) => sum + b.totalExpenses, 0),
+                cashAtHand: 0,
+                banked: branches.reduce((sum, b) => sum + b.banked, 0)
+            };
+            totals.cashAtHand = totals.cashSale - totals.totalExpenses;
+            totals.netBalance = totals.sales - totals.totalExpenses;
+            
+            // Calculate net balance for each branch
+            branches.forEach(branch => {
+                branch.cashAtHand = branch.cashSale - branch.totalExpenses;
+                branch.netBalance = branch.sales - branch.totalExpenses;
+            });
+            
+            const allRows = [...branches, totals];
+            
+            // Display table
+            const container = document.getElementById('monthlySummaryTable');
+            if (!container) return;
+            
+            const monthName = new Date(`${year}-${month}-01`).toLocaleDateString('en-US', { month: 'long' });
+            
+            container.innerHTML = `
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; background: white; border: 2px solid #c41e3a;">
+                        <thead>
+                            <tr style="background: #c41e3a; color: white;">
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold;">DPC NAME</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">SALES</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">SWIPED</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">EFT</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">CASH SALE</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">BONUS</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">CASH BACK</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">OTHER EXPENSES</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">TOTAL EXPENSES</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">CASH AT HAND</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">BANKED</th>
+                                <th style="padding: 12px; border: 1px solid #fff; font-weight: bold; text-align: right;">NET BALANCE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allRows.map((row, idx) => {
+                                const isTotal = row.name === 'TOTAL';
+                                return `
+                                    <tr style="${isTotal ? 'background: #fff3cd; font-weight: bold;' : ''}">
+                                        <td style="padding: 10px; border: 1px solid #ddd; ${isTotal ? 'font-size: 1.1rem;' : ''}">${row.name}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.sales.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.swiped.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.eft.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.cashSale.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.bonus.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.cashBack.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.otherExpenses.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.totalExpenses.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right; ${isTotal && row.cashAtHand < 0 ? 'color: #e74c3c;' : ''}">N$ ${row.cashAtHand.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">N$ ${row.banked.toFixed(2)}</td>
+                                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: bold; ${row.netBalance < 0 ? 'color: #e74c3c;' : 'color: #27ae60;'}">N$ ${row.netBalance.toFixed(2)}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4 style="margin: 0;">Summary for ${monthName} ${year}</h4>
+                    <p style="margin: 5px 0; color: #666;">Generated on: ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+        }
+        
+        function exportMonthlySummaryCSV() {
+            const container = document.getElementById('monthlySummaryTable');
+            if (!container || !container.querySelector('table')) {
+                alert('Please generate summary first');
+                return;
+            }
+            
+            let csv = 'DPC NAME,SALES,SWIPED,EFT,CASH SALE,BONUS,CASH BACK,OTHER EXPENSES,TOTAL EXPENSES,CASH AT HAND,BANKED,NET BALANCE\n';
+            
+            const rows = container.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                const values = Array.from(cols).map(td => {
+                    let text = td.textContent.trim();
+                    return text.startsWith('N$') ? text.replace('N$', '').trim() : text;
+                });
+                csv += values.join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `monthly_summary_${document.getElementById('summaryMonth').value}_${document.getElementById('summaryYear').value}.csv`;
+            a.click();
+        }
+        
+        function printMonthlySummary() {
+            const container = document.getElementById('monthlySummaryTable');
+            if (!container) {
+                alert('Please generate summary first');
+                return;
+            }
+            
+            window.print();
+        }
+        
         function showExpenseSummary() {
             loadFinancialData();
             generateExpenseReport();
