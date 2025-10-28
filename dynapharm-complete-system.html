@@ -1775,69 +1775,66 @@
                 <div id="countryStockTab" class="stock-tab-content" style="display: block;">
                     <div class="form-section">
                         <h3>📥 Receive Country Stock</h3>
-                        <form id="receiveStockForm">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="required">Product Name</label>
-                                    <input type="text" id="stockProductName" placeholder="Enter product name" required>
+                        <p style="margin-bottom: 20px; color: #666;">Import stock with batch tracking and FIFO/FEFO enforcement</p>
+                        
+                        <!-- Bulk Import Form -->
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 15px;">📋 Import Stock (Table Format)</h4>
+                            <form id="bulkStockImportForm">
+                                <div style="overflow-x: auto;">
+                                    <table id="stockImportTable" style="width: 100%; border-collapse: collapse; background: white;">
+                                        <thead>
+                                            <tr style="background: #c41e3a; color: white;">
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Cartons No.</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Description</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Batch No.</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Expiry Date</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Quantity</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Total (CTNS)</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stockImportTableBody">
+                                            <tr>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="stock-carton-no" style="width: 100%; padding: 8px;" placeholder="A1-98" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="stock-description" style="width: 100%; padding: 8px;" placeholder="Product description" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="stock-batch-no" style="width: 100%; padding: 8px;" placeholder="DP24265" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="month" class="stock-expiry-date" style="width: 100%; padding: 8px;" placeholder="YYYY-MM" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="number" class="stock-quantity" style="width: 100%; padding: 8px;" placeholder="Qty" min="1" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="number" class="stock-total-ctns" style="width: 100%; padding: 8px;" placeholder="CTNS" min="1" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <button type="button" class="btn btn-danger" onclick="removeStockImportRow(this)" style="padding: 5px 10px;">Remove</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="7" style="padding: 10px; border: 1px solid #ddd;">
+                                                    <button type="button" class="btn btn-success" onclick="addStockImportRow()">➕ Add Row</button>
+                                                    <button type="button" class="btn btn-info" onclick="importFromCSV()" style="margin-left: 10px;">📁 Import from CSV</button>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
-                                <div class="form-group">
-                                    <label class="required">Product Code/SKU</label>
-                                    <input type="text" id="stockProductCode" placeholder="e.g. PROD-001" required>
+                                <div style="margin-top: 20px; text-align: center;">
+                                    <button type="submit" class="btn btn-success" style="padding: 12px 40px; font-size: 1.1rem;">📥 Import Stock</button>
+                                    <button type="button" class="btn" onclick="clearStockImportForm()">Clear All</button>
                                 </div>
-                                <div class="form-group">
-                                    <label class="required">Category</label>
-                                    <select id="stockCategory" required>
-                                        <option value="">Select Category</option>
-                                        <option value="supplements">Supplements</option>
-                                        <option value="vitamins">Vitamins</option>
-                                        <option value="herbs">Herbs</option>
-                                        <option value="equipment">Equipment</option>
-                                        <option value="personal-care">Personal Care</option>
-                                        <option value="food-items">Food Items</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="required">Quantity Received</label>
-                                    <input type="number" id="stockQuantity" min="1" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="required">Unit</label>
-                                    <select id="stockUnit" required>
-                                        <option value="units">Units</option>
-                                        <option value="boxes">Boxes</option>
-                                        <option value="bottles">Bottles</option>
-                                        <option value="packets">Packets</option>
-                                        <option value="kg">Kilograms</option>
-                                        <option value="liters">Liters</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="required">Batch Number</label>
-                                    <input type="text" id="stockBatchNumber" placeholder="Batch/Lot number" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="required">Expiry Date</label>
-                                    <input type="date" id="stockExpiryDate" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="required">Supplier</label>
-                                    <input type="text" id="stockSupplier" placeholder="Supplier name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Cost per Unit (N$)</label>
-                                    <input type="number" id="stockCost" step="0.01" min="0">
-                                </div>
-                                <div class="form-group">
-                                    <label>Notes</label>
-                                    <textarea id="stockNotes" rows="2" placeholder="Additional notes..."></textarea>
-                                </div>
-                            </div>
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button type="submit" class="btn btn-success">📥 Receive Stock</button>
-                                <button type="button" class="btn" onclick="clearStockForm()">Clear Form</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
                     
                     <div class="form-section">
