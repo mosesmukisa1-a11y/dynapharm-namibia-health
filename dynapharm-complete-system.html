@@ -879,6 +879,8 @@
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('hr-portal')">HR Portal</button>
             <button class="tab-button" onclick="openTab('finance')">Finance Portal</button>
+            <button class="tab-button" onclick="openTab('gm')">GM Portal</button>
+            <button class="tab-button" onclick="openTab('director')">Director Portal</button>
             <button class="tab-button" onclick="openTab('mis')">MIS Portal</button>
             <button class="tab-button" onclick="openTab('stock')">Stock Management</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
@@ -1901,8 +1903,8 @@
                                 <div style="margin-top: 20px; text-align: center;">
                                     <button type="submit" class="btn btn-success" style="padding: 12px 40px; font-size: 1.1rem;">📥 Import Stock</button>
                                     <button type="button" class="btn" onclick="clearStockImportForm()">Clear All</button>
-                            </div>
-                        </form>
+                                </div>
+                            </form>
                         </div>
                     </div>
                     
@@ -9394,7 +9396,7 @@
                     activeSection = 'dispenserPrescriptionSection';
                     activeTab = 'prescriptionTab';
                     gradient = 'linear-gradient(135deg, #27ae60, #229954)';
-                    displayPrescriptions();
+                displayPrescriptions();
                     break;
                 case 'banking':
                     activeSection = 'dispenserBankingSection';
@@ -12573,7 +12575,7 @@
                     clientId: report.clientId,
                     medicines: products
                 });
-                
+
                 try {
                     const result = await apiRequest('/reports', 'PUT', report);
                     if (result.success) {
@@ -13559,7 +13561,7 @@
 
             // Record department event
             recordDepartmentEvent('walkin_sale', sale);
-            
+
             // Save sale to localStorage
             walkInSales.push(sale);
             localStorage.setItem('dyna_walkin_sales', JSON.stringify(walkInSales));
