@@ -9324,32 +9324,71 @@
         }
 
         function showDispenserTab(tab) {
-            // Hide both sections
-            document.getElementById('dispenserWalkInSection').style.display = 'none';
-            document.getElementById('dispenserPrescriptionSection').style.display = 'none';
+            // Hide all sections
+            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserStaffSection'];
+            sections.forEach(sec => {
+                const el = document.getElementById(sec);
+                if (el) el.style.display = 'none';
+            });
             
-            // Reset tab buttons
-            document.getElementById('walkInTab').style.background = '#ecf0f1';
-            document.getElementById('walkInTab').style.color = '#2c3e50';
-            document.getElementById('walkInTab').style.fontWeight = 'normal';
-            document.getElementById('prescriptionTab').style.background = '#ecf0f1';
-            document.getElementById('prescriptionTab').style.color = '#2c3e50';
-            document.getElementById('prescriptionTab').style.fontWeight = 'normal';
+            // Reset all tab buttons
+            const tabs = ['walkInTab', 'prescriptionTab', 'bankingTab', 'paymentsTab', 'staffTab'];
+            tabs.forEach(tabBtn => {
+                const el = document.getElementById(tabBtn);
+                if (el) {
+                    el.style.background = '#ecf0f1';
+                    el.style.color = '#2c3e50';
+                    el.style.fontWeight = 'normal';
+                }
+            });
             
             // Show selected section and activate tab
-            if (tab === 'walkIn') {
-                document.getElementById('dispenserWalkInSection').style.display = 'block';
-                document.getElementById('walkInTab').style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
-                document.getElementById('walkInTab').style.color = 'white';
-                document.getElementById('walkInTab').style.fontWeight = 'bold';
-            } else {
-                document.getElementById('dispenserPrescriptionSection').style.display = 'block';
-                document.getElementById('prescriptionTab').style.background = 'linear-gradient(135deg, #27ae60, #229954)';
-                document.getElementById('prescriptionTab').style.color = 'white';
-                document.getElementById('prescriptionTab').style.fontWeight = 'bold';
+            let activeSection = null;
+            let activeTab = null;
+            let gradient = '';
+            
+            switch(tab) {
+                case 'walkIn':
+                    activeSection = 'dispenserWalkInSection';
+                    activeTab = 'walkInTab';
+                    gradient = 'linear-gradient(135deg, #3498db, #2980b9)';
+                    break;
+                case 'prescription':
+                    activeSection = 'dispenserPrescriptionSection';
+                    activeTab = 'prescriptionTab';
+                    gradient = 'linear-gradient(135deg, #27ae60, #229954)';
+                    displayPrescriptions();
+                    break;
+                case 'banking':
+                    activeSection = 'dispenserBankingSection';
+                    activeTab = 'bankingTab';
+                    gradient = 'linear-gradient(135deg, #f39c12, #e67e22)';
+                    displayBankingHistory();
+                    break;
+                case 'payments':
+                    activeSection = 'dispenserPaymentsSection';
+                    activeTab = 'paymentsTab';
+                    gradient = 'linear-gradient(135deg, #9b59b6, #8e44ad)';
+                    displayPaymentHistory();
+                    break;
+                case 'staff':
+                    activeSection = 'dispenserStaffSection';
+                    activeTab = 'staffTab';
+                    gradient = 'linear-gradient(135deg, #16a085, #138d75)';
+                    loadMyStaffStatus();
+                    break;
+            }
+            
+            if (activeSection && activeTab) {
+                const sectionEl = document.getElementById(activeSection);
+                const tabEl = document.getElementById(activeTab);
                 
-                // Load prescriptions when switching to prescription tab
-                displayPrescriptions();
+                if (sectionEl) sectionEl.style.display = 'block';
+                if (tabEl) {
+                    tabEl.style.background = gradient;
+                    tabEl.style.color = 'white';
+                    tabEl.style.fontWeight = 'bold';
+                }
             }
         }
 
