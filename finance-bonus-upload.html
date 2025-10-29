@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Finance • Bonus CSV Upload</title>
+	<style>
+		* { box-sizing: border-box; }
+		body { font-family: Arial, sans-serif; background:#f6f8fb; margin:0; padding:20px; }
+		.container { max-width: 1100px; margin: 0 auto; background:#fff; border-radius:12px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); overflow:hidden; }
+		.header { background: linear-gradient(135deg,#c41e3a,#8b0000); color:#fff; padding:24px; }
+		.header h1 { margin:0 0 4px 0; font-size: 22px; }
+		.header p { margin:0; opacity:0.9; }
+		.content { padding:24px; }
+		.section { background:#fafbfc; border-left:4px solid #c41e3a; padding:16px; border-radius:8px; margin-bottom:16px; }
+		.controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+		input[type="file"], select, button { padding:10px 12px; border:2px solid #e3e7ee; border-radius:8px; background:#fff; }
+		button { cursor:pointer; font-weight:600; }
+		.btn-primary { background:#c41e3a; color:#fff; border-color:#c41e3a; }
+		.btn-secondary { background:#34495e; color:#fff; border-color:#34495e; }
+		.btn-ghost { background:#fff; color:#c41e3a; border-color:#c41e3a; }
+		.table-wrap { overflow:auto; border:1px solid #e3e7ee; border-radius:8px; }
+		table { width:100%; border-collapse:collapse; min-width:920px; }
+		th, td { padding:10px 12px; border-bottom:1px solid #eef2f7; text-align:left; }
+		th { background:#f2f5f9; position:sticky; top:0; z-index:1; }
+		.totals { display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; }
+		.badge { background:#eef2f7; padding:6px 10px; border-radius:999px; font-size:12px; color:#334e68; }
+		footer { padding:16px 24px; color:#6b7c93; font-size:13px; }
+		.hidden { display:none; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>Finance: Bonus CSV Upload</h1>
+			<p>Moment of Truth – Upload the monthly branches bonus list and verify totals.</p>
+		</div>
+		<div class="content">
+			<div class="section">
+				<div class="controls">
+					<input id="csvInput" type="file" accept=".csv" />
+					<select id="branchFilter">
+						<option value="">All Branches</option>
+						<option>NB1</option>
+						<option>NB2</option>
+						<option>NB3</option>
+						<option>NB4</option>
+					</select>
+					<button id="btnSave" class="btn-primary" disabled>Commit to System</button>
+					<button id="btnClear" class="btn-ghost">Clear</button>
+					<button id="btnTemplate" class="btn-secondary">Download Template</button>
+				</div>
+				<div class="totals" id="totalsRow" style="margin-top:10px;"></div>
+			</div>
+
+			<div class="table-wrap hidden" id="tableWrap">
+				<table id="bonusTable">
+					<thead>
+						<tr>
+							<th>#</th>
+							<th>DRN</th>
+							<th>Name</th>
+							<th>Stockist</th>
+							<th>Area</th>
+							<th>NAD</th>
+							<th>Signature</th>
+						</tr>
+					</thead>
+					<tbody id="bonusBody"></tbody>
+				</table>
+			</div>
+		</div>
+		<footer>
+			Saved locally under key <span class="badge">finance_bonus_list</span>. If the API is online, data is also posted to <span class="badge">/api/reports</span> as type <span class="badge">bonus</span>.
+		</footer>
+	</div>
+
+	<script>
+		// Lightweight CSV parsing (handles commas, semicolons; trims; supports quoted fields)
+		function parseCsv(text) {
+			const rows = [];
+			let current = '';
+			let insideQuotes = false;
+			let row = [];
+			for (let i = 0; i < text.length; i++) {
+				const c = text[i];
+				if (c === '"') {
+					if (insideQuotes && text[i+1] === '"') { current += '"'; i++; }
+					else { insideQuotes = !insideQuotes; }
+				} else if ((c === ',' || c === ';') && !insideQuotes) {
+					row.push(current.trim()); current = '';
+				} else if ((c === '\n' || c === '\r') && !insideQuotes) {
+					if (current.length || row.length) { row.push(current.trim()); rows.push(row); }
+					current = ''; row = [];
+				} else { current += c; }
+			}
+			if (current.length || row.length) { row.push(current.trim()); rows.push(row); }
+			return rows.filter(r => r.length && r.join('').length);
+		}
+
+		function normaliseAmount(val) {
+			if (val == null) return 0;
+			let s = String(val).trim();
+			// Handle formats like "2 708,03" or "1,602" or "196,25"
+			s = s.replace(/\s/g, '');
+			// If comma used as decimal separator and dot/space as thousands
+			if (/\d,\d{2}$/.test(s) && !/\./.test(s)) { s = s.replace(/\./g,'').replace(',', '.'); }
+			// Remove thousands separators (commas) if decimal is dot
+			s = s.replace(/,(?=\d{3}(\D|$))/g, '');
+			const n = Number(s);
+			return isNaN(n) ? 0 : n;
+		}
+
+		const els = {
+			file: document.getElementById('csvInput'),
+			filter: document.getElementById('branchFilter'),
+			save: document.getElementById('btnSave'),
+			clear: document.getElementById('btnClear'),
+			template: document.getElementById('btnTemplate'),
+			wrap: document.getElementById('tableWrap'),
+			body: document.getElementById('bonusBody'),
+			totals: document.getElementById('totalsRow')
+		};
+
+		let parsed = [];
+		let headers = [];
+
+		function mapRow(row) {
+			const idx = (name) => headers.findIndex(h => h.toLowerCase() === name);
+			const h = (name) => row[idx(name)] ?? '';
+			return {
+				drn: h('drn'),
+				name: h('name'),
+				stockist: h('stockist'),
+				area: h('area'),
+				amount: normaliseAmount(h('nad')),
+				amountRaw: h('nad'),
+				signature: h('signature') || ''
+			};
+		}
+
+		function renderTable() {
+			const branch = els.filter.value;
+			const data = parsed.filter(r => !branch || r.area === branch);
+			els.body.innerHTML = '';
+			data.forEach((r, i) => {
+				const tr = document.createElement('tr');
+				tr.innerHTML = `<td>${i+1}</td><td>${r.drn}</td><td>${r.name}</td><td>${r.stockist}</td><td>${r.area}</td><td>${r.amount.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td><td>${r.signature}</td>`;
+				els.body.appendChild(tr);
+			});
+			const total = data.reduce((s, r) => s + r.amount, 0);
+			els.totals.innerHTML = `
+				<span class="badge">Records: ${data.length}</span>
+				<span class="badge">Total NAD: ${total.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+			`;
+			els.wrap.classList.toggle('hidden', data.length === 0);
+			els.save.disabled = parsed.length === 0;
+		}
+
+		els.file.addEventListener('change', async (e) => {
+			const file = e.target.files && e.target.files[0];
+			if (!file) return;
+			const text = await file.text();
+			const rows = parseCsv(text);
+			if (!rows.length) { alert('CSV appears empty.'); return; }
+			headers = rows[0].map(h => String(h).trim().toLowerCase());
+			const required = ['drn','name','stockist','area','nad'];
+			const missing = required.filter(r => !headers.includes(r));
+			if (missing.length) { alert('Missing columns: ' + missing.join(', ')); return; }
+			parsed = rows.slice(1).map(mapRow).filter(r => r.drn || r.name);
+			renderTable();
+		});
+
+		els.filter.addEventListener('change', renderTable);
+
+		els.save.addEventListener('click', async () => {
+			const payload = { type: 'bonus', createdAt: new Date().toISOString(), items: parsed };
+			localStorage.setItem('finance_bonus_list', JSON.stringify(payload));
+			let posted = false;
+			try {
+				const base = (location.hostname.includes('railway.app') ? `${location.protocol}//${location.hostname}/api` : (location.hostname.includes('vercel.app') ? '/api' : 'http://localhost:8001/api'));
+				const res = await fetch(`${base}/reports`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ kind:'bonus', data: payload }) });
+				posted = res.ok;
+			} catch(e) { /* offline fallback already saved */ }
+			alert(posted ? 'Bonus list committed to API and saved locally.' : 'Bonus list saved locally. API not reachable.');
+		});
+
+		els.clear.addEventListener('click', () => {
+			parsed = []; headers = []; els.body.innerHTML = ''; els.totals.innerHTML = ''; els.wrap.classList.add('hidden'); els.save.disabled = true; els.file.value = '';
+		});
+
+		els.template.addEventListener('click', () => {
+			const csv = 'DRN,NAME,STOCKIST,AREA,NAD,SIGNATURE\nDZ011269,NALUMINO MOYOWANYAMBE,NBA,NB1,2708.03,PAID';
+			const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url; a.download = 'bonus-template.csv'; a.click();
+			URL.revokeObjectURL(url);
+		});
+	</script>
+</body>
+</html>
+
+
