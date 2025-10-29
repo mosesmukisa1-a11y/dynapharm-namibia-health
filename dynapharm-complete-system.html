@@ -5024,7 +5024,7 @@
             referred: 200   // N$200 for referred clients
         };
 
-        async function init() {
+        async         function init() {
             await loadData();
             loadBranches();
             handleMembershipStatusChange();
@@ -18315,6 +18315,14 @@
             modal.style.display = 'block';
             // Apply default referral for customers
             try { applyDefaultReferral(); } catch (e) { /* ignore */ }
+            // Initialize payment method display
+            try { 
+                setTimeout(() => {
+                    if (document.getElementById('checkoutPaymentMethod')?.value) {
+                        onPaymentMethodChange();
+                    }
+                }, 100);
+            } catch (e) { /* ignore */ }
         }
         
         function createCheckoutModal() {
@@ -18372,12 +18380,20 @@
                         </div>
                         <div class="form-group">
                             <label class="required">Payment Method</label>
-                            <select id="checkoutPaymentMethod" required>
+                            <select id="checkoutPaymentMethod" required onchange="onPaymentMethodChange()">
                                 <option value="">Select Payment Method</option>
+                                <option value="ewallet">E-Wallet (+264817317160)</option>
+                                <option value="easywallet">Easy Wallet (+264817317160)</option>
+                                <option value="bluewallet">Blue Wallet (+264817317160)</option>
+                                <option value="mobimoney">Mobi Money Wallet (+264817317160)</option>
+                                <option value="paytocell">Pay to Cell (+264817317160)</option>
                                 <option value="cod">Cash on Delivery</option>
-                                <option value="ewallet">E-Wallet</option>
-                                <option value="eft">EFT</option>
+                                <option value="pickup">Pick Up at Branch</option>
                             </select>
+                        </div>
+                        <div id="paymentNumberDisplay" style="display:none; background:#e8f5e9; padding:12px; border-radius:6px; margin-top:10px;">
+                            <p style="margin:0; color:#2c3e50; font-weight:bold;">📱 Payment Number: <span style="color:#c41e3a;">+264817317160</span></p>
+                            <p style="margin:5px 0 0 0; color:#666; font-size:0.9rem;">Please send your payment to this number and include Order ID as reference</p>
                         </div>
                         <div style="margin-top: 20px;">
                             <button type="submit" class="btn btn-success">Complete Order</button>
@@ -18419,6 +18435,9 @@
                 }
             }
 
+            const paymentMethod = document.getElementById('checkoutPaymentMethod').value;
+            const walletMethods = ['ewallet', 'easywallet', 'bluewallet', 'mobimoney', 'paytocell'];
+            
             const order = {
                 id: 'ORD' + Date.now(),
                 receiptNo: 'WEB' + Date.now(),
@@ -18429,7 +18448,8 @@
                 customerPhone: document.getElementById('checkoutPhone').value,
                 customerEmail: document.getElementById('checkoutEmail').value,
                 customerAddress: document.getElementById('checkoutAddress').value,
-                paymentMethod: document.getElementById('checkoutPaymentMethod').value,
+                paymentMethod: paymentMethod,
+                paymentNumber: walletMethods.includes(paymentMethod) ? '+264817317160' : null,
                 customerType: document.getElementById('checkoutCustomerType')?.value || 'customer',
                 distributorNB: document.getElementById('checkoutCustomerType')?.value === 'distributor' ? (document.getElementById('checkoutDistributorNB')?.value || '').toUpperCase() : null,
                 referral: document.getElementById('checkoutCustomerType')?.value === 'customer' ? {
@@ -18463,6 +18483,19 @@
                 if (refSec) refSec.style.display = 'block';
                 if (distSec) distSec.style.display = 'none';
                 applyDefaultReferral();
+            }
+        }
+
+        function onPaymentMethodChange() {
+            const method = document.getElementById('checkoutPaymentMethod')?.value || '';
+            const paymentDisplay = document.getElementById('paymentNumberDisplay');
+            const walletMethods = ['ewallet', 'easywallet', 'bluewallet', 'mobimoney', 'paytocell'];
+            if (paymentDisplay) {
+                if (walletMethods.includes(method)) {
+                    paymentDisplay.style.display = 'block';
+                } else {
+                    paymentDisplay.style.display = 'none';
+                }
             }
         }
 
@@ -18611,7 +18644,10 @@
                             <p><strong>Phone:</strong> ${order.customerPhone}</p>
                             <p><strong>Email:</strong> ${order.customerEmail}</p>
                             <p><strong>Address:</strong> ${order.customerAddress}</p>
-                            <p><strong>Payment:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                            <p><strong>Payment:</strong> ${order.paymentMethod.toUpperCase()} ${order.paymentNumber ? `(${order.paymentNumber})` : ''}</p>
+                            ${order.customerType ? `<p><strong>Customer Type:</strong> ${order.customerType === 'distributor' ? 'Distributor (DP)' : 'Customer (CP)'}</p>` : ''}
+                            ${order.referral ? `<p><strong>Referral:</strong> ${order.referral.name} (${order.referral.nb})</p>` : ''}
+                            ${order.distributorNB ? `<p><strong>Distributor NB:</strong> ${order.distributorNB}</p>` : ''}
                         </div>
                         
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
@@ -18629,10 +18665,11 @@
                             </div>
                         </div>
                         
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             ${order.status === 'pending' ? '<button class="btn btn-success" onclick="updateOrderStatus(\'' + order.id + '\', \'processing\')">Start Processing</button>' : ''}
                             ${order.status === 'processing' ? '<button class="btn btn-info" onclick="updateOrderStatus(\'' + order.id + '\', \'shipped\')">Mark as Shipped</button>' : ''}
                             ${order.status === 'shipped' ? '<button class="btn btn-success" onclick="updateOrderStatus(\'' + order.id + '\', \'delivered\')">Mark as Delivered</button>' : ''}
+                            ${order.saleCreated && order.receiptNo ? '<button class="btn btn-info" onclick="viewSaleByReceipt(\'' + order.receiptNo + '\')">View Sales Record</button>' : ''}
                             <button class="btn" onclick="viewOrderDetails('${order.id}')">View Details</button>
                         </div>
                     </div>
@@ -18645,6 +18682,13 @@
             if (order) {
                 order.status = newStatus;
                 order.updatedAt = new Date().toISOString();
+                
+                // When order is delivered, create sales record for Dispenser Portal and update stock
+                if (newStatus === 'delivered' && !order.saleCreated) {
+                    createSaleFromOrder(order);
+                    order.saleCreated = true;
+                }
+                
                 localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
                 
                 // Refresh current view
@@ -18653,7 +18697,82 @@
                     activeTab.click();
                 }
                 
-                alert(`Order ${orderId} status updated to ${newStatus}`);
+                alert(`Order ${orderId} status updated to ${newStatus}${newStatus === 'delivered' ? ' - Sales record created' : ''}`);
+            }
+        }
+        
+        function createSaleFromOrder(order) {
+            try {
+                // Get existing sales from localStorage
+                const sales = JSON.parse(localStorage.getItem('walkInSales') || '[]');
+                
+                // Create sale record matching Dispenser Portal format
+                const sale = {
+                    id: 'SALE' + Date.now(),
+                    receiptNo: order.receiptNo || 'WEB' + Date.now(),
+                    date: new Date().toISOString(),
+                    branch: order.branch || '',
+                    source: 'online',
+                    orderId: order.id,
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone,
+                    customerEmail: order.customerEmail,
+                    customerType: order.customerType || 'customer',
+                    distributorNB: order.distributorNB || null,
+                    referral: order.referral || null,
+                    items: order.items.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                        cp: item.cp,
+                        dp: item.dp,
+                        bv: item.bv || 0
+                    })),
+                    total: order.total,
+                    paymentMethod: order.paymentMethod,
+                    paymentNumber: order.paymentNumber || null,
+                    createdBy: currentUser ? currentUser.fullName : 'Front Desk',
+                    createdAt: new Date().toISOString()
+                };
+                
+                sales.push(sale);
+                localStorage.setItem('walkInSales', JSON.stringify(sales));
+                
+                // Update stock for the branch if stock management exists
+                try {
+                    order.items.forEach(item => {
+                        updateBranchStock(order.branch, item.name, item.quantity);
+                    });
+                } catch (e) {
+                    console.warn('Stock update failed:', e);
+                }
+                
+                return sale;
+            } catch (e) {
+                console.error('Error creating sale from order:', e);
+                alert('Warning: Order status updated but sales record creation failed: ' + e.message);
+            }
+        }
+        
+        function updateBranchStock(branchId, productName, quantity) {
+            try {
+                // Get branch stock data
+                const stockData = JSON.parse(localStorage.getItem('dyna_branch_stock') || '{}');
+                const branchKey = branchId || 'default';
+                
+                if (!stockData[branchKey]) {
+                    stockData[branchKey] = {};
+                }
+                
+                if (!stockData[branchKey][productName]) {
+                    stockData[branchKey][productName] = 0;
+                }
+                
+                stockData[branchKey][productName] = Math.max(0, (stockData[branchKey][productName] - quantity));
+                
+                localStorage.setItem('dyna_branch_stock', JSON.stringify(stockData));
+            } catch (e) {
+                console.warn('Branch stock update failed:', e);
             }
         }
         
@@ -18662,6 +18781,40 @@
             if (!order) return;
             
             alert(`Order Details\n\n${JSON.stringify(order, null, 2)}`);
+        }
+        
+        function viewSaleByReceipt(receiptNo) {
+            try {
+                const sales = JSON.parse(localStorage.getItem('walkInSales') || '[]');
+                const sale = sales.find(s => s.receiptNo === receiptNo || s.id === receiptNo);
+                
+                if (sale) {
+                    const saleDetails = `
+Sales Record Details
+
+Receipt Number: ${sale.receiptNo}
+Date: ${new Date(sale.date).toLocaleString()}
+Branch: ${sale.branch || 'N/A'}
+Source: ${sale.source || 'Online'}
+Customer: ${sale.customerName}
+Phone: ${sale.customerPhone}
+Customer Type: ${sale.customerType}
+Total: N$${sale.total.toFixed(2)}
+Payment: ${sale.paymentMethod?.toUpperCase() || 'N/A'}
+${sale.paymentNumber ? `Payment Number: ${sale.paymentNumber}` : ''}
+
+Items:
+${sale.items?.map(item => `  - ${item.name} x ${item.quantity} = N$${(item.price * item.quantity).toFixed(2)}`).join('\n') || 'No items'}
+
+This sale appears in the Dispenser Portal sales reports.
+                    `;
+                    alert(saleDetails);
+                } else {
+                    alert('Sales record not found for receipt: ' + receiptNo);
+                }
+            } catch (e) {
+                alert('Error viewing sales record: ' + e.message);
+            }
         }
         
         function exportOrdersReport() {
@@ -18710,18 +18863,47 @@
             const fileInput = document.getElementById('productPhotoInput');
             const status = document.getElementById('photoUploadStatus');
             if (!productName) { status.textContent = 'Please select a product.'; return; }
-            if (!fileInput || !fileInput.files || !fileInput.files[0]) { status.textContent = 'Please choose a photo.'; return; }
-            const file = fileInput.files[0];
-            if (file.size > 5 * 1024 * 1024) { status.textContent = 'File too large. Max 5MB.'; return; }
-            const reader = new FileReader();
-            reader.onload = () => {
-                const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
-                photoMap[productName] = reader.result;
-                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
-                status.textContent = 'Photo uploaded successfully!';
-                loadProductPhotos();
-            };
-            reader.readAsDataURL(file);
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) { 
+                status.textContent = 'Please choose at least one photo.'; 
+                return; 
+            }
+            
+            const files = Array.from(fileInput.files).slice(0, 4); // Limit to 4 files
+            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+            
+            // Initialize as array if it doesn't exist or if it's a string (legacy single photo)
+            if (!photoMap[productName] || typeof photoMap[productName] === 'string') {
+                photoMap[productName] = [];
+            }
+            
+            let loadedCount = 0;
+            const totalFiles = files.length;
+            
+            files.forEach((file, index) => {
+                if (file.size > 5 * 1024 * 1024) {
+                    status.textContent = `File "${file.name}" is too large. Max 5MB.`;
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Add photo to array (maintain max 4)
+                    if (photoMap[productName].length < 4) {
+                        photoMap[productName].push(reader.result);
+                    }
+                    loadedCount++;
+                    
+                    if (loadedCount === totalFiles) {
+                        // Ensure we don't exceed 4 photos
+                        photoMap[productName] = photoMap[productName].slice(0, 4);
+                        localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                        status.textContent = `${loadedCount} photo(s) uploaded successfully! (Total: ${photoMap[productName].length}/4)`;
+                        loadProductPhotos();
+                        clearPhotoForm();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
         }
 
         function clearPhotoForm() {
