@@ -2217,6 +2217,90 @@
                     </div>
                     <div id="allOrdersList" style="margin-top: 20px;"></div>
                 </div>
+
+                <!-- Barcode System Tab -->
+                <div id="barcodeTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>📷 Barcode System</h3>
+                        <div class="search-box" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: end;">
+                            <div>
+                                <label>Product</label>
+                                <input type="text" id="barcodeProductName" placeholder="Enter product name...">
+                            </div>
+                            <div>
+                                <label>SKU/Code</label>
+                                <input type="text" id="barcodeSku" placeholder="e.g., PRD-0001">
+                            </div>
+                            <div>
+                                <button class="btn btn-success" onclick="generateProductBarcode()">🏷️ Generate Barcode</button>
+                            </div>
+                        </div>
+                        <div id="barcodePreview" style="margin-top: 15px; display: flex; gap: 20px; align-items: center;"></div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>📥 Quick Stock Update (Manual Scan)</h3>
+                        <div class="search-box" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                            <input type="text" id="scannedCode" placeholder="Scan or enter code...">
+                            <input type="number" id="scannedQuantity" placeholder="Quantity" min="1">
+                            <select id="scanAction">
+                                <option value="add">Add to Stock</option>
+                                <option value="remove">Remove from Stock</option>
+                            </select>
+                            <button class="btn btn-success" onclick="applyScannedUpdate()">✅ Apply</button>
+                        </div>
+                        <div id="scanUpdateStatus" style="margin-top: 10px; color: #666;"></div>
+                    </div>
+                </div>
+
+                <!-- Reorder Points Tab -->
+                <div id="reorderTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>⚠️ Automated Reorder Points</h3>
+                        <div class="search-box" style="margin-bottom: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-info" onclick="displayReorderPoints()">🔄 Refresh</button>
+                            <button class="btn" onclick="exportReorderList()">📥 Export</button>
+                            <button class="btn btn-primary" onclick="generatePurchaseOrders()">🧾 Generate Purchase Orders</button>
+                        </div>
+                        <div id="reorderList" style="max-height: 600px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+
+                <!-- Batch Tracking Tab -->
+                <div id="batchTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>🔢 Batch Tracking & Expiry Alerts</h3>
+                        <div class="search-box" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                            <input type="text" id="batchSearch" placeholder="Search by product/batch..." onkeyup="displayBatchTracking()">
+                            <select id="batchExpiryFilter" onchange="displayBatchTracking()">
+                                <option value="all">All</option>
+                                <option value="expiring60">Expiring ≤ 60 days</option>
+                                <option value="expired">Expired</option>
+                                <option value="recalled">Recalled</option>
+                            </select>
+                            <button class="btn btn-info" onclick="displayBatchTracking()">🔄 Refresh</button>
+                        </div>
+                        <div id="batchTrackingList" style="max-height: 600px; overflow-y: auto; margin-top: 10px;"></div>
+                    </div>
+                </div>
+
+                <!-- Stock Valuation Tab -->
+                <div id="valuationTab" class="stock-tab-content" style="display: none;">
+                    <div class="form-section">
+                        <h3>💰 Stock Valuation</h3>
+                        <div class="search-box" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <label>Method</label>
+                            <select id="valuationMethod" onchange="displayStockValuation()">
+                                <option value="fifo">FIFO</option>
+                                <option value="lifo">LIFO</option>
+                            </select>
+                            <button class="btn btn-info" onclick="displayStockValuation()">🔄 Refresh</button>
+                            <button class="btn" onclick="exportStockValuation()">📥 Export</button>
+                        </div>
+                        <div id="stockValuationSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;"></div>
+                        <div id="stockValuationDetails" style="max-height: 600px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -6755,11 +6839,11 @@
                 if (useCamera) {
                     captureSignatureWithCamera();
                 } else {
-                    const name = prompt('Enter your full name for signature:');
-                    if (name) {
-                        document.getElementById('signatureField').value = name;
-                        document.getElementById('signaturePad').innerHTML = `Signed: ${name}<br>${new Date().toLocaleString()}`;
-                        document.getElementById('signaturePad').style.background = '#e8f5e9';
+            const name = prompt('Enter your full name for signature:');
+            if (name) {
+                document.getElementById('signatureField').value = name;
+                document.getElementById('signaturePad').innerHTML = `Signed: ${name}<br>${new Date().toLocaleString()}`;
+                document.getElementById('signaturePad').style.background = '#e8f5e9';
                     }
                 }
             } else {
@@ -16816,6 +16900,195 @@
             }
             else if (tabName === 'distribution') displayDistributionHistory();
             else if (tabName === 'inventory') displayInventoryMovements();
+            else if (tabName === 'barcode') {
+                // Initialize barcode tab
+                const sku = document.getElementById('barcodeSku');
+                if (sku && !sku.value) sku.value = '';
+                renderDefaultBarcodePreview();
+            }
+            else if (tabName === 'reorder') displayReorderPoints();
+            else if (tabName === 'batch') displayBatchTracking();
+            else if (tabName === 'valuation') displayStockValuation();
+        }
+
+        // Barcode generation
+        function renderDefaultBarcodePreview() {
+            const container = document.getElementById('barcodePreview');
+            if (!container) return;
+            container.innerHTML = '<p style="color:#666;">Enter a SKU/Code and click Generate to preview barcode.</p>';
+        }
+        function generateProductBarcode() {
+            const name = document.getElementById('barcodeProductName')?.value || '';
+            const sku = (document.getElementById('barcodeSku')?.value || '').trim();
+            const container = document.getElementById('barcodePreview');
+            if (!container) return;
+            if (!sku) { container.innerHTML = '<p style="color:#e74c3c;">Please enter a SKU/Code.</p>'; return; }
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.id = 'generatedBarcode';
+            try {
+                JsBarcode(svg, sku, { format: 'CODE128', displayValue: true, width: 2, height: 60, margin: 10 });
+                container.innerHTML = '';
+                container.appendChild(svg);
+                const meta = document.createElement('div');
+                meta.innerHTML = `<div style="color:#2c3e50; font-weight:600;">${name ? name + ' • ' : ''}${sku}</div>`;
+                container.appendChild(meta);
+            } catch (e) {
+                container.innerHTML = '<p style="color:#e74c3c;">Failed to generate barcode.</p>';
+            }
+        }
+        function applyScannedUpdate() {
+            const code = (document.getElementById('scannedCode')?.value || '').trim();
+            const qty = parseInt(document.getElementById('scannedQuantity')?.value || '0', 10);
+            const action = document.getElementById('scanAction')?.value || 'add';
+            const status = document.getElementById('scanUpdateStatus');
+            if (!code || !qty || qty <= 0) { if (status) status.textContent = 'Enter code and valid quantity.'; return; }
+            // Minimal implementation: record an adjustment event
+            const adjustments = JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]');
+            adjustments.push({ id: 'ADJ-' + Date.now(), code, quantity: qty, action, timestamp: new Date().toISOString(), user: currentUser?.fullName || 'system' });
+            localStorage.setItem('dyna_scan_adjustments', JSON.stringify(adjustments));
+            if (status) status.textContent = `Recorded ${action} of ${qty} for ${code}.`;
+            // Optionally refresh inventory movements
+            if (typeof displayInventoryMovements === 'function') displayInventoryMovements();
+        }
+
+        // Reorder points
+        function displayReorderPoints() {
+            const container = document.getElementById('reorderList');
+            if (!container) return;
+            initializeInventory();
+            const entries = Object.entries(inventory).map(([name, data]) => ({ name, current: data.currentStock || 0, reorder: data.reorderLevel || 0 }));
+            const low = entries.filter(e => e.current <= e.reorder).sort((a,b) => (a.current - a.reorder) - (b.current - b.reorder));
+            if (low.length === 0) { container.innerHTML = '<p style="color:#666; text-align:center; padding:20px;">No items at or below reorder level.</p>'; return; }
+            container.innerHTML = low.map(e => `
+                <div class="client-card" style="border-left:4px solid #e74c3c;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${e.name}</div>
+                            <div style="font-size:.9rem; color:#666;">Current: <strong style="color:${e.current<=e.reorder?'#e74c3c':'#27ae60'};">${e.current}</strong> • Reorder at: <strong>${e.reorder}</strong></div>
+                        </div>
+                        <button class="btn btn-primary" onclick="createPOForItem('${e.name.replace(/'/g, "\\'")}')">🧾 Create PO</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function createPOForItem(productName) {
+            const defaultQty = 50;
+            const po = {
+                id: 'PO-' + Date.now(),
+                product: productName,
+                quantity: defaultQty,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.fullName || 'system',
+                status: 'draft'
+            };
+            const pos = JSON.parse(localStorage.getItem('dyna_purchase_orders') || '[]');
+            pos.push(po);
+            localStorage.setItem('dyna_purchase_orders', JSON.stringify(pos));
+            alert(`PO created for ${productName} (Qty ${defaultQty}).`);
+        }
+        function generatePurchaseOrders() {
+            displayReorderPoints();
+            const list = document.getElementById('reorderList');
+            if (!list) return;
+            // Create POs for all visible items
+            const names = Array.from(list.querySelectorAll('.client-card div div[style*="font-weight:700"]')).map(el => el.textContent.trim());
+            names.forEach(n => createPOForItem(n));
+        }
+        function exportReorderList() {
+            const data = JSON.parse(localStorage.getItem('dyna_purchase_orders') || '[]');
+            const csv = ['PO ID,Product,Quantity,Status,Created At'];
+            data.forEach(d => csv.push([d.id, d.product, d.quantity, d.status, d.createdAt].join(',')));
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = 'reorder_list.csv'; a.click();
+        }
+
+        // Batch tracking
+        function displayBatchTracking() {
+            const container = document.getElementById('batchTrackingList');
+            if (!container) return;
+            const term = (document.getElementById('batchSearch')?.value || '').toLowerCase();
+            const filter = document.getElementById('batchExpiryFilter')?.value || 'all';
+            const batches = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+            const now = new Date();
+            const items = batches.map(b => {
+                const exp = b.expiryDate ? new Date(b.expiryDate + '-01') : null;
+                const daysLeft = exp ? Math.ceil((exp - now) / (1000*60*60*24)) : null;
+                return { ...b, daysLeft };
+            }).filter(b => {
+                const match = (b.description||'').toLowerCase().includes(term) || (b.batchNumber||'').toLowerCase().includes(term);
+                if (!match) return false;
+                if (filter === 'expiring60') return b.daysLeft !== null && b.daysLeft <= 60 && b.daysLeft >= 0;
+                if (filter === 'expired') return b.daysLeft !== null && b.daysLeft < 0;
+                if (filter === 'recalled') return b.recalled === true;
+                return true;
+            });
+            if (items.length === 0) { container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">No matching batches.</p>'; return; }
+            container.innerHTML = items.map(b => `
+                <div class="client-card" style="border-left:4px solid ${b.recalled ? '#e74c3c' : (b.daysLeft!==null && b.daysLeft<=60 ? '#f39c12' : '#27ae60')};">
+                    <h4>${b.description || 'Unknown Product'}</h4>
+                    <p><strong>Batch:</strong> ${b.batchNumber || 'N/A'} • <strong>Expiry:</strong> ${b.expiryDate || 'N/A'} ${b.daysLeft!==null ? `(in ${b.daysLeft} days)` : ''}</p>
+                    <p><strong>Remaining:</strong> ${b.remainingQuantity || 0} • <strong>Location:</strong> ${b.location || 'N/A'}</p>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn btn-warning" onclick="toggleRecall('${(b.id||b.batchNumber||'').toString().replace(/'/g, '\\'')}', ${b.recalled===true})">${b.recalled===true?'Undo Recall':'Recall Batch'}</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function toggleRecall(batchId, currentlyRecalled) {
+            const batches = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+            const idx = batches.findIndex(b => (b.id||b.batchNumber||'') === batchId);
+            if (idx >= 0) {
+                batches[idx].recalled = !currentlyRecalled;
+                localStorage.setItem('dyna_barcode_stock', JSON.stringify(batches));
+                displayBatchTracking();
+            }
+        }
+
+        // Stock valuation (basic using CP from PRICE_LIST and batches quantities)
+        function displayStockValuation() {
+            const summary = document.getElementById('stockValuationSummary');
+            const details = document.getElementById('stockValuationDetails');
+            if (!summary || !details) return;
+            const method = document.getElementById('valuationMethod')?.value || 'fifo';
+            initializeInventory();
+            const priceMap = new Map();
+            if (Array.isArray(window.PRICE_LIST)) {
+                window.PRICE_LIST.forEach(p => priceMap.set(p.description, parseFloat(p.cp||0)));
+            }
+            const rows = Object.entries(inventory).map(([name, data]) => {
+                const qty = data.currentStock || 0;
+                const cp = priceMap.get(name) || 0;
+                return { name, qty, cp, value: qty*cp };
+            }).filter(r => r.qty > 0);
+            const totalQty = rows.reduce((s,r)=>s+r.qty,0);
+            const totalVal = rows.reduce((s,r)=>s+r.value,0);
+            summary.innerHTML = `
+                <div class="analytics-card"><h4>Total Quantity</h4><div class="value">${totalQty}</div></div>
+                <div class="analytics-card"><h4>Total Value (${method.toUpperCase()})</h4><div class="value">N$ ${totalVal.toFixed(2)}</div></div>
+            `;
+            details.innerHTML = rows.sort((a,b)=>b.value-a.value).map(r => `
+                <div class="client-card">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div><strong>${r.name}</strong><div style="color:#666; font-size:.85rem;">CP: N$ ${r.cp.toFixed(2)}</div></div>
+                        <div style="text-align:right;">
+                            <div>Qty: <strong>${r.qty}</strong></div>
+                            <div>Value: <strong>N$ ${r.value.toFixed(2)}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function exportStockValuation() {
+            const method = document.getElementById('valuationMethod')?.value || 'fifo';
+            initializeInventory();
+            const priceMap = new Map();
+            if (Array.isArray(window.PRICE_LIST)) window.PRICE_LIST.forEach(p => priceMap.set(p.description, parseFloat(p.cp||0)));
+            const rows = Object.entries(inventory).map(([name, data]) => ({ name, qty: data.currentStock||0, cp: priceMap.get(name)||0 }));
+            const csv = ['Product,Quantity,CP,Value'];
+            rows.forEach(r => csv.push([r.name, r.qty, r.cp.toFixed(2), (r.qty*r.cp).toFixed(2)].join(',')));
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `stock_valuation_${method}.csv`; a.click();
         }
         
         // Stock Import Functions with Barcode and FEFO
