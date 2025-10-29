@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -847,6 +847,34 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+    <style>
+        /* Mobile-first responsive enhancements (safe to append) */
+        :root { --gap: 10px; }
+        html, body { -webkit-text-size-adjust: 100%; }
+        /* Touch-friendly buttons */
+        .btn { min-height: 44px; min-width: 44px; }
+        /* Ensure large interactive areas */
+        input, select, textarea { min-height: 40px; }
+        /* Scroll wrappers for wide content on mobile */
+        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        /* Avoid fixed widths on small screens */
+        @media (max-width: 768px) {
+            .form-grid, .grid { display: grid; grid-template-columns: 1fr !important; gap: var(--gap); }
+            .tab-button { width: 100%; text-align: left; }
+            [style*="grid-template-columns: repeat("] { grid-template-columns: 1fr !important; }
+            [style*="max-height: 500px; overflow-y: auto;"] { max-height: 60vh !important; }
+            /* Reduce heavy paddings on mobile */
+            .form-section { padding: 12px !important; }
+            .portal-header, .header { padding: 16px !important; }
+        }
+        /* Table cells wrap better on narrow screens */
+        table { table-layout: auto; }
+        td, th { word-break: break-word; }
+        /* Sticky headers fallback for Safari older versions */
+        thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 1; }
+        /* iOS iframe/page background bleed fix with viewport-fit */
+        body { background-clip: padding-box; }
+    </style>
     <!-- Real-time status indicator -->
     <div id="realtimeStatus" class="realtime-status" style="display: none;">
         🔄 Real-time sync active
@@ -903,19 +931,11 @@
             <!-- Shop Tab -->
             <div id="distributor-shop-tab" class="distributor-subtab active">
                 <h2>🛒 Online Shop</h2>
-                <p style="margin-bottom: 20px; color: #666;">Browse our complete range of health products with dual pricing</p>
+                <p style="margin-bottom: 20px; color: #666;">Browse our complete range of health products</p>
                 
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 200px;">
-                            <label>Customer Type</label>
-                            <select id="shopCustomerType" onchange="onShopCustomerTypeChange()" style="padding: 10px; width: 100%;">
-                                <option value="">-- Please Select --</option>
-                                <option value="customer">Customer (CP Pricing)</option>
-                                <option value="distributor">Distributor (DP Pricing)</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 2; min-width: 300px;">
+                        <div class="form-group" style="flex: 1; min-width: 300px;">
                             <label>Search Products</label>
                             <input type="text" id="shopSearch" placeholder="Search products..." onkeyup="filterShopProducts()" style="padding: 10px; width: 100%;">
                         </div>
@@ -928,7 +948,8 @@
                 
                 <!-- Shopping Cart -->
                 <div id="shopCartSection" style="display: none; margin-top: 30px; background: white; padding: 20px; border-radius: 8px; border: 2px solid #c41e3a;">
-                    <h3 style="color: #c41e3a; margin-bottom: 15px;">🛒 Shopping Cart</h3>
+                    <h3 style="color: #c41e3a; margin-bottom: 5px;">🛒 Shopping Cart</h3>
+                    <p id="shopCartCustomerType" style="color: #666; font-size: 0.9rem; margin-bottom: 15px;"></p>
                     <div id="shopCartItems"></div>
                     <div style="text-align: right; margin-top: 20px;">
                         <p style="font-size: 1.5rem; font-weight: bold; color: #c41e3a;">Total: <span id="shopCartTotal">N$ 0.00</span></p>
@@ -3095,7 +3116,7 @@
                 <div style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="btn btn-info" onclick="displayFinanceCashRequests()">🔄 Refresh</button>
                 </div>
-                <div id="financeCashRequests" style="max-height: 500px; overflow-y: auto;">
+                <div id="financeCashRequests" class="scroll-x" style="max-height: 500px; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">No cash requests yet.</p>
                 </div>
             </div>
@@ -3171,7 +3192,7 @@
                     <input type="text" id="expenseSearch" placeholder="Search expenses..." onkeyup="filterExpenses()">
                 </div>
                 
-                <div id="expenseList" style="max-height: 500px; overflow-y: auto;">
+                <div id="expenseList" class="scroll-x" style="max-height: 500px; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading expenses...</p>
                 </div>
             </div>
@@ -3199,7 +3220,7 @@
                     </div>
                 </div>
                 
-                <div id="revenueList" style="max-height: 400px; overflow-y: auto;">
+                <div id="revenueList" class="scroll-x" style="max-height: 400px; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Revenue details...</p>
                 </div>
             </div>
@@ -3221,7 +3242,7 @@
                     </select>
                 </div>
                 
-                <div id="budgetList" style="max-height: 400px; overflow-y: auto;">
+                <div id="budgetList" class="scroll-x" style="max-height: 400px; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">No budgets created yet</p>
                 </div>
             </div>
@@ -3249,7 +3270,7 @@
                     <button class="btn btn-success" onclick="exportMonthlySummaryCSV()">📥 Export CSV</button>
                     <button class="btn btn-info" onclick="printMonthlySummary()">🖨️ Print</button>
                 </div>
-                <div id="monthlySummaryTable" style="max-height: 600px; overflow-x: auto; overflow-y: auto;">
+                <div id="monthlySummaryTable" class="scroll-x" style="max-height: 600px; overflow-x: auto; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Select month and year, then click 'Generate Summary'</p>
                 </div>
             </div>
@@ -3336,14 +3357,14 @@
                     <button class="btn btn-success" onclick="refreshMISData()">🔄 Refresh Data</button>
                     <button class="btn btn-primary" onclick="printMISReport()">🖨️ Print Report</button>
                 </div>
-                <div id="misReportsDisplay" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
+                <div id="misReportsDisplay" class="scroll-x" style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
                     <p style="text-align: center; color: #7f8c8d;">Loading sales receipts...</p>
                 </div>
             </div>
 
             <div class="form-section">
                 <h3>Daily Receipts Summary by Branch</h3>
-                <div id="misBranchDailySummary" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
+                <div id="misBranchDailySummary" class="scroll-x" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;">
                     <p style="text-align: center; color: #7f8c8d;">Branch summary will appear here.</p>
                 </div>
             </div>
@@ -16923,6 +16944,31 @@
         // Initialize enhanced finance on load
         loadEnhancedFinanceData();
         
+        // Safari/iOS compatibility helpers and polyfills
+        (function safariCompat() {
+            // Polyfill for Element.closest in very old Safari
+            if (!Element.prototype.closest) {
+                Element.prototype.closest = function(selector) {
+                    let el = this;
+                    while (el) {
+                        if (el.matches && el.matches(selector)) return el;
+                        el = el.parentElement;
+                    }
+                    return null;
+                };
+            }
+            // Smooth scroll behavior polyfill fallback
+            try {
+                if (!('scrollBehavior' in document.documentElement.style)) {
+                    window.scrollTo = function(x, y) { window.scroll({ left: x, top: y }); };
+                }
+            } catch(e) { /* ignore */ }
+            // Prevent iOS zoom on input focus by ensuring font-size >= 16px
+            const style = document.createElement('style');
+            style.textContent = 'input, select, textarea { font-size: 16px; }';
+            document.head.appendChild(style);
+        })();
+
         // ============================================
         // HR PORTAL FUNCTIONS
         // ============================================
@@ -18098,18 +18144,89 @@
             }).join('');
         }
         
+        // Store pending product info for cart addition
+        let pendingCartItem = null;
+        
         function addToShopCart(productName, cp, dp, bv) {
-            // Validate that customer type has been selected
-            if (!shopCustomerTypeSelected) {
-                alert('Please select a customer type before adding products to cart.');
-                document.getElementById('shopCustomerType').focus();
+            // Store the product info
+            pendingCartItem = { productName, cp, dp, bv };
+            
+            // If cart is empty, show customer type selection
+            if (shopCart.length === 0) {
+                showCustomerTypeModal();
                 return;
             }
             
-            const customerType = document.getElementById('shopCustomerType')?.value;
+            // If cart has items, check if they match the first item's customer type
+            const firstItemCustomerType = shopCart[0].customerType;
+            if (firstItemCustomerType) {
+                // Use existing customer type
+                addToCartWithCustomerType(productName, cp, dp, bv, firstItemCustomerType);
+            } else {
+                // Show modal if customer type not set
+                showCustomerTypeModal();
+            }
+        }
+        
+        function showCustomerTypeModal() {
+            const modal = document.getElementById('customerTypeModal') || createCustomerTypeModal();
+            modal.style.display = 'block';
+        }
+        
+        function createCustomerTypeModal() {
+            const modal = document.createElement('div');
+            modal.id = 'customerTypeModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close" onclick="closeModal('customerTypeModal')">&times;</span>
+                    <h2>Select Customer Type</h2>
+                    <p style="margin-bottom: 20px; color: #666;">Please select your customer type to continue.</p>
+                    <div class="form-group">
+                        <label>Customer Type</label>
+                        <select id="modalCustomerType" style="padding: 10px; width: 100%; font-size: 1rem;">
+                            <option value="customer">Customer (CP Pricing)</option>
+                            <option value="distributor">Distributor (DP Pricing)</option>
+                        </select>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="confirmCustomerTypeSelection()" style="width: 100%;">Confirm</button>
+                        <button class="btn" onclick="closeModal('customerTypeModal')" style="width: 100%; margin-top: 10px;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+        
+        function confirmCustomerTypeSelection() {
+            const customerType = document.getElementById('modalCustomerType')?.value;
+            if (!customerType || !pendingCartItem) {
+                alert('Please select a customer type.');
+                return;
+            }
+            
+            // Set customer type for all cart items
+            shopCustomerTypeSelected = true;
+            previousCustomerType = customerType;
+            
+            // Add item to cart
+            addToCartWithCustomerType(
+                pendingCartItem.productName,
+                pendingCartItem.cp,
+                pendingCartItem.dp,
+                pendingCartItem.bv,
+                customerType
+            );
+            
+            closeModal('customerTypeModal');
+            pendingCartItem = null;
+        }
+        
+        function addToCartWithCustomerType(productName, cp, dp, bv, customerType) {
             const price = customerType === 'distributor' ? dp : cp;
             
-            const existingItem = shopCart.find(item => item.name === productName);
+            const existingItem = shopCart.find(item => item.name === productName && item.customerType === customerType);
             
             if (existingItem) {
                 existingItem.quantity += 1;
@@ -18132,15 +18249,27 @@
             const cartItems = document.getElementById('shopCartItems');
             const cartSection = document.getElementById('shopCartSection');
             const cartTotal = document.getElementById('shopCartTotal');
+            const cartCustomerType = document.getElementById('shopCartCustomerType');
             
             if (!cartItems || !cartSection || !cartTotal) return;
             
             if (shopCart.length === 0) {
                 cartSection.style.display = 'none';
+                shopCustomerTypeSelected = false;
+                previousCustomerType = '';
                 return;
             }
             
             cartSection.style.display = 'block';
+            
+            // Show customer type if available
+            const customerType = shopCart[0]?.customerType;
+            if (cartCustomerType && customerType) {
+                const typeLabel = customerType === 'distributor' ? 'Distributor (DP Pricing)' : 'Customer (CP Pricing)';
+                cartCustomerType.textContent = `Customer Type: ${typeLabel}`;
+            } else if (cartCustomerType) {
+                cartCustomerType.textContent = '';
+            }
             
             cartItems.innerHTML = shopCart.map((item, index) => `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
@@ -18165,8 +18294,12 @@
         }
         
         function clearShopCart() {
-            shopCart = [];
-            updateShopCart();
+            if (confirm('Are you sure you want to clear your cart?')) {
+                shopCart = [];
+                shopCustomerTypeSelected = false;
+                previousCustomerType = '';
+                updateShopCart();
+            }
         }
         
         function checkoutShopOrder() {
