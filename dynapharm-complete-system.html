@@ -1045,6 +1045,12 @@
                 max-width: 100% !important;
                 height: auto !important;
             }
+            #photoPreview .preview-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+                margin-top: 10px;
+            }
             
             /* Override inline flex styles in admin portal */
             #admin div[style*="display: flex"] {
@@ -3291,14 +3297,14 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="required">Product Photo</label>
-                                <input type="file" id="productPhotoInput" accept="image/*" style="padding: 10px; width: 100%;" onchange="previewProductPhoto(event)">
-                                <small style="color: #666;">Supported formats: JPG, PNG, WebP (Max 5MB)</small>
+                                <label class="required">Product Photos</label>
+                                <input type="file" id="productPhotoInput" accept="image/*" multiple style="padding: 10px; width: 100%;" onchange="previewProductPhoto(event)">
+                                <small style="color: #666;">Supported formats: JPG, PNG, WebP (Max 5MB per file). You can select up to 4 photos at once.</small>
                             </div>
                         </div>
                         <div id="photoPreview" style="margin-top: 15px; text-align: center;"></div>
                         <div style="margin-top: 15px;">
-                            <button class="btn btn-success" onclick="uploadProductPhoto()">📤 Upload Photo</button>
+                            <button class="btn btn-success" onclick="uploadProductPhoto()">📤 Upload Photos</button>
                             <button class="btn btn-warning" onclick="clearPhotoForm()">Clear</button>
                         </div>
                         <div id="photoUploadStatus" style="margin-top: 10px;"></div>
@@ -19528,6 +19534,10 @@ This sale appears in the Dispenser Portal sales reports.
                         localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
                         status.textContent = `${loadedCount} photo(s) uploaded successfully! (Total: ${photoMap[productName].length}/4)`;
                         loadProductPhotos();
+                        // Refresh shop products in real time to show new photos
+                        if (typeof loadShopProducts === 'function') {
+                            loadShopProducts();
+                        }
                         clearPhotoForm();
                     }
                 };
@@ -19556,15 +19566,42 @@ This sale appears in the Dispenser Portal sales reports.
                 container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No product photos yet</p>';
                 return;
             }
-            container.innerHTML = names.map(name => `
-                <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
-                    <img src="${photoMap[name]}" alt="${name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                        <span style="font-size: 0.95rem; color: #2c3e50;">${name}</span>
-                        <button class="btn btn-danger" onclick="removeProductPhoto('${name.replace(/'/g, "\\'")}')">Remove</button>
+            container.innerHTML = names.map(name => {
+                // Handle both legacy single photo and new array format
+                let productPhotos = photoMap[name];
+                if (!productPhotos) {
+                    productPhotos = [];
+                } else if (typeof productPhotos === 'string') {
+                    // Legacy format: convert single photo to array
+                    productPhotos = [productPhotos];
+                }
+                // Ensure it's an array
+                if (!Array.isArray(productPhotos)) {
+                    productPhotos = [productPhotos];
+                }
+                // Filter out invalid entries
+                productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
+                
+                const photoCount = productPhotos.length;
+                const displayPhoto = productPhotos.length > 0 ? productPhotos[0] : 'https://via.placeholder.com/200x200?text=No+Photo';
+                
+                return `
+                    <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                        <div style="position: relative;">
+                            <img src="${displayPhoto}" alt="${name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
+                            ${photoCount > 1 ? `
+                                <div style="position: absolute; top: 5px; right: 5px; background: rgba(196, 30, 58, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
+                                    ${photoCount} photos
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="font-size: 0.95rem; color: #2c3e50;">${name}</span>
+                            <button class="btn btn-danger" onclick="removeProductPhoto('${name.replace(/'/g, "\\'")}')">Remove</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function filterProductPhotos() { loadProductPhotos(); }
