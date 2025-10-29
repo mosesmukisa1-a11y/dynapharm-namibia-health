@@ -19382,19 +19382,109 @@ This sale appears in the Dispenser Portal sales reports.
         }
 
         function previewProductPhoto(event) {
-            const file = event.target.files && event.target.files[0];
+            const files = event.target.files;
             const preview = document.getElementById('photoPreview');
-            if (!file || !preview) return;
-            if (file.size > 5 * 1024 * 1024) {
-                document.getElementById('photoUploadStatus').textContent = 'File too large. Max 5MB.';
-                event.target.value = '';
+            const status = document.getElementById('photoUploadStatus');
+            
+            if (!files || !preview) return;
+            
+            // Clear previous status
+            if (status) status.textContent = '';
+            
+            // Limit to 4 files max
+            const fileArray = Array.from(files).slice(0, 4);
+            const totalFiles = fileArray.length;
+            
+            if (totalFiles === 0) {
+                preview.innerHTML = '';
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = () => {
-                preview.innerHTML = `<img src="${reader.result}" alt="Preview" style="max-width: 300px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">`;
-            };
-            reader.readAsDataURL(file);
+            
+            // Clear preview and show loading message
+            preview.innerHTML = `<p style="color: #666; margin: 10px 0;">🔄 Loading ${totalFiles} photo(s)...</p>`;
+            
+            let loadedCount = 0;
+            const previewImages = [];
+            const errors = [];
+            
+            fileArray.forEach((file, index) => {
+                // Validate file size
+                if (file.size > 5 * 1024 * 1024) {
+                    errors.push(`"${file.name}" is too large (Max 5MB)`);
+                    loadedCount++;
+                    if (loadedCount === totalFiles) {
+                        displayPreview();
+                    }
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    errors.push(`"${file.name}" is not a valid image file`);
+                    loadedCount++;
+                    if (loadedCount === totalFiles) {
+                        displayPreview();
+                    }
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImages.push({
+                        name: file.name,
+                        src: e.target.result,
+                        size: file.size
+                    });
+                    loadedCount++;
+                    if (loadedCount === totalFiles) {
+                        displayPreview();
+                    }
+                };
+                reader.onerror = () => {
+                    errors.push(`Failed to load "${file.name}"`);
+                    loadedCount++;
+                    if (loadedCount === totalFiles) {
+                        displayPreview();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            function displayPreview() {
+                if (errors.length > 0 && status) {
+                    status.innerHTML = `<p style="color: #e74c3c;">⚠️ ${errors.join(', ')}</p>`;
+                }
+                
+                if (previewImages.length === 0) {
+                    preview.innerHTML = '<p style="color: #e74c3c;">No valid photos to preview</p>';
+                    return;
+                }
+                
+                // Display preview grid
+                const gridStyle = `
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                    gap: 15px;
+                    margin-top: 10px;
+                `;
+                
+                preview.innerHTML = `
+                    <div style="${gridStyle}">
+                        ${previewImages.map((img, idx) => `
+                            <div style="position: relative; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                                <img src="${img.src}" alt="Preview ${idx + 1}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px; display: block;">
+                                <div style="margin-top: 8px; text-align: center;">
+                                    <small style="color: #666; font-size: 0.75rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" 
+                                           title="${img.name}">${img.name}</small>
+                                    <small style="color: #999; font-size: 0.7rem;">${(img.size / 1024).toFixed(1)} KB</small>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${previewImages.length > 0 ? `<p style="color: #27ae60; margin-top: 10px; text-align: center;">✅ ${previewImages.length} photo(s) ready to upload</p>` : ''}
+                `;
+            }
         }
 
         function uploadProductPhoto() {
