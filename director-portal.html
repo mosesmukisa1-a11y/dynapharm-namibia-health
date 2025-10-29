@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>Director Portal - Executive Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -65,7 +65,42 @@
         .bar { height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
         .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #f97316, #ef4444); }
 
-        @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+        /* Mobile Responsive Styles */
+        @media (max-width: 1024px) { 
+            .grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { padding: 12px !important; }
+            .container { max-width: 100% !important; }
+            .header { padding: 20px !important; margin-bottom: 16px !important; }
+            .header h1 { font-size: 1.5rem !important; }
+            .header p { font-size: 0.9rem !important; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+            .kpi { padding: 16px !important; }
+            .kpi .value { font-size: 1.5rem !important; }
+            .filters { flex-direction: column !important; gap: 10px !important; }
+            .select, .input, .btn { width: 100% !important; min-height: 44px; font-size: 16px; }
+            .grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+            .card { padding: 16px !important; }
+            .card h2 { font-size: 1.1rem !important; }
+            table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+            th, td { padding: 8px 6px !important; font-size: 0.85rem !important; }
+            thead th { position: sticky; top: 0; background: #f8fafc; z-index: 1; }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.2rem !important; }
+            .kpi-grid { grid-template-columns: 1fr !important; }
+            .kpi .value { font-size: 1.3rem !important; }
+            th, td { padding: 6px 4px !important; font-size: 0.75rem !important; }
+        }
+        
+        /* Touch-friendly */
+        @media (hover: none) and (pointer: coarse) {
+            .btn { min-height: 44px; }
+            * { -webkit-tap-highlight-color: rgba(14, 165, 233, 0.2); }
+        }
     </style>
 </head>
 <body>

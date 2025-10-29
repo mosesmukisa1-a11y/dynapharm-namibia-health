@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>GM Portal - Business Transaction Monitor</title>
     <style>
         * {
@@ -248,18 +248,53 @@
         }
         
         @media (max-width: 768px) {
+            body { padding: 12px !important; }
+            .container { max-width: 100% !important; }
+            .header { padding: 20px !important; margin-bottom: 20px !important; }
+            .header h1 { font-size: 1.5rem !important; }
+            .header p { font-size: 0.9rem !important; }
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 12px !important;
             }
-            
+            .stat-card { padding: 16px !important; }
+            .stat-card .value { font-size: 1.8rem !important; }
+            .main-content { gap: 20px !important; }
+            .card { padding: 20px !important; }
+            .card h2 { font-size: 1.2rem !important; }
+            .filter-bar { flex-direction: column !important; gap: 10px !important; }
+            .filter-select, .filter-input, .btn { width: 100% !important; min-height: 44px; font-size: 16px; }
             .transaction-table {
                 font-size: 0.85em;
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
             }
-            
             .transaction-table th,
             .transaction-table td {
-                padding: 10px 5px;
+                padding: 10px 6px !important;
             }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
+            thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 1; }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.2rem !important; }
+            .stats-grid { grid-template-columns: 1fr !important; }
+            .stat-card .value { font-size: 1.5rem !important; }
+            .transaction-table th,
+            .transaction-table td {
+                padding: 8px 4px !important;
+                font-size: 0.75rem !important;
+            }
+        }
+        
+        /* Touch-friendly */
+        @media (hover: none) and (pointer: coarse) {
+            .btn { min-height: 44px; }
+            * { -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2); }
         }
     </style>
 </head>

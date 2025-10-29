@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>Dynapharm Stock Management Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +49,60 @@
         .col-6 { grid-column: span 12; }
         @media(min-width: 980px){ .col-6 { grid-column: span 6; } .split-6-6 { grid-column: span 12; } }
         .footer { color: var(--muted); font-size: 12px; padding: 16px; text-align:center; }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body { padding: 8px !important; }
+            .container { padding: 12px !important; }
+            header { position: relative; }
+            .top-bar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+            .title { font-size: 0.9rem !important; }
+            .filters { flex-direction: column !important; gap: 8px !important; }
+            .select, .input, .btn { 
+                width: 100% !important;
+                min-height: 44px;
+                font-size: 16px;
+                padding: 10px !important;
+            }
+            .kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+            .kpi { padding: 10px !important; }
+            .kpi .value { font-size: 1.3rem !important; }
+            .grid { gap: 12px !important; }
+            .card { padding: 12px !important; }
+            .card h3 { font-size: 13px !important; }
+            .table { 
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+                font-size: 0.8rem;
+            }
+            .table th, .table td { 
+                padding: 6px 4px !important;
+                font-size: 0.75rem !important;
+            }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
+            thead th { position: sticky; top: 0; background: var(--card); z-index: 1; border-bottom: 1px solid #1e2a44; }
+            .list { gap: 8px !important; }
+            .movement { padding: 8px !important; }
+        }
+        
+        @media (max-width: 480px) {
+            .title { font-size: 0.8rem !important; }
+            .kpis { grid-template-columns: 1fr !important; }
+            .kpi .value { font-size: 1.1rem !important; }
+            .table th, .table td { 
+                padding: 5px 3px !important;
+                font-size: 0.7rem !important;
+            }
+        }
+        
+        /* Touch-friendly */
+        @media (hover: none) and (pointer: coarse) {
+            .btn { min-height: 44px; }
+            * { -webkit-tap-highlight-color: rgba(16, 185, 129, 0.2); }
+        }
     </style>
 </head>
 <body>

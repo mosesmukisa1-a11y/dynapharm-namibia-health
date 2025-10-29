@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 	<title>Finance • Bonus CSV Upload</title>
 	<style>
 		* { box-sizing: border-box; }
@@ -27,6 +27,41 @@
 		.badge { background:#eef2f7; padding:6px 10px; border-radius:999px; font-size:12px; color:#334e68; }
 		footer { padding:16px 24px; color:#6b7c93; font-size:13px; }
 		.hidden { display:none; }
+		
+		/* Mobile Responsive Styles */
+		@media (max-width: 768px) {
+			body { padding: 12px !important; }
+			.container { max-width: 100% !important; }
+			.header { padding: 16px !important; }
+			.header h1 { font-size: 1.3rem !important; }
+			.header p { font-size: 0.85rem !important; }
+			.content { padding: 16px !important; }
+			.section { padding: 12px !important; margin-bottom: 12px !important; }
+			.controls { flex-direction: column !important; gap: 10px !important; }
+			input[type="file"], select, button { 
+				width: 100% !important;
+				min-height: 44px;
+				font-size: 16px;
+			}
+			.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+			table { min-width: 700px; }
+			th, td { padding: 8px 6px !important; font-size: 0.85rem !important; }
+			.totals { flex-direction: column !important; gap: 10px !important; }
+			footer { padding: 12px !important; font-size: 12px !important; }
+		}
+		
+		@media (max-width: 480px) {
+			.header h1 { font-size: 1.1rem !important; }
+			.table-wrap { font-size: 0.8rem; }
+			th, td { padding: 6px 4px !important; font-size: 0.75rem !important; }
+			table { min-width: 600px; }
+		}
+		
+		/* Touch-friendly */
+		@media (hover: none) and (pointer: coarse) {
+			button { min-height: 44px; }
+			* { -webkit-tap-highlight-color: rgba(196, 30, 58, 0.2); }
+		}
 	</style>
 </head>
 <body>
@@ -38,6 +73,8 @@
 		<div class="content">
 			<div class="section">
 				<div class="controls">
+					<label style="font-size:13px; color:#334e68; font-weight:600;">Month:</label>
+					<input id="monthSelect" type="month" style="padding:10px 12px; border:2px solid #e3e7ee; border-radius:8px; background:#fff;" />
 					<input id="csvInput" type="file" accept=".csv" />
 					<select id="branchFilter">
 						<option value="">All Branches</option>
@@ -46,7 +83,7 @@
 						<option>NB3</option>
 						<option>NB4</option>
 					</select>
-					<button id="btnSave" class="btn-primary" disabled>Commit to System</button>
+					<button id="btnSave" class="btn-primary" disabled>Upload Monthly Bonus</button>
 					<button id="btnClear" class="btn-ghost">Clear</button>
 					<button id="btnTemplate" class="btn-secondary">Download Template</button>
 				</div>
@@ -71,7 +108,7 @@
 			</div>
 		</div>
 		<footer>
-			Saved locally under key <span class="badge">finance_bonus_list</span>. If the API is online, data is also posted to <span class="badge">/api/reports</span> as type <span class="badge">bonus</span>.
+			Monthly bonus upload saved to <span class="badge">/api/bonus</span>. This is the source of truth for bonus payments. Distributors not in this CSV for the selected month cannot be paid.
 		</footer>
 	</div>
 
@@ -112,6 +149,7 @@
 		}
 
 		const els = {
+			month: document.getElementById('monthSelect'),
 			file: document.getElementById('csvInput'),
 			filter: document.getElementById('branchFilter'),
 			save: document.getElementById('btnSave'),
@@ -121,6 +159,10 @@
 			body: document.getElementById('bonusBody'),
 			totals: document.getElementById('totalsRow')
 		};
+
+		// Set default month to current month
+		const today = new Date();
+		els.month.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
 		let parsed = [];
 		let headers = [];
@@ -174,15 +216,48 @@
 		els.filter.addEventListener('change', renderTable);
 
 		els.save.addEventListener('click', async () => {
-			const payload = { type: 'bonus', createdAt: new Date().toISOString(), items: parsed };
-			localStorage.setItem('finance_bonus_list', JSON.stringify(payload));
+			if (!els.month.value) {
+				alert('Please select a month for this bonus upload.');
+				return;
+			}
+			if (parsed.length === 0) {
+				alert('No data to upload. Please select a CSV file first.');
+				return;
+			}
+			
+			const month = els.month.value; // Format: YYYY-MM
+			const payload = {
+				action: 'upload',
+				month: month,
+				items: parsed,
+				uploadedBy: 'finance' // Could get from user session
+			};
+			
+			// Save locally as backup
+			localStorage.setItem('finance_bonus_list', JSON.stringify({ month, items: parsed, createdAt: new Date().toISOString() }));
+			
 			let posted = false;
+			let message = '';
 			try {
 				const base = (location.hostname.includes('railway.app') ? `${location.protocol}//${location.hostname}/api` : (location.hostname.includes('vercel.app') ? '/api' : 'http://localhost:8001/api'));
-				const res = await fetch(`${base}/reports`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ kind:'bonus', data: payload }) });
-				posted = res.ok;
-			} catch(e) { /* offline fallback already saved */ }
-			alert(posted ? 'Bonus list committed to API and saved locally.' : 'Bonus list saved locally. API not reachable.');
+				const res = await fetch(`${base}/bonus`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				
+				if (res.ok) {
+					const result = await res.json();
+					posted = true;
+					message = `✅ Monthly bonus uploaded successfully for ${month}.\n\nRecords: ${result.totalRecords}\nTotal Amount: N$${result.totalAmount.toLocaleString('en-NA', {minimumFractionDigits:2, maximumFractionDigits:2})}\n\n⚠️ IMPORTANT: Only distributors in this CSV can be paid for ${month}.`;
+				} else {
+					const error = await res.json();
+					message = `❌ Error: ${error.error || 'Failed to upload bonus data'}`;
+				}
+			} catch(e) {
+				message = `⚠️ API not reachable. Data saved locally. Please try again when online.\n\nMonth: ${month}\nRecords: ${parsed.length}`;
+			}
+			alert(message);
 		});
 
 		els.clear.addEventListener('click', () => {
