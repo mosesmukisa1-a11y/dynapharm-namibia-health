@@ -18113,16 +18113,6 @@
                 product.description.toLowerCase().includes(searchTerm)
             );
             
-            // Only show products if customer type has been selected
-            if (!shopCustomerTypeSelected) {
-                shopProductsGrid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: white; border-radius: 8px;">
-                        <p style="color: #7f8c8d; font-size: 1.1rem;">Please select a customer type above to view products</p>
-                    </div>
-                `;
-                return;
-            }
-            
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
                 const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
