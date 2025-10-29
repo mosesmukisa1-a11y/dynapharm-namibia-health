@@ -909,7 +909,8 @@
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 200px;">
                             <label>Customer Type</label>
-                            <select id="shopCustomerType" onchange="filterShopProducts()" style="padding: 10px; width: 100%;">
+                            <select id="shopCustomerType" onchange="onShopCustomerTypeChange()" style="padding: 10px; width: 100%;">
+                                <option value="">-- Please Select --</option>
                                 <option value="customer">Customer (CP Pricing)</option>
                                 <option value="distributor">Distributor (DP Pricing)</option>
                             </select>
@@ -940,17 +941,17 @@
             <!-- Full Body Check Up Tab -->
             <div id="distributor-checkup-tab" class="distributor-subtab" style="display: none;">
                 <h2>🏥 Full Body Check Up</h2>
-                <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
-                
-                <!-- Network sync test buttons -->
-                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                    <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
-                    <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
-                    <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
-                    <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
-                </div>
-                
-                <form id="clientForm">
+            <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
+            
+            <!-- Network sync test buttons -->
+            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
+                <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
+                <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
+                <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
+            </div>
+            
+            <form id="clientForm">
                 <!-- Member/Referral Information -->
                 <div class="form-section">
                     <h3>Member/Referral Information</h3>
@@ -2007,7 +2008,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Country Stock Tab -->
                 <div id="countryStockTab" class="stock-tab-content" style="display: block;">
                     <div class="form-section">
@@ -3382,21 +3383,33 @@
                 </div>
                 
                 <!-- Distributor Referral Field for Customers -->
-                <div id="customerReferralField" style="display: block; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">
+                <div id="customerReferralField" style="display: block; margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 2px solid #f39c12; border-radius: 5px;">                                                                
                     <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Required: Referred Distributor</h4>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                    
+                    <!-- Checkbox for "I have no referral" -->
+                    <div style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">
+                        <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.95rem;">
+                            <input type="checkbox" id="noReferralCheckbox" onchange="handleNoReferralCheckbox()" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                            <span style="color: #856404;">I have no referral (will use Dynapharm Namibia)</span>
+                        </label>
+                    </div>
+                                                      
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">                                                                         
                         <div class="form-group" style="position: relative;">
-                            <label style="color: #856404;">Search by Name or NB Number *</label>
-                            <input type="text" id="distributorReferralSearch" placeholder="Type name or NB number (e.g. OTTILIE or NB001544)" 
-                                   onkeyup="searchDistributorsForReferral()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;" required>
-                            <input type="hidden" id="distributorReferralValue" required>
-                            <div id="distributorReferralDropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); top: 100%; left: 0; margin-top: 5px;"></div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label style="color: #856404;">Search by Name or NB Number *</label>
+                                <button type="button" id="changeReferralBtn" onclick="clearSelectedReferral()" style="display: none; padding: 5px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 0.85rem; cursor: pointer;">Change Referral</button>
+                            </div>
+                            <input type="text" id="distributorReferralSearch" placeholder="Type name or NB number (e.g. OTTILIE or NB001544)"                   
+                                   onkeyup="searchDistributorsForReferral()" style="padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 5px;" required>                                                                          
+                            <input type="hidden" id="distributorReferralValue" required>                                                                        
+                            <div id="distributorReferralDropdown" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); top: 100%; left: 0; margin-top: 5px;"></div> 
                         </div>
-                        <div id="selectedDistributorInfo" style="display: none; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">
+                        <div id="selectedDistributorInfo" style="display: none; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;"> 
                             <div style="font-size: 0.9rem;">
-                                <strong>Selected:</strong> <span id="selectedDistributorName"></span><br>
-                                <strong>NB Number:</strong> <span id="selectedDistributorCode"></span> | 
-                                <strong>Mobile:</strong> <span id="selectedDistributorMobile"></span>
+                                <strong>Selected:</strong> <span id="selectedDistributorName"></span><br>                                                       
+                                <strong>NB Number:</strong> <span id="selectedDistributorCode"></span> |                                                        
+                                <strong>Mobile:</strong> <span id="selectedDistributorMobile"></span>                                                           
                             </div>
                         </div>
                     </div>
@@ -3897,6 +3910,23 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Bank Branch *</label>
+                    <input type="text" id="depositBankBranch" required placeholder="e.g., Windhoek Main">
+                </div>
+                <div class="form-group">
+                    <label>Account Number *</label>
+                    <input type="text" id="depositAccountNumber" required placeholder="e.g., 1234567890">
+                </div>
+                <div class="form-group">
+                    <label>Account Type *</label>
+                    <select id="depositAccountType" required>
+                        <option value="">Select Type</option>
+                        <option value="Current">Current</option>
+                        <option value="Savings">Savings</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Deposited By *</label>
                     <input type="text" id="depositedBy" required placeholder="Name of person making deposit">
                 </div>
@@ -3992,8 +4022,32 @@
                     <input type="text" id="bankBonusApprovedBy" required placeholder="Manager name">
                 </div>
                 <div class="form-group">
-                    <label>Bank Account Details</label>
-                    <input type="text" id="bankBonusAccount" placeholder="Bank account number or reference">
+                    <label>Bank Name *</label>
+                    <select id="bankBonusBank" required>
+                        <option value="">Select Bank</option>
+                        <option value="FNB">First National Bank (FNB)</option>
+                        <option value="Nedbank">Nedbank</option>
+                        <option value="Bank Windhoek">Bank Windhoek</option>
+                        <option value="Standard Bank">Standard Bank</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bank Branch *</label>
+                    <input type="text" id="bankBonusBankBranch" required placeholder="e.g., Windhoek Main">
+                </div>
+                <div class="form-group">
+                    <label>Account Number *</label>
+                    <input type="text" id="bankBonusAccountNumber" required placeholder="e.g., 1234567890">
+                </div>
+                <div class="form-group">
+                    <label>Account Type *</label>
+                    <select id="bankBonusAccountType" required>
+                        <option value="">Select Type</option>
+                        <option value="Current">Current</option>
+                        <option value="Savings">Savings</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-success">🏦 Record Bank Bonus</button>
@@ -16701,6 +16755,9 @@
                 amount: parseFloat(document.getElementById('depositAmount').value),
                 slipNo: document.getElementById('depositSlipNo').value,
                 bankName: document.getElementById('depositBank').value,
+                bankBranch: document.getElementById('depositBankBranch').value,
+                accountNumber: document.getElementById('depositAccountNumber').value,
+                accountType: document.getElementById('depositAccountType').value,
                 depositedBy: document.getElementById('depositedBy').value,
                 notes: document.getElementById('depositNotes').value,
                 createdAt: new Date().toISOString(),
@@ -16780,7 +16837,10 @@
                 amount: parseFloat(document.getElementById('bankBonusAmount').value),
                 reason: document.getElementById('bankBonusReason').value,
                 approvedBy: document.getElementById('bankBonusApprovedBy').value,
-                accountDetails: document.getElementById('bankBonusAccount').value,
+                bankName: document.getElementById('bankBonusBank').value,
+                bankBranch: document.getElementById('bankBonusBankBranch').value,
+                accountNumber: document.getElementById('bankBonusAccountNumber').value,
+                accountType: document.getElementById('bankBonusAccountType').value,
                 createdAt: new Date().toISOString(),
                 createdBy: currentUser?.username || 'Unknown'
             };
@@ -17913,6 +17973,8 @@
         // Distributor Portal Functions
         // ==========================
         let shopCart = [];
+        let shopCustomerTypeSelected = false; // Track if customer type has been explicitly selected
+        let previousCustomerType = ''; // Store previous customer type selection
         let onlineOrders = JSON.parse(localStorage.getItem('dyna_online_orders') || '[]');
         
         function showDistributorTab(tabName) {
@@ -17969,6 +18031,27 @@
             }).join('');
         }
         
+        function onShopCustomerTypeChange() {
+            const customerType = document.getElementById('shopCustomerType')?.value;
+            if (customerType) {
+                // Clear cart when customer type changes to prevent mixing different pricing
+                if (shopCart.length > 0) {
+                    if (confirm('Changing customer type will clear your current cart. Do you want to continue?')) {
+                        shopCart = [];
+                        updateShopCart();
+                    } else {
+                        // Revert to previous selection
+                        return;
+                    }
+                }
+                shopCustomerTypeSelected = true;
+                filterShopProducts();
+            } else {
+                shopCustomerTypeSelected = false;
+                filterShopProducts();
+            }
+        }
+        
         function filterShopProducts() {
             const searchTerm = document.getElementById('shopSearch')?.value.toLowerCase() || '';
             const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
@@ -17981,6 +18064,16 @@
             const filteredProducts = products.filter(product => 
                 product.description.toLowerCase().includes(searchTerm)
             );
+            
+            // Only show products if customer type has been selected
+            if (!shopCustomerTypeSelected) {
+                shopProductsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: white; border-radius: 8px;">
+                        <p style="color: #7f8c8d; font-size: 1.1rem;">Please select a customer type above to view products</p>
+                    </div>
+                `;
+                return;
+            }
             
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
                 const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
@@ -18004,7 +18097,14 @@
         }
         
         function addToShopCart(productName, cp, dp, bv) {
-            const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
+            // Validate that customer type has been selected
+            if (!shopCustomerTypeSelected) {
+                alert('Please select a customer type before adding products to cart.');
+                document.getElementById('shopCustomerType').focus();
+                return;
+            }
+            
+            const customerType = document.getElementById('shopCustomerType')?.value;
             const price = customerType === 'distributor' ? dp : cp;
             
             const existingItem = shopCart.find(item => item.name === productName);
