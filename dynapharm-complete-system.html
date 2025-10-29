@@ -71,6 +71,10 @@
         .tab-content.active { display: block; }
         .stock-tab-content { padding: 20px; display: none; }
         .stock-tab-content.active { display: block; }
+        .distributor-subtab { padding: 20px; display: none; }
+        .distributor-subtab.active { display: block; }
+        .order-tab-content { padding: 20px; display: none; }
+        .order-tab-content.active { display: block; }
         .form-section {
             margin-bottom: 20px;
             padding: 20px;
@@ -874,7 +878,8 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="openTab('client')">Client Registration</button>
+            <button class="tab-button active" onclick="openTab('client')">Distributor Portal</button>
+            <button class="tab-button" onclick="openTab('frontdesk')">Front Desk Portal</button>
             <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('hr-portal')">HR Portal</button>
@@ -886,20 +891,66 @@
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
         </div>
 
-        <!-- Client Registration -->
+        <!-- Distributor Portal -->
         <div id="client" class="tab-content active">
-            <h2>Naturopathy Clinic Health Questionnaire</h2>
-            <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
-            
-            <!-- Network sync test buttons -->
-            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
-                <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
-                <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
-                <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
+            <!-- Distributor Portal Sub-tabs -->
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-button active" onclick="showDistributorTab('shop')">🛒 Shop</button>
+                <button class="tab-button" onclick="showDistributorTab('checkup')">🏥 Full Body Check Up</button>
+                <button class="tab-button" onclick="showDistributorTab('registration')">📋 Client Registration</button>
             </div>
             
-            <form id="clientForm">
+            <!-- Shop Tab -->
+            <div id="distributor-shop-tab" class="distributor-subtab active">
+                <h2>🛒 Online Shop</h2>
+                <p style="margin-bottom: 20px; color: #666;">Browse our complete range of health products with dual pricing</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Customer Type</label>
+                            <select id="shopCustomerType" onchange="filterShopProducts()" style="padding: 10px; width: 100%;">
+                                <option value="customer">Customer (CP Pricing)</option>
+                                <option value="distributor">Distributor (DP Pricing)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 2; min-width: 300px;">
+                            <label>Search Products</label>
+                            <input type="text" id="shopSearch" placeholder="Search products..." onkeyup="filterShopProducts()" style="padding: 10px; width: 100%;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="shopProductsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+                    <!-- Products will be dynamically populated -->
+                </div>
+                
+                <!-- Shopping Cart -->
+                <div id="shopCartSection" style="display: none; margin-top: 30px; background: white; padding: 20px; border-radius: 8px; border: 2px solid #c41e3a;">
+                    <h3 style="color: #c41e3a; margin-bottom: 15px;">🛒 Shopping Cart</h3>
+                    <div id="shopCartItems"></div>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <p style="font-size: 1.5rem; font-weight: bold; color: #c41e3a;">Total: <span id="shopCartTotal">N$ 0.00</span></p>
+                        <button class="btn btn-success" onclick="checkoutShopOrder()" style="margin-top: 10px;">Proceed to Checkout</button>
+                        <button class="btn" onclick="clearShopCart()">Clear Cart</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Full Body Check Up Tab -->
+            <div id="distributor-checkup-tab" class="distributor-subtab" style="display: none;">
+                <h2>🏥 Full Body Check Up</h2>
+                <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
+                
+                <!-- Network sync test buttons -->
+                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                    <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
+                    <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
+                    <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
+                    <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
+                </div>
+                
+                <form id="clientForm">
                 <!-- Member/Referral Information -->
                 <div class="form-section">
                     <h3>Member/Referral Information</h3>
@@ -1485,6 +1536,108 @@
                     <button type="button" class="btn" onclick="printClientForm()">Print</button>
                 </div>
             </form>
+            </div>
+            
+            <!-- Registration Tab (Old Client Registration Form) -->
+            <div id="distributor-registration-tab" class="distributor-subtab" style="display: none;">
+                <h2>📋 Client Registration</h2>
+                <div class="reference-number" id="clientRefNumber2" style="display: none;"></div>
+                
+                <!-- Network sync test buttons -->
+                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                    <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
+                    <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
+                    <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
+                    <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 30px;">
+                    <h3 style="color: #856404; margin-bottom: 10px;">ℹ️ Registration Information</h3>
+                    <p style="color: #856404; line-height: 1.6;">
+                        This is the traditional client registration form. For the Full Body Check Up, please use the "Full Body Check Up" tab above.
+                    </p>
+                </div>
+                
+                <p style="text-align: center; padding: 40px; color: #7f8c8d; font-size: 1.1rem;">
+                    📋 The Full Body Check Up form above contains all necessary registration information including health history, lifestyle, and other assessments.
+                </p>
+            </div>
+        </div>
+
+        <!-- Front Desk Portal -->
+        <div id="frontdesk" class="tab-content">
+            <h2>🖥️ Front Desk Portal - Online Order Management</h2>
+            <p style="margin-bottom: 30px; color: #666;">Manage online shop orders, delivery arrangements, and order tracking in real-time</p>
+            
+            <!-- Order Status Tabs -->
+            <div class="tabs" style="margin-bottom: 30px;">
+                <button class="tab-button active" onclick="showOrderTab('pending')">📥 Pending Orders</button>
+                <button class="tab-button" onclick="showOrderTab('processing')">🔄 Processing</button>
+                <button class="tab-button" onclick="showOrderTab('shipped')">🚚 Shipped</button>
+                <button class="tab-button" onclick="showOrderTab('delivered')">✅ Delivered</button>
+                <button class="tab-button" onclick="showOrderTab('all')">📋 All Orders</button>
+            </div>
+            
+            <!-- Pending Orders Tab -->
+            <div id="pendingOrders" class="order-tab-content active">
+                <div class="form-section">
+                    <h3>📥 Pending Orders Awaiting Processing</h3>
+                    <div class="search-box">
+                        <input type="text" id="pendingOrderSearch" placeholder="Search by customer name, order ID..." style="flex: 1;">
+                        <button class="btn btn-success" onclick="refreshPendingOrders()">🔄 Refresh</button>
+                    </div>
+                    <div id="pendingOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+            
+            <!-- Processing Orders Tab -->
+            <div id="processingOrders" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>🔄 Orders in Process</h3>
+                    <div class="search-box">
+                        <input type="text" id="processingOrderSearch" placeholder="Search orders..." style="flex: 1;">
+                        <button class="btn btn-success" onclick="refreshProcessingOrders()">🔄 Refresh</button>
+                    </div>
+                    <div id="processingOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+            
+            <!-- Shipped Orders Tab -->
+            <div id="shippedOrders" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>🚚 Shipped Orders</h3>
+                    <div class="search-box">
+                        <input type="text" id="shippedOrderSearch" placeholder="Search shipped orders..." style="flex: 1;">
+                        <button class="btn btn-success" onclick="refreshShippedOrders()">🔄 Refresh</button>
+                    </div>
+                    <div id="shippedOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+            
+            <!-- Delivered Orders Tab -->
+            <div id="deliveredOrders" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>✅ Delivered Orders</h3>
+                    <div class="search-box">
+                        <input type="text" id="deliveredOrderSearch" placeholder="Search delivered orders..." style="flex: 1;">
+                        <button class="btn btn-success" onclick="refreshDeliveredOrders()">🔄 Refresh</button>
+                    </div>
+                    <div id="deliveredOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+            
+            <!-- All Orders Tab -->
+            <div id="allOrders" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>📋 All Orders</h3>
+                    <div class="search-box">
+                        <input type="text" id="allOrderSearch" placeholder="Search all orders..." style="flex: 1;">
+                        <button class="btn btn-success" onclick="refreshAllOrders()">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="exportOrdersReport()">📥 Export Report</button>
+                    </div>
+                    <div id="allOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Consultant Portal -->
@@ -2862,6 +3015,11 @@
                         <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Paid Today</div>
                     </div>
                     <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Bank Bonuses</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="dailyBankBonuses">N$ 0.00</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Paid Today</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
                         <h4>Variance</h4>
                         <div style="font-size: 1.8rem; font-weight: bold;" id="variance">N$ 0.00</div>
                         <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;" id="varianceStatus">Status: OK</div>
@@ -2873,6 +3031,7 @@
                     <button class="btn btn-primary" onclick="showShiftManager()" style="background: white; color: #667eea;">🕐 Shift Manager</button>
                     <button class="btn" onclick="showBankDeposit()" style="background: white; color: #667eea;">💰 Bank Deposit</button>
                     <button class="btn" onclick="showCashBonus()" style="background: white; color: #667eea;">🎁 Cash Bonus</button>
+                    <button class="btn" onclick="showBankBonus()" style="background: white; color: #667eea;">🏦 Bank Bonus</button>
                     <button class="btn" onclick="generateZReport()" style="background: white; color: #667eea;">📊 Z-Report</button>
                     <button class="btn" onclick="exportFinancialData()" style="background: white; color: #667eea;">📥 Export</button>
                 </div>
@@ -3749,6 +3908,50 @@
         </div>
     </div>
 
+    <!-- Bank Bonus Modal -->
+    <div class="modal" id="bankBonusModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('bankBonusModal')">&times;</span>
+            <h2>🏦 Record Bank Bonus Payment</h2>
+            <form id="bankBonusForm">
+                <div class="form-group">
+                    <label>Branch *</label>
+                    <select id="bankBonusBranch" required>
+                        <option value="">Select Branch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Distributor NB Number *</label>
+                    <input type="text" id="bankBonusDistributorNB" required placeholder="e.g., NB00001234">
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="bankBonusDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (N$) *</label>
+                    <input type="number" id="bankBonusAmount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason *</label>
+                    <textarea id="bankBonusReason" rows="3" required placeholder="Reason for bank bonus payment..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Approved By *</label>
+                    <input type="text" id="bankBonusApprovedBy" required placeholder="Manager name">
+                </div>
+                <div class="form-group">
+                    <label>Bank Account Details</label>
+                    <input type="text" id="bankBonusAccount" placeholder="Bank account number or reference">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-success">🏦 Record Bank Bonus</button>
+                    <button type="button" class="btn" onclick="closeModal('bankBonusModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Z-Report Modal -->
     <div class="modal" id="zReportModal">
         <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
@@ -3783,6 +3986,7 @@
         // Finance Portal Enhanced Data
         let bankDeposits = [];
         let cashBonuses = [];
+        let bankBonuses = [];
         let cashShifts = [];
         let currentShift = null;
         let currentUser = null;
@@ -16093,6 +16297,7 @@
         function loadEnhancedFinanceData() {
             bankDeposits = JSON.parse(localStorage.getItem('finance_deposits') || '[]');
             cashBonuses = JSON.parse(localStorage.getItem('finance_bonuses') || '[]');
+            bankBonuses = JSON.parse(localStorage.getItem('finance_bank_bonuses') || '[]');
             cashShifts = JSON.parse(localStorage.getItem('finance_shifts') || '[]');
             currentShift = JSON.parse(localStorage.getItem('finance_current_shift') || 'null');
         }
@@ -16101,6 +16306,7 @@
         function saveEnhancedFinanceData() {
             localStorage.setItem('finance_deposits', JSON.stringify(bankDeposits));
             localStorage.setItem('finance_bonuses', JSON.stringify(cashBonuses));
+            localStorage.setItem('finance_bank_bonuses', JSON.stringify(bankBonuses));
             localStorage.setItem('finance_shifts', JSON.stringify(cashShifts));
             localStorage.setItem('finance_current_shift', JSON.stringify(currentShift));
         }
@@ -16197,6 +16403,7 @@
                 document.getElementById('dailyDeposits').textContent = `N$ ${getAllDepositsForDate(today).toFixed(2)}`;
                 document.getElementById('dailyCashExpenses').textContent = `N$ ${getAllCashExpensesForDate(today).toFixed(2)}`;
                 document.getElementById('dailyBonuses').textContent = `N$ ${getAllBonusesForDate(today).toFixed(2)}`;
+                document.getElementById('dailyBankBonuses').textContent = `N$ ${getAllBankBonusesForDate(today).toFixed(2)}`;
                 document.getElementById('variance').textContent = 'N$ 0.00';
                 document.getElementById('varianceStatus').textContent = 'Status: All Branches';
                 return;
@@ -16218,6 +16425,13 @@
             document.getElementById('dailyDeposits').textContent = `N$ ${cashData.deposits.toFixed(2)}`;
             document.getElementById('dailyCashExpenses').textContent = `N$ ${cashData.cashExpenses.toFixed(2)}`;
             document.getElementById('dailyBonuses').textContent = `N$ ${cashData.bonuses.toFixed(2)}`;
+            
+            // Calculate bank bonuses for this branch
+            const bankBonusesForBranch = bankBonuses
+                .filter(b => b.date === today && b.branch === branch)
+                .reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
+            document.getElementById('dailyBankBonuses').textContent = `N$ ${bankBonusesForBranch.toFixed(2)}`;
+            
             document.getElementById('variance').textContent = `N$ ${variance.toFixed(2)}`;
             
             // Variance status
@@ -16291,11 +16505,18 @@
                 .reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
         }
         
+        function getAllBankBonusesForDate(date) {
+            return bankBonuses
+                .filter(b => b.date === date)
+                .reduce((sum, b) => sum + parseFloat(b.amount || 0), 0);
+        }
+        
         // Populate branch selectors
         function populateBranchSelects() {
             const financeSelect = document.getElementById('financeBranchSelect');
             const depositSelect = document.getElementById('depositBranch');
             const bonusSelect = document.getElementById('bonusBranch');
+            const bankBonusSelect = document.getElementById('bankBonusBranch');
             
             if (financeSelect) {
                 financeSelect.innerHTML = '<option value="all">All Branches</option>';
@@ -16304,7 +16525,7 @@
                 });
             }
             
-            [depositSelect, bonusSelect].forEach(select => {
+            [depositSelect, bonusSelect, bankBonusSelect].forEach(select => {
                 if (select) {
                     select.innerHTML = '<option value="">Select Branch</option>';
                     branches.forEach(b => {
@@ -16477,6 +16698,36 @@
             closeModal('cashBonusModal');
             refreshFinancialDashboard();
             alert('Cash bonus recorded successfully!');
+            this.reset();
+        });
+        
+        // Bank Bonus Functions
+        function showBankBonus() {
+            document.getElementById('bankBonusDate').value = new Date().toISOString().split('T')[0];
+            populateBranchSelects();
+            document.getElementById('bankBonusModal').style.display = 'block';
+        }
+        
+        document.getElementById('bankBonusForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const bonus = {
+                id: 'BNKBNS' + Date.now(),
+                branch: document.getElementById('bankBonusBranch').value,
+                distributorNB: document.getElementById('bankBonusDistributorNB').value,
+                date: document.getElementById('bankBonusDate').value,
+                amount: parseFloat(document.getElementById('bankBonusAmount').value),
+                reason: document.getElementById('bankBonusReason').value,
+                approvedBy: document.getElementById('bankBonusApprovedBy').value,
+                accountDetails: document.getElementById('bankBonusAccount').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'Unknown'
+            };
+            
+            bankBonuses.push(bonus);
+            saveEnhancedFinanceData();
+            closeModal('bankBonusModal');
+            refreshFinancialDashboard();
+            alert('Bank bonus recorded successfully!');
             this.reset();
         });
         
@@ -17592,6 +17843,412 @@
             // Initialize HR Portal
             initHRPortal();
         };
+        
+        // ==========================
+        // Distributor Portal Functions
+        // ==========================
+        let shopCart = [];
+        let onlineOrders = JSON.parse(localStorage.getItem('dyna_online_orders') || '[]');
+        
+        function showDistributorTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.distributor-subtab').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            const tabElement = document.getElementById(`distributor-${tabName}-tab`);
+            if (tabElement) {
+                tabElement.style.display = 'block';
+            }
+            
+            // Add active class to button
+            event.target.classList.add('active');
+            
+            // Load shop products if shop tab is selected
+            if (tabName === 'shop') {
+                loadShopProducts();
+            }
+        }
+        
+        function loadShopProducts() {
+            const shopProductsGrid = document.getElementById('shopProductsGrid');
+            if (!shopProductsGrid) return;
+            
+            const products = PRICE_LIST || [];
+            
+            shopProductsGrid.innerHTML = products.map(product => {
+                const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
+                const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
+                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                
+                // Get product photo if available
+                const productPhoto = product.photo || 'https://via.placeholder.com/200x200?text=Product';
+                
+                return `
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <img src="${productPhoto}" alt="${product.description}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
+                        <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
+                            N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
+                        </p>
+                        ${product.bv ? `<p style="color: #666; font-size: 0.9rem;">BV: ${product.bv}</p>` : ''}
+                        <button class="btn btn-success" onclick="addToShopCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp}, ${product.bv || 0})" style="width: 100%; margin-top: 10px;">
+                            Add to Cart
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterShopProducts() {
+            const searchTerm = document.getElementById('shopSearch')?.value.toLowerCase() || '';
+            const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
+            const products = PRICE_LIST || [];
+            
+            const shopProductsGrid = document.getElementById('shopProductsGrid');
+            if (!shopProductsGrid) return;
+            
+            const filteredProducts = products.filter(product => 
+                product.description.toLowerCase().includes(searchTerm)
+            );
+            
+            shopProductsGrid.innerHTML = filteredProducts.map(product => {
+                const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
+                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                const productPhoto = product.photo || 'https://via.placeholder.com/200x200?text=Product';
+                
+                return `
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <img src="${productPhoto}" alt="${product.description}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
+                        <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
+                            N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
+                        </p>
+                        ${product.bv ? `<p style="color: #666; font-size: 0.9rem;">BV: ${product.bv}</p>` : ''}
+                        <button class="btn btn-success" onclick="addToShopCart('${product.description.replace(/'/g, "\\'")}', ${product.cp}, ${product.dp}, ${product.bv || 0})" style="width: 100%; margin-top: 10px;">
+                            Add to Cart
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function addToShopCart(productName, cp, dp, bv) {
+            const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
+            const price = customerType === 'distributor' ? dp : cp;
+            
+            const existingItem = shopCart.find(item => item.name === productName);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                shopCart.push({
+                    name: productName,
+                    price: price,
+                    cp: cp,
+                    dp: dp,
+                    bv: bv,
+                    quantity: 1,
+                    customerType: customerType
+                });
+            }
+            
+            updateShopCart();
+        }
+        
+        function updateShopCart() {
+            const cartItems = document.getElementById('shopCartItems');
+            const cartSection = document.getElementById('shopCartSection');
+            const cartTotal = document.getElementById('shopCartTotal');
+            
+            if (!cartItems || !cartSection || !cartTotal) return;
+            
+            if (shopCart.length === 0) {
+                cartSection.style.display = 'none';
+                return;
+            }
+            
+            cartSection.style.display = 'block';
+            
+            cartItems.innerHTML = shopCart.map((item, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
+                    <div style="flex: 1;">
+                        <strong>${item.name}</strong>
+                        <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">N$${item.price.toFixed(2)} x ${item.quantity}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="font-size: 1.2rem; font-weight: bold; color: #c41e3a;">N$${(item.price * item.quantity).toFixed(2)}</p>
+                        <button class="btn btn-danger" onclick="removeFromShopCart(${index})" style="padding: 5px 10px; margin-top: 5px;">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const total = shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartTotal.textContent = `N$ ${total.toFixed(2)}`;
+        }
+        
+        function removeFromShopCart(index) {
+            shopCart.splice(index, 1);
+            updateShopCart();
+        }
+        
+        function clearShopCart() {
+            shopCart = [];
+            updateShopCart();
+        }
+        
+        function checkoutShopOrder() {
+            if (shopCart.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+            
+            // Show checkout modal
+            showCheckoutModal();
+        }
+        
+        function showCheckoutModal() {
+            const modal = document.getElementById('checkoutModal') || createCheckoutModal();
+            modal.style.display = 'block';
+        }
+        
+        function createCheckoutModal() {
+            const modal = document.createElement('div');
+            modal.id = 'checkoutModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <span class="close" onclick="closeModal('checkoutModal')">&times;</span>
+                    <h2>🛒 Checkout</h2>
+                    <form id="checkoutForm" onsubmit="processCheckout(event)">
+                        <div class="form-group">
+                            <label class="required">Full Name</label>
+                            <input type="text" id="checkoutName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Phone Number</label>
+                            <input type="tel" id="checkoutPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Email</label>
+                            <input type="email" id="checkoutEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Delivery Address</label>
+                            <textarea id="checkoutAddress" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Payment Method</label>
+                            <select id="checkoutPaymentMethod" required>
+                                <option value="">Select Payment Method</option>
+                                <option value="cod">Cash on Delivery</option>
+                                <option value="ewallet">E-Wallet</option>
+                                <option value="eft">EFT</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <button type="submit" class="btn btn-success">Complete Order</button>
+                            <button type="button" class="btn" onclick="closeModal('checkoutModal')">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+        
+        function processCheckout(event) {
+            event.preventDefault();
+            
+            const order = {
+                id: 'ORD' + Date.now(),
+                date: new Date().toISOString(),
+                customerName: document.getElementById('checkoutName').value,
+                customerPhone: document.getElementById('checkoutPhone').value,
+                customerEmail: document.getElementById('checkoutEmail').value,
+                customerAddress: document.getElementById('checkoutAddress').value,
+                paymentMethod: document.getElementById('checkoutPaymentMethod').value,
+                items: shopCart,
+                status: 'pending',
+                total: shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            };
+            
+            onlineOrders.push(order);
+            localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
+            
+            alert('Order placed successfully! Order ID: ' + order.id);
+            closeModal('checkoutModal');
+            clearShopCart();
+        }
+        
+        // ==========================
+        // Front Desk Portal Functions
+        // ==========================
+        function showOrderTab(tabName) {
+            document.querySelectorAll('.order-tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const tabMap = {
+                'pending': 'pendingOrders',
+                'processing': 'processingOrders',
+                'shipped': 'shippedOrders',
+                'delivered': 'deliveredOrders',
+                'all': 'allOrders'
+            };
+            
+            const tabElement = document.getElementById(tabMap[tabName]);
+            if (tabElement) {
+                tabElement.style.display = 'block';
+            }
+            
+            if (tabName === 'pending') {
+                refreshPendingOrders();
+            } else if (tabName === 'processing') {
+                refreshProcessingOrders();
+            } else if (tabName === 'shipped') {
+                refreshShippedOrders();
+            } else if (tabName === 'delivered') {
+                refreshDeliveredOrders();
+            } else if (tabName === 'all') {
+                refreshAllOrders();
+            }
+        }
+        
+        function refreshPendingOrders() {
+            const orders = onlineOrders.filter(o => o.status === 'pending');
+            displayOrders(orders, 'pendingOrdersList');
+        }
+        
+        function refreshProcessingOrders() {
+            const orders = onlineOrders.filter(o => o.status === 'processing');
+            displayOrders(orders, 'processingOrdersList');
+        }
+        
+        function refreshShippedOrders() {
+            const orders = onlineOrders.filter(o => o.status === 'shipped');
+            displayOrders(orders, 'shippedOrdersList');
+        }
+        
+        function refreshDeliveredOrders() {
+            const orders = onlineOrders.filter(o => o.status === 'delivered');
+            displayOrders(orders, 'deliveredOrdersList');
+        }
+        
+        function refreshAllOrders() {
+            displayOrders(onlineOrders, 'allOrdersList');
+        }
+        
+        function displayOrders(orders, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            if (orders.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px; color: #7f8c8d;">No orders found</p>';
+                return;
+            }
+            
+            container.innerHTML = orders.map(order => {
+                const statusColors = {
+                    'pending': '#e74c3c',
+                    'processing': '#f39c12',
+                    'shipped': '#3498db',
+                    'delivered': '#27ae60'
+                };
+                
+                const statusLabels = {
+                    'pending': '⏳ Pending',
+                    'processing': '🔄 Processing',
+                    'shipped': '🚚 Shipped',
+                    'delivered': '✅ Delivered'
+                };
+                
+                return `
+                    <div style="background: white; border: 2px solid ${statusColors[order.status]}; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h4 style="color: #2c3e50; margin-bottom: 5px;">Order #${order.id}</h4>
+                                <p style="color: #666; font-size: 0.9rem;">${order.date}</p>
+                            </div>
+                            <span style="background: ${statusColors[order.status]}; color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold;">
+                                ${statusLabels[order.status]}
+                            </span>
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <p><strong>Customer:</strong> ${order.customerName}</p>
+                            <p><strong>Phone:</strong> ${order.customerPhone}</p>
+                            <p><strong>Email:</strong> ${order.customerEmail}</p>
+                            <p><strong>Address:</strong> ${order.customerAddress}</p>
+                            <p><strong>Payment:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                            <strong>Items:</strong>
+                            ${order.items.map(item => `
+                                <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                                    <span>${item.name} x ${item.quantity}</span>
+                                    <span>N$${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                            <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                <span>Total:</span>
+                                <span style="color: #c41e3a; font-size: 1.2rem;">N$${order.total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            ${order.status === 'pending' ? '<button class="btn btn-success" onclick="updateOrderStatus(\'' + order.id + '\', \'processing\')">Start Processing</button>' : ''}
+                            ${order.status === 'processing' ? '<button class="btn btn-info" onclick="updateOrderStatus(\'' + order.id + '\', \'shipped\')">Mark as Shipped</button>' : ''}
+                            ${order.status === 'shipped' ? '<button class="btn btn-success" onclick="updateOrderStatus(\'' + order.id + '\', \'delivered\')">Mark as Delivered</button>' : ''}
+                            <button class="btn" onclick="viewOrderDetails('${order.id}')">View Details</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateOrderStatus(orderId, newStatus) {
+            const order = onlineOrders.find(o => o.id === orderId);
+            if (order) {
+                order.status = newStatus;
+                order.updatedAt = new Date().toISOString();
+                localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
+                
+                // Refresh current view
+                const activeTab = document.querySelector('.tabs button.active');
+                if (activeTab) {
+                    activeTab.click();
+                }
+                
+                alert(`Order ${orderId} status updated to ${newStatus}`);
+            }
+        }
+        
+        function viewOrderDetails(orderId) {
+            const order = onlineOrders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            alert(`Order Details\n\n${JSON.stringify(order, null, 2)}`);
+        }
+        
+        function exportOrdersReport() {
+            const dataStr = JSON.stringify(onlineOrders, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'orders-report-' + new Date().toISOString() + '.json';
+            link.click();
+        }
     </script>
 </body>
 </html>
