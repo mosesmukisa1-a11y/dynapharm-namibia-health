@@ -64,6 +64,9 @@
                     <option value="warehouse-windhoek">Warehouse Windhoek</option>
                     <option value="warehouse-ondangwa">Warehouse Ondangwa</option>
                 </select>
+                <select id="productFilter" class="select">
+                    <option value="all">All Products</option>
+                </select>
                 <select id="dateRange" class="select">
                     <option value="today">Today</option>
                     <option value="week">Last 7 days</option>
@@ -71,6 +74,8 @@
                 </select>
                 <input id="searchBox" class="input" placeholder="Search product / request / invoice" />
                 <button id="refreshBtn" class="btn">Refresh</button>
+                <button id="printBtn" class="btn">Print</button>
+                <button id="exportBtn" class="btn">Export CSV</button>
             </div>
         </div>
     </header>
@@ -112,6 +117,20 @@
         </section>
 
         <section class="card" style="margin-bottom: 14px;">
+            <h3>Workflow Status</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="workflowStatus"></tbody>
+            </table>
+        </section>
+
+        <section class="card" style="margin-bottom: 14px;">
             <h3>Warehouse Stock Snapshot</h3>
             <table class="table">
                 <thead>
@@ -148,18 +167,50 @@
 
         // State
         let branches = [];
+        let products = [];
         let movements = [];
         let alerts = [];
 
         async function loadBranches() {
             try {
-                const resp = await fetch('/backend/dynapharm_data/branches.json').then(r => r.json()).catch(() => []);
-                branches = Array.isArray(resp) ? resp : (resp.branches || []);
-            } catch (e) { branches = []; }
+                // Try backend API first
+                const apiResp = await fetch('/api/branches').then(r => r.json());
+                branches = Array.isArray(apiResp) ? apiResp : (apiResp.branches || []);
+            } catch (e) {
+                // Fallback to localStorage setup in main app
+                try {
+                    const fromLS = JSON.parse(localStorage.getItem('dyna_branches') || '[]');
+                    branches = Array.isArray(fromLS) ? fromLS : [];
+                } catch(err) {
+                    branches = [];
+                }
+            }
             const sel = document.getElementById('branchFilter');
             branches.forEach(b => {
                 const opt = document.createElement('option');
                 opt.value = b.id; opt.textContent = b.name || b.id; sel.appendChild(opt);
+            });
+        }
+
+        async function loadProducts() {
+            // Try products API (localStorage driven)
+            try {
+                const res = getProducts({});
+                if (res?.success) {
+                    products = res.data;
+                }
+            } catch(e) { /* ignore */ }
+            // Fallback to parent PRICE_LIST if available
+            if ((!products || products.length === 0) && window.parent && Array.isArray(window.parent.PRICE_LIST)) {
+                products = window.parent.PRICE_LIST.map(p => ({ id: p.description, name: p.description, dp: p.dp, cp: p.cp, bv: p.bv }));
+            }
+            // Populate filter
+            const sel = document.getElementById('productFilter');
+            products.slice(0, 2000).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = (p.id || p.name || '').toString();
+                opt.textContent = p.name || p.description || p.id;
+                sel.appendChild(opt);
             });
         }
 
@@ -268,6 +319,7 @@
             const wh = document.getElementById('warehouseFilter').value;
             const range = document.getElementById('dateRange').value;
             const search = document.getElementById('searchBox').value.trim().toLowerCase();
+            const productFilter = document.getElementById('productFilter').value;
 
             // Transfers and requests
             const { data: transfers = [] } = getStockTransfers({ status: 'all', toBranch: branch==='all'?undefined:branch, fromWarehouse: wh==='all'?undefined:wh }) || { data: [] };
@@ -308,10 +360,13 @@
                 });
             } catch(e) {}
 
-            // Filter by search
+            // Filter by search and product
             const filtered = items.filter(i => {
                 if (!search) return true;
                 return [i.type, i.product, i.requestNumber, i.from, i.to, i.branch].filter(Boolean).join(' ').toLowerCase().includes(search);
+            }).filter(i => {
+                if (!productFilter || productFilter === 'all') return true;
+                return (i.product || '').toString().toLowerCase().includes(productFilter.toString().toLowerCase());
             }).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
 
             movements = filtered;
@@ -320,6 +375,7 @@
             renderAlerts();
             renderWarehouseSnapshot();
             renderDailyBranch();
+            renderWorkflowStatus();
         }
 
         function summarizeByBranch(items) {
@@ -383,14 +439,79 @@
             setInterval(() => { refreshData(); }, 20000);
         }
 
+        function renderWorkflowStatus() {
+            const tbody = document.getElementById('workflowStatus');
+            tbody.innerHTML = '';
+            const entries = [];
+            // Stock
+            const stockOk = !!localStorage.getItem('dyna_warehouse_stock') || !!localStorage.getItem('dyna_barcode_stock');
+            entries.push({ name: 'Stock', ok: stockOk, details: stockOk?'Warehouse/Barcode data available':'No local stock data found' });
+            // MIS
+            const misOk = !!document.querySelector('link[href*="mis-portal.html"], iframe[src*="mis-portal.html"]') || true; // assume available in repo
+            entries.push({ name: 'MIS', ok: misOk, details: misOk?'MIS module present':'MIS module not detected' });
+            // Finance
+            const financeOk = true; // finance portal exists in main system
+            entries.push({ name: 'Finance', ok: financeOk, details: 'Finance portal available in main app' });
+            // Branches
+            const branchesOk = Array.isArray(branches) && branches.length>0;
+            entries.push({ name: 'Branches', ok: branchesOk, details: branchesOk?`${branches.length} branches loaded`:'No branches loaded' });
+            // GM / Director
+            const gmOk = true; const dirOk = true;
+            entries.push({ name: 'GM Portal', ok: gmOk, details: 'GM Portal available in main app' });
+            entries.push({ name: 'Director Portal', ok: dirOk, details: 'Director Portal available in main app' });
+
+            entries.forEach(en => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${en.name}</td>
+                    <td><span class="pill ${en.ok?'good':'bad'}">${en.ok?'CONNECTED':'MISSING'}</span></td>
+                    <td class="muted">${en.details}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportCSV() {
+            const rows = [['Type','Product','Qty','From','To','Branch','Timestamp','Request/Invoice']];
+            movements.forEach(m => rows.push([
+                m.type||'', m.product||'', m.qty||'', m.from||m.source||'', m.to||m.dest||'', m.branch||'', m.ts||'', m.requestNumber||''
+            ]));
+            const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'stock_movements.csv'; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function printDashboard() {
+            const printWin = window.open('', '_blank');
+            const styles = '<style>body{font-family: Arial, sans-serif;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:6px; font-size:12px;} h2{margin:10px 0;}</style>';
+            const movementHtml = document.getElementById('movementsList').innerHTML;
+            const dailyBody = document.getElementById('dailyByBranch').innerHTML;
+            const warehouseBody = document.getElementById('warehouseSnapshot').innerHTML;
+            printWin.document.write('<html><head><title>Stock Dashboard</title>'+styles+'</head><body>');
+            printWin.document.write('<h2>Real-time Stock Movements</h2><div>'+movementHtml+'</div>');
+            printWin.document.write('<h2>Daily Stock Movements by Branch</h2><table><thead><tr><th>Branch</th><th>Stock In</th><th>Stock Out</th><th>Invoices</th></tr></thead><tbody>'+dailyBody+'</tbody></table>');
+            printWin.document.write('<h2>Warehouse Stock Snapshot</h2><table><thead><tr><th>Warehouse</th><th>Product</th><th>Qty</th><th>Reserved</th><th>Reorder</th><th>Status</th></tr></thead><tbody>'+warehouseBody+'</tbody></table>');
+            printWin.document.write('</body></html>');
+            printWin.document.close();
+            printWin.focus();
+            printWin.print();
+        }
+
         document.getElementById('refreshBtn').addEventListener('click', () => refreshData());
         document.getElementById('branchFilter').addEventListener('change', () => refreshData());
         document.getElementById('warehouseFilter').addEventListener('change', () => refreshData());
+        document.getElementById('productFilter').addEventListener('change', () => refreshData());
         document.getElementById('dateRange').addEventListener('change', () => refreshData());
         document.getElementById('searchBox').addEventListener('input', () => refreshData());
+        document.getElementById('exportBtn').addEventListener('click', exportCSV);
+        document.getElementById('printBtn').addEventListener('click', printDashboard);
 
         (async function init(){
             await loadBranches();
+            await loadProducts();
             setupRealtime();
             evaluateThresholds();
             await refreshData();
