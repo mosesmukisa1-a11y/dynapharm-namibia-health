@@ -18067,10 +18067,10 @@
                     }
                     
                     container.dataset.initialized = 'true';
-                    
-                    let currentIndex = 0;
-                    const images = container.querySelectorAll('img');
-                    const dots = container.querySelectorAll('.carousel-dot');
+                
+                let currentIndex = 0;
+                const images = container.querySelectorAll('img');
+                const dots = container.querySelectorAll('.carousel-dot');
                     let autoRotateInterval;
                     
                     function showImage(index) {
@@ -18102,37 +18102,37 @@
                     
                     let isPaused = false;
                     container.addEventListener('click', function(e) {
-                        // Click on dot navigates to specific image
-                        if (e.target.classList.contains('carousel-dot')) {
-                            const index = parseInt(e.target.getAttribute('data-index'));
-                            showImage(index);
-                            stopAutoRotate();
-                            isPaused = true;
-                            setTimeout(() => {
-                                if (!isPaused) startAutoRotate();
-                            }, 5000);
-                        } else {
-                            // Click anywhere else on carousel advances to next image
-                            nextImage();
-                            stopAutoRotate();
-                            isPaused = true;
-                            setTimeout(() => {
-                                isPaused = false;
-                                startAutoRotate();
-                            }, 10000);
-                        }
-                    });
-                    
-                    // Start auto-rotation
-                    startAutoRotate();
-                    
-                    // Pause on hover
-                    container.addEventListener('mouseenter', stopAutoRotate);
-                    container.addEventListener('mouseleave', function() {
-                        if (!isPaused) startAutoRotate();
-                    });
+                    // Click on dot navigates to specific image
+                    if (e.target.classList.contains('carousel-dot')) {
+                        const index = parseInt(e.target.getAttribute('data-index'));
+                        showImage(index);
+                        stopAutoRotate();
+                        isPaused = true;
+                        setTimeout(() => {
+                            if (!isPaused) startAutoRotate();
+                        }, 5000);
+                    } else {
+                        // Click anywhere else on carousel advances to next image
+                        nextImage();
+                        stopAutoRotate();
+                        isPaused = true;
+                        setTimeout(() => {
+                            isPaused = false;
+                            startAutoRotate();
+                        }, 10000);
+                    }
+                });
+                
+                // Start auto-rotation
+                startAutoRotate();
+                
+                // Pause on hover
+                container.addEventListener('mouseenter', stopAutoRotate);
+                container.addEventListener('mouseleave', function() {
+                    if (!isPaused) startAutoRotate();
+                });
                 }); // Close forEach
-            }, 10); // Close setTimeout (small delay to ensure DOM is ready)
+            }, 50); // Close setTimeout (small delay to ensure DOM is ready)
         }
         
         function loadShopProducts() {
@@ -18140,7 +18140,13 @@
             if (!shopProductsGrid) return;
             
             const products = PRICE_LIST || [];
-            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+            let photoMap = {};
+            try {
+                photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+            } catch (e) {
+                console.error('Error parsing product photos:', e);
+                photoMap = {};
+            }
             
             shopProductsGrid.innerHTML = products.map(product => {
                 const selectedType = document.getElementById('shopCustomerType')?.value || '';
@@ -18160,8 +18166,14 @@
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
+                // Filter out invalid entries
+                productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
                 if (productPhotos.length === 0) {
                     productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                }
+                // Limit to max 4 photos
+                if (productPhotos.length > 4) {
+                    productPhotos = productPhotos.slice(0, 4);
                 }
                 
                 const uniqueId = `product-carousel-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
@@ -18254,8 +18266,14 @@
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
+                // Filter out invalid entries
+                productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
                 if (productPhotos.length === 0) {
                     productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                }
+                // Limit to max 4 photos
+                if (productPhotos.length > 4) {
+                    productPhotos = productPhotos.slice(0, 4);
                 }
                 
                 const uniqueId = `product-carousel-filter-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
