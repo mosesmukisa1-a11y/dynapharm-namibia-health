@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynapharm Stock Management Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0b1020; --card:#111831; --muted:#8aa0b5; --text:#e6eef7; --accent:#10b981; --warn:#f59e0b; --danger:#ef4444; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+        header { position: sticky; top:0; z-index:10; background: rgba(11,16,32,0.8); backdrop-filter: blur(8px); border-bottom: 1px solid #1e2a44; }
+        .container { max-width: 1280px; margin: 0 auto; padding: 16px; }
+        .top-bar { display:flex; align-items:center; justify-content: space-between; gap: 12px; }
+        .title { font-weight:700; letter-spacing: .2px; }
+        .filters { display:flex; flex-wrap: wrap; gap: 8px; align-items:center; }
+        .select, .input { background: #0e162b; color: var(--text); border: 1px solid #223154; border-radius: 8px; padding: 8px 10px; }
+        .grid { display:grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+        .card { background: var(--card); border: 1px solid #1e2a44; border-radius: 12px; padding: 14px; }
+        .card h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); font-weight: 600; letter-spacing: .3px; }
+        .kpis { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+        .kpi { background:#0f1830; border:1px solid #1e2a44; border-radius: 12px; padding: 12px; }
+        .kpi .label { color: var(--muted); font-size: 12px; }
+        .kpi .value { font-weight:700; font-size: 20px; margin-top: 6px; }
+        .row { display:flex; gap: 12px; flex-wrap:wrap; }
+        .table { width:100%; border-collapse: collapse; font-size: 13px; }
+        .table th, .table td { padding: 8px 10px; border-bottom: 1px solid #1e2a44; text-align: left; }
+        .pill { display:inline-flex; align-items:center; gap:6px; padding: 2px 8px; border-radius:999px; font-size: 11px; border: 1px solid #263454; background:#0c142a; color: var(--muted); }
+        .pill.good { color:#10b981; border-color:#0e7d5c; background: #0b1f1a; }
+        .pill.warn { color:#f59e0b; border-color:#5a3d08; background: #211909; }
+        .pill.bad { color:#ef4444; border-color:#5b1111; background:#1a0b0b; }
+        .status { font-weight:600; }
+        .status.success { color:#10b981; }
+        .status.pending { color:#f59e0b; }
+        .status.failed { color:#ef4444; }
+        .list { display:flex; flex-direction:column; gap: 10px; }
+        .movement { display:flex; justify-content:space-between; gap:12px; padding:10px; border:1px solid #1e2a44; border-radius:10px; background:#0f1830; }
+        .movement .left { display:flex; gap:10px; align-items:center; }
+        .badge { background:#0c142a; border:1px solid #263454; color:var(--muted); border-radius:6px; padding: 2px 6px; font-size: 11px; }
+        .muted { color: var(--muted); }
+        .danger { color: var(--danger); }
+        .accent { color: var(--accent); }
+        .btn { appearance:none; border:1px solid #1e2a44; background:#0f1830; color:var(--text); border-radius:8px; padding:8px 10px; cursor:pointer; }
+        .btn.primary { background:#0f2a24; border-color:#0e7d5c; }
+        .btn:disabled { opacity:.6; cursor:not-allowed; }
+        .split-6-6 { grid-column: span 12; display:grid; gap:12px; grid-template-columns: repeat(12,1fr); }
+        .col-6 { grid-column: span 12; }
+        @media(min-width: 980px){ .col-6 { grid-column: span 6; } .split-6-6 { grid-column: span 12; } }
+        .footer { color: var(--muted); font-size: 12px; padding: 16px; text-align:center; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container top-bar">
+            <div class="title">📦 Dynapharm Stock Management Portal</div>
+            <div class="filters">
+                <select id="branchFilter" class="select">
+                    <option value="all">All Branches</option>
+                </select>
+                <select id="warehouseFilter" class="select">
+                    <option value="all">All Warehouses</option>
+                    <option value="warehouse-windhoek">Warehouse Windhoek</option>
+                    <option value="warehouse-ondangwa">Warehouse Ondangwa</option>
+                </select>
+                <select id="dateRange" class="select">
+                    <option value="today">Today</option>
+                    <option value="week">Last 7 days</option>
+                    <option value="month">Last 30 days</option>
+                </select>
+                <input id="searchBox" class="input" placeholder="Search product / request / invoice" />
+                <button id="refreshBtn" class="btn">Refresh</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 18px;">
+        <section class="kpis" style="margin-bottom: 14px;">
+            <div class="kpi"><div class="label">Total Stock Value</div><div id="kpiTotalValue" class="value">—</div></div>
+            <div class="kpi"><div class="label">Pending Transfers</div><div id="kpiPendingTransfers" class="value">—</div></div>
+            <div class="kpi"><div class="label">Low Stock Items</div><div id="kpiLowStock" class="value">—</div></div>
+            <div class="kpi"><div class="label">Alerts Today</div><div id="kpiAlerts" class="value">—</div></div>
+        </section>
+
+        <section class="grid" style="margin-bottom: 14px;">
+            <div class="card" style="grid-column: span 12;">
+                <h3>Real-time Stock Movements</h3>
+                <div id="movementsList" class="list"></div>
+            </div>
+        </section>
+
+        <section class="split-6-6" style="margin-bottom: 14px;">
+            <div class="card col-6">
+                <h3>Daily Stock Movements by Branch</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Branch</th>
+                            <th>Stock In</th>
+                            <th>Stock Out</th>
+                            <th>Invoices</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyByBranch"></tbody>
+                </table>
+            </div>
+            <div class="card col-6">
+                <h3>Alerts & Notifications</h3>
+                <div id="alertsList" class="list"></div>
+            </div>
+        </section>
+
+        <section class="card" style="margin-bottom: 14px;">
+            <h3>Warehouse Stock Snapshot</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Warehouse</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Reserved</th>
+                        <th>Reorder</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="warehouseSnapshot"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <div class="footer">Dynapharm Namibia • Stock Management • v1</div>
+
+    <script type="module">
+        import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics } from './api/stock-requests.js';
+        import { getBarcodeStockStatistics } from './api/barcode-stock.js';
+        import { getProducts } from './api/products.js';
+
+        // Simple invoice number generator SRQ already exists; we add INV
+        function generateInvoiceNumber(branchId) {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2,'0');
+            const d = String(now.getDate()).padStart(2,'0');
+            const rand = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+            return `INV-${branchId?.toUpperCase()||'ALL'}-${y}${m}${d}-${rand}`;
+        }
+
+        // State
+        let branches = [];
+        let movements = [];
+        let alerts = [];
+
+        async function loadBranches() {
+            try {
+                const resp = await fetch('/backend/dynapharm_data/branches.json').then(r => r.json()).catch(() => []);
+                branches = Array.isArray(resp) ? resp : (resp.branches || []);
+            } catch (e) { branches = []; }
+            const sel = document.getElementById('branchFilter');
+            branches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id; opt.textContent = b.name || b.id; sel.appendChild(opt);
+            });
+        }
+
+        function pushAlert(type, message, meta={}) {
+            alerts.unshift({ id: 'ALT'+Date.now()+Math.random(), type, message, meta, ts: new Date().toISOString() });
+            if (alerts.length > 100) alerts.pop();
+        }
+
+        function renderAlerts() {
+            const list = document.getElementById('alertsList');
+            list.innerHTML = '';
+            alerts.slice(0, 30).forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'movement';
+                const color = a.type === 'danger' ? 'bad' : (a.type === 'warn' ? 'warn' : 'good');
+                div.innerHTML = `
+                    <div class="left">
+                        <span class="pill ${color}">${a.type.toUpperCase()}</span>
+                        <div>
+                            <div>${a.message}</div>
+                            <div class="muted" style="font-size:11px;">${new Date(a.ts).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="badge">${a.meta?.branch||'—'}</div>
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('kpiAlerts').textContent = String(alerts.filter(a => new Date(a.ts).toDateString() === new Date().toDateString()).length);
+        }
+
+        function renderMovements() {
+            const list = document.getElementById('movementsList');
+            list.innerHTML = '';
+            movements.slice(0, 100).forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'movement';
+                div.innerHTML = `
+                    <div class="left">
+                        <span class="badge">${m.type}</span>
+                        <div>
+                            <div><span class="accent">${m.product||m.requestNumber}</span> • ${m.qty?('Qty '+m.qty):''}</div>
+                            <div class="muted" style="font-size:11px;">${new Date(m.ts).toLocaleString()} • ${m.source||m.from||'—'} → ${m.dest||m.to||'—'}</div>
+                        </div>
+                    </div>
+                    <div class="badge">${m.branch||m.to||'—'}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function renderKpis() {
+            try {
+                const stats = getStockStatistics();
+                const barcodeStats = getBarcodeStockStatistics();
+                if (stats?.success) {
+                    document.getElementById('kpiPendingTransfers').textContent = stats.data.pendingTransfers;
+                    document.getElementById('kpiLowStock').textContent = stats.data.lowStockProducts;
+                }
+                if (barcodeStats?.success) {
+                    document.getElementById('kpiTotalValue').textContent = 'N$ ' + Number(barcodeStats.data.totalStockValue).toLocaleString();
+                }
+            } catch(e) {
+                // noop
+            }
+        }
+
+        async function renderWarehouseSnapshot() {
+            const tbody = document.getElementById('warehouseSnapshot');
+            tbody.innerHTML = '';
+            const warehouses = ['warehouse-windhoek','warehouse-ondangwa'];
+            warehouses.forEach(w => {
+                const res = getWarehouseStock(w);
+                if (res?.success) {
+                    const stock = res.data;
+                    Object.keys(stock).forEach(pid => {
+                        const s = stock[pid];
+                        const status = s.quantity <= s.reorderLevel ? 'LOW' : (s.quantity > s.reorderLevel*10 ? 'OVER' : 'OK');
+                        const color = status==='LOW'?'bad':(status==='OVER'?'warn':'good');
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${w}</td>
+                            <td>${s.productId}</td>
+                            <td>${s.quantity}</td>
+                            <td>${s.reservedQuantity}</td>
+                            <td>${s.reorderLevel}</td>
+                            <td><span class="pill ${color}">${status}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+        }
+
+        function detectSuspicious(m) {
+            // Simple rules: unusually large qty, rapid repeated outs, negative stock transitions
+            if (m.qty && m.qty > 500) {
+                pushAlert('danger', `Unusually large movement of ${m.product||'item'}: ${m.qty}`, { branch: m.branch||m.to||'—' });
+            }
+            if (m.type === 'STOCK-OUT' && m.qty && m.qty > 200) {
+                pushAlert('warn', `High stock-out: ${m.qty} • ${m.product||''}`, { branch: m.branch||m.to||'—' });
+            }
+        }
+
+        async function refreshData() {
+            const branch = document.getElementById('branchFilter').value;
+            const wh = document.getElementById('warehouseFilter').value;
+            const range = document.getElementById('dateRange').value;
+            const search = document.getElementById('searchBox').value.trim().toLowerCase();
+
+            // Transfers and requests
+            const { data: transfers = [] } = getStockTransfers({ status: 'all', toBranch: branch==='all'?undefined:branch, fromWarehouse: wh==='all'?undefined:wh }) || { data: [] };
+            const { data: requests = [] } = getStockRequests({ branch: branch }) || { data: [] };
+
+            // Build movement events
+            const now = new Date();
+            const since = new Date(now);
+            if (range === 'week') since.setDate(now.getDate()-7); else if (range === 'month') since.setDate(now.getDate()-30); else since.setHours(0,0,0,0);
+
+            const items = [];
+            transfers.forEach(t => {
+                const tDate = new Date(t.createdAt || t.dispatchedAt || t.deliveredAt || t.receivedAt || t.createdAt);
+                if (tDate >= since) {
+                    items.push({ type:'TRANSFER', requestNumber: t.requestNumber, from: t.fromWarehouse, to: t.toBranch, ts: tDate.toISOString(), branch: t.toBranch });
+                }
+            });
+            requests.forEach(r => {
+                const rDate = new Date(r.createdAt);
+                if (rDate >= since) {
+                    items.push({ type:'REQUEST', requestNumber: r.requestNumber, source: r.requestingBranch, ts: rDate.toISOString(), branch: r.requestingBranch });
+                }
+            });
+
+            // Include barcode batch dispatch/sales from localStorage if present
+            try {
+                const barcodeStore = JSON.parse(localStorage.getItem('dyna_barcode_stock')||'[]');
+                barcodeStore.forEach(b => {
+                    if (Array.isArray(b.dispatches)) {
+                        b.dispatches.forEach(d => {
+                            const dDate = new Date(d.dispatchDate);
+                            if (dDate >= since) {
+                                items.push({ type:'STOCK-OUT', product: b.description, qty: d.quantity, to: d.toBranch, ts: dDate.toISOString(), branch: d.toBranch });
+                                detectSuspicious({ type:'STOCK-OUT', product:b.description, qty:d.quantity, to:d.toBranch, branch:d.toBranch });
+                            }
+                        });
+                    }
+                });
+            } catch(e) {}
+
+            // Filter by search
+            const filtered = items.filter(i => {
+                if (!search) return true;
+                return [i.type, i.product, i.requestNumber, i.from, i.to, i.branch].filter(Boolean).join(' ').toLowerCase().includes(search);
+            }).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+
+            movements = filtered;
+            renderMovements();
+            renderKpis();
+            renderAlerts();
+            renderWarehouseSnapshot();
+            renderDailyBranch();
+        }
+
+        function summarizeByBranch(items) {
+            const map = {};
+            items.forEach(i => {
+                const key = i.branch || i.to || i.source || 'unknown';
+                if (!map[key]) map[key] = { in:0, out:0, invoices: new Set() };
+                if (i.type==='TRANSFER' || i.type==='REQUEST') {
+                    map[key].in += 0; // summarized via stock movements
+                    if (i.requestNumber) map[key].invoices.add(i.requestNumber);
+                }
+                if (i.type==='STOCK-OUT') {
+                    map[key].out += Number(i.qty||0);
+                    map[key].invoices.add(generateInvoiceNumber(key));
+                }
+            });
+            return map;
+        }
+
+        function renderDailyBranch() {
+            const tbody = document.getElementById('dailyByBranch');
+            tbody.innerHTML = '';
+            const todayItems = movements.filter(m => new Date(m.ts).toDateString() === new Date().toDateString());
+            const map = summarizeByBranch(todayItems);
+            Object.keys(map).forEach(branch => {
+                const row = map[branch];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${branch}</td>
+                    <td>${row.in}</td>
+                    <td>${row.out}</td>
+                    <td class="muted">${Array.from(row.invoices).slice(0,3).join(', ')}${row.invoices.size>3?' …':''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Notifications for low stock and overstock based on warehouse snapshot
+        function evaluateThresholds() {
+            ['warehouse-windhoek','warehouse-ondangwa'].forEach(w => {
+                const res = getWarehouseStock(w);
+                if (!res?.success) return;
+                const stock = res.data;
+                Object.values(stock).forEach(s => {
+                    if (s.quantity <= s.reorderLevel) {
+                        pushAlert('warn', `Low stock ${s.productId} in ${w} (qty ${s.quantity})`, { branch: w });
+                    } else if (s.quantity > s.reorderLevel * 10) {
+                        pushAlert('warn', `Overstock ${s.productId} in ${w} (qty ${s.quantity})`, { branch: w });
+                    }
+                });
+            });
+        }
+
+        // Real-time: listen to localStorage updates and poll every 20s as fallback
+        function setupRealtime() {
+            window.addEventListener('storage', (e) => {
+                if (['dyna_stock_requests','dyna_stock_transfers','dyna_barcode_stock','dyna_warehouse_stock'].includes(e.key)) {
+                    refreshData();
+                }
+            });
+            setInterval(() => { refreshData(); }, 20000);
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', () => refreshData());
+        document.getElementById('branchFilter').addEventListener('change', () => refreshData());
+        document.getElementById('warehouseFilter').addEventListener('change', () => refreshData());
+        document.getElementById('dateRange').addEventListener('change', () => refreshData());
+        document.getElementById('searchBox').addEventListener('input', () => refreshData());
+
+        (async function init(){
+            await loadBranches();
+            setupRealtime();
+            evaluateThresholds();
+            await refreshData();
+        })();
+    </script>
+</body>
+</html>
+
+
