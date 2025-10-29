@@ -6,7 +6,16 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#c41e3a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dynapharm">
+    <link rel="manifest" href="/manifest.json">
     <title>Dynapharm International Namibia - v2.0</title>
+    <!-- FullCalendar.js -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -80,6 +89,8 @@
         .distributor-subtab.active { display: block; }
         .order-tab-content { padding: 20px; display: none; }
         .order-tab-content.active { display: block; }
+        .crm-subtab { padding: 20px; display: none; }
+        .crm-subtab.active { display: block; }
         .form-section {
             margin-bottom: 20px;
             padding: 20px;
@@ -441,6 +452,132 @@
             border-radius: 15px;
             font-size: 0.9rem;
             font-weight: 500;
+        }
+        /* Advanced Reporting System Styles */
+        .report-builder-container {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 20px;
+            height: 600px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .report-data-sources {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            overflow-y: auto;
+        }
+        .data-source-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #e8f5e9;
+            border: 1px solid #27ae60;
+            border-radius: 5px;
+            cursor: move;
+            user-select: none;
+        }
+        .data-source-item:hover {
+            background: #c8e6c9;
+        }
+        .report-canvas {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px dashed #c41e3a;
+            overflow-y: auto;
+            min-height: 100%;
+        }
+        .report-field {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f0f8ff;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            cursor: move;
+            position: relative;
+        }
+        .report-field.dragging {
+            opacity: 0.5;
+        }
+        .report-field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .report-field-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .field-config-btn {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .report-properties {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            overflow-y: auto;
+        }
+        .conditional-format-rule {
+            padding: 10px;
+            margin: 10px 0;
+            background: #fff3cd;
+            border: 1px solid #f39c12;
+            border-radius: 5px;
+        }
+        .calculated-field-formula {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .report-template-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .report-template-card:hover {
+            border-color: #c41e3a;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .scheduled-report-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 15px;
+        }
+        .scheduled-report-item.active {
+            border-left-color: #27ae60;
+        }
+        .scheduled-report-item.paused {
+            border-left-color: #e74c3c;
+        }
+        .drop-zone {
+            min-height: 100px;
+            padding: 20px;
+            text-align: center;
+            color: #7f8c8d;
+            border: 2px dashed #bbb;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .drop-zone.drag-over {
+            background: #e8f5e9;
+            border-color: #27ae60;
         }
         @media print {
             @page {
@@ -847,9 +984,137 @@
         .realtime-status.syncing {
             background: #f39c12;
         }
+
+        /* Appointment Calendar Styles */
+        .fc {
+            font-family: Arial, sans-serif;
+        }
+        .fc-event {
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+        .fc-daygrid-event {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .appointment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            overflow-y: auto;
+        }
+        .appointment-modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .time-slot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .time-slot {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .time-slot:hover {
+            border-color: #c41e3a;
+            background: #fff5f5;
+        }
+        .time-slot.selected {
+            background: #c41e3a;
+            color: white;
+            border-color: #c41e3a;
+        }
+        .time-slot.unavailable {
+            background: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .resource-selector {
+            margin: 15px 0;
+        }
+        .resource-card {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .resource-card:hover {
+            border-color: #c41e3a;
+            background: #fff5f5;
+        }
+        .resource-card.selected {
+            border-color: #c41e3a;
+            background: #fff5f5;
+        }
+        .recurring-options {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .client-booking-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .appointment-analytics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .analytics-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #c41e3a;
+        }
+        .analytics-card h4 {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .analytics-card .value {
+            color: #c41e3a;
+            font-size: 2rem;
+            font-weight: bold;
+        }
     </style>
     <!-- SheetJS library for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- D3.js for advanced visualizations -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- ML.js for predictive analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/ml-matrix@6.10.5/lib/ml-matrix.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ml-regression@4.0.1/dist/ml-regression.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- JsBarcode for barcode generation -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
     <style>
@@ -1203,9 +1468,11 @@
             <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('hr-portal')">HR Portal</button>
             <button class="tab-button" onclick="openTab('finance')">Finance Portal</button>
+            <button class="tab-button" onclick="openTab('crm')">CRM Portal</button>
             <button class="tab-button" onclick="openTab('gm')">GM Portal</button>
             <button class="tab-button" onclick="openTab('director')">Director Portal</button>
             <button class="tab-button" onclick="openTab('mis')">MIS Portal</button>
+            <button class="tab-button" onclick="openTab('advanced-reports')">📊 Advanced Reports</button>
             <button class="tab-button" onclick="openTab('stock')">Stock Management</button>
             <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
         </div>
@@ -2022,12 +2289,25 @@
                 <div class="form-section" style="margin-top: 30px;">
                     <h3>📅 Appointment Calendar</h3>
                     <div class="search-box">
-                        <button class="btn btn-success" onclick="showAppointmentCalendar()">📅 Open Calendar</button>
-                        <button class="btn btn-primary" onclick="bookAppointment()">➕ Book Appointment</button>
-                        <button class="btn btn-info" onclick="viewTodayAppointments()">👁️ Today's Appointments</button>
+                        <select id="calendarView" onchange="changeCalendarView()" style="padding: 10px; margin-right: 10px;">
+                            <option value="dayGridMonth">Monthly</option>
+                            <option value="timeGridWeek">Weekly</option>
+                            <option value="timeGridDay">Daily</option>
+                        </select>
+                        <button class="btn btn-success" onclick="initFullCalendar()">📅 Open Calendar</button>
+                        <button class="btn btn-primary" onclick="showAppointmentBookingModal()">➕ Book Appointment</button>
+                        <button class="btn btn-info" onclick="showTimeSlotManagement()">⏰ Manage Time Slots</button>
+                        <button class="btn btn-warning" onclick="showAppointmentAnalytics()">📊 Analytics</button>
                     </div>
                     <div id="appointmentCalendar" style="display: none; margin-top: 20px;"></div>
                     <div id="appointmentsList"></div>
+                </div>
+                
+                <!-- Client Self-Service Booking Page -->
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>🔗 Client Booking Page</h3>
+                    <button class="btn btn-success" onclick="showClientBookingPage()">🌐 Open Client Booking Page</button>
+                    <button class="btn btn-info" onclick="copyBookingLink()">📋 Copy Booking Link</button>
                 </div>
             </div>
         </div>
@@ -2308,6 +2588,10 @@
                     <button class="tab-button" onclick="showStockTab('ondangwa')">🏢 Ondangwa Warehouse</button>
                     <button class="tab-button" onclick="showStockTab('distribution')">🚚 Distribution</button>
                     <button class="tab-button" onclick="showStockTab('inventory')">📊 Inventory Management</button>
+                    <button class="tab-button" onclick="showStockTab('barcode')">📷 Barcode System</button>
+                    <button class="tab-button" onclick="showStockTab('reorder')">⚠️ Reorder Points</button>
+                    <button class="tab-button" onclick="showStockTab('batch')">🔢 Batch Tracking</button>
+                    <button class="tab-button" onclick="showStockTab('valuation')">💰 Stock Valuation</button>
                 </div>
                 
                 <!-- Dashboard Tab (embedded portal) -->
@@ -2405,16 +2689,20 @@
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label class="required">Source</label>
-                                    <select id="windhoekSource" required>
+                                    <select id="windhoekSource" required onchange="loadWindhoekProducts()">
                                         <option value="country">Country Stock</option>
                                         <option value="ondangwa">Ondangwa Warehouse</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label class="required">Product</label>
-                                    <select id="windhoekProduct" required>
+                                    <select id="windhoekProduct" required onchange="updateWindhoekAvailableQuantity()">
                                         <option value="">Select Product</option>
                                     </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Available Quantity</label>
+                                    <input type="text" id="windhoekAvailableQty" readonly style="background-color: #f5f5f5; font-weight: bold; color: #27ae60;" placeholder="Select product to view available quantity">
                                 </div>
                                 <div class="form-group">
                                     <label class="required">Quantity</label>
@@ -2450,16 +2738,20 @@
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label class="required">Source</label>
-                                    <select id="ondangwaSource" required>
+                                    <select id="ondangwaSource" required onchange="loadOndangwaProducts()">
                                         <option value="country">Country Stock</option>
                                         <option value="windhoek">Windhoek Warehouse</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label class="required">Product</label>
-                                    <select id="ondangwaProduct" required>
+                                    <select id="ondangwaProduct" required onchange="updateOndangwaAvailableQuantity()">
                                         <option value="">Select Product</option>
                                     </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Available Quantity</label>
+                                    <input type="text" id="ondangwaAvailableQty" readonly style="background-color: #f5f5f5; font-weight: bold; color: #27ae60;" placeholder="Select product to view available quantity">
                                 </div>
                                 <div class="form-group">
                                     <label class="required">Quantity</label>
@@ -2518,8 +2810,16 @@
                                     <input type="number" id="distributionQuantity" min="1" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Date</label>
+                                    <label class="required">Date</label>
                                     <input type="date" id="distributionDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Expiry Date</label>
+                                    <input type="month" id="distributionExpiryDate" required placeholder="YYYY-MM" title="Enter the expiry date for this stock batch">
+                                </div>
+                                <div class="form-group">
+                                    <label class="required">Dispatch Number</label>
+                                    <input type="text" id="distributionDispatchNumber" required placeholder="e.g., DISP-2024-001" title="Enter the dispatch/reference number for this distribution">
                                 </div>
                                 <div class="form-group">
                                     <label>Notes</label>
@@ -3331,6 +3631,223 @@
                         <button class="btn btn-primary" onclick="printInventoryReport()">🖨️ Print Report</button>
                     </div>
                     <div id="inventoryList" style="max-height: 500px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRM Portal -->
+        <div id="crm" class="tab-content">
+            <h2>👥 Client Relationship Management (CRM)</h2>
+            
+            <!-- CRM Sub-tabs -->
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-button active" onclick="showCRMTab('communication')">💬 Communication History</button>
+                <button class="tab-button" onclick="showCRMTab('segmentation')">📊 Client Segmentation</button>
+                <button class="tab-button" onclick="showCRMTab('workflows')">⚙️ Automated Workflows</button>
+                <button class="tab-button" onclick="showCRMTab('loyalty')">🎁 Loyalty Program</button>
+            </div>
+
+            <!-- Communication History Tab -->
+            <div id="crm-communication" class="crm-subtab active">
+                <div class="form-section">
+                    <h3>💬 Client Communication History</h3>
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <select id="crmClientSelect" onchange="loadClientCommunication()" style="padding: 10px; min-width: 250px;">
+                            <option value="">Select Client...</option>
+                        </select>
+                        <button class="btn btn-success" onclick="addClientInteraction()">➕ Add Interaction</button>
+                        <button class="btn btn-info" onclick="refreshCRMCommunication()">🔄 Refresh</button>
+                        <button class="btn" onclick="exportClientHistory()">📥 Export</button>
+                    </div>
+                    
+                    <!-- Client Overview -->
+                    <div id="crmClientOverview" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 id="crmClientName"></h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                            <div>
+                                <strong>Total Interactions:</strong> <span id="crmTotalInteractions">0</span>
+                            </div>
+                            <div>
+                                <strong>Last Contact:</strong> <span id="crmLastContact">Never</span>
+                            </div>
+                            <div>
+                                <strong>Purchase History:</strong> <span id="crmPurchaseCount">0</span> purchases
+                            </div>
+                            <div>
+                                <strong>Total Spent:</strong> <span id="crmTotalSpent">N$ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interaction Timeline -->
+                    <div id="crmInteractionTimeline" style="max-height: 600px; overflow-y: auto;">
+                        <p style="text-align: center; color: #7f8c8d; padding: 20px;">Select a client to view communication history</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Segmentation Tab -->
+            <div id="crm-segmentation" class="crm-subtab" style="display: none;">
+                <div class="form-section">
+                    <h3>📊 Client Segmentation</h3>
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-info" onclick="refreshSegmentation()">🔄 Refresh Analysis</button>
+                        <button class="btn" onclick="exportSegmentationReport()">📥 Export Report</button>
+                    </div>
+
+                    <!-- Segmentation Dashboard -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px;">
+                            <h4 style="color: white;">⭐ VIP Clients</h4>
+                            <div style="font-size: 2rem; font-weight: bold;" id="vipClientCount">0</div>
+                            <p style="margin-top: 10px; opacity: 0.9;">Clients spending N$ 10,000+</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px;">
+                            <h4 style="color: white;">⚠️ At-Risk Clients</h4>
+                            <div style="font-size: 2rem; font-weight: bold;" id="atRiskClientCount">0</div>
+                            <p style="margin-top: 10px; opacity: 0.9;">No purchase in 90+ days</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 8px;">
+                            <h4 style="color: white;">🔄 Active Clients</h4>
+                            <div style="font-size: 2rem; font-weight: bold;" id="activeClientCount">0</div>
+                            <p style="margin-top: 10px; opacity: 0.9;">Purchased in last 30 days</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 8px;">
+                            <h4 style="color: white;">🆕 New Clients</h4>
+                            <div style="font-size: 2rem; font-weight: bold;" id="newClientCount">0</div>
+                            <p style="margin-top: 10px; opacity: 0.9;">Registered in last 30 days</p>
+                        </div>
+                    </div>
+
+                    <!-- Client Lists by Segment -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                        <div class="form-section">
+                            <h4>⭐ VIP Clients</h4>
+                            <div id="vipClientsList" style="max-height: 400px; overflow-y: auto;">
+                                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>⚠️ At-Risk Clients</h4>
+                            <div id="atRiskClientsList" style="max-height: 400px; overflow-y: auto;">
+                                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>🔄 Active Clients</h4>
+                            <div id="activeClientsList" style="max-height: 400px; overflow-y: auto;">
+                                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>📈 Purchase Behavior Analysis</h4>
+                            <div id="purchaseBehaviorAnalysis" style="max-height: 400px; overflow-y: auto;">
+                                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automated Workflows Tab -->
+            <div id="crm-workflows" class="crm-subtab" style="display: none;">
+                <div class="form-section">
+                    <h3>⚙️ Automated Workflows</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button class="btn btn-success" onclick="createWorkflow()">➕ Create Workflow</button>
+                        <button class="btn btn-info" onclick="refreshWorkflows()">🔄 Refresh</button>
+                    </div>
+
+                    <!-- Active Workflows -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="form-section" style="background: #e8f5e9;">
+                            <h4>📧 Welcome Emails</h4>
+                            <div id="welcomeEmailStats">
+                                <p>Sent today: <strong id="welcomeEmailsToday">0</strong></p>
+                                <p>Total sent: <strong id="welcomeEmailsTotal">0</strong></p>
+                            </div>
+                            <button class="btn btn-sm" onclick="configureWelcomeEmails()">Configure</button>
+                        </div>
+                        <div class="form-section" style="background: #fff3e0;">
+                            <h4>🎂 Birthday Greetings</h4>
+                            <div id="birthdayStats">
+                                <p>Today's birthdays: <strong id="birthdaysToday">0</strong></p>
+                                <p>Sent today: <strong id="birthdayGreetingsToday">0</strong></p>
+                            </div>
+                            <button class="btn btn-sm" onclick="configureBirthdayGreetings()">Configure</button>
+                        </div>
+                        <div class="form-section" style="background: #e3f2fd;">
+                            <h4>🔄 Reorder Reminders</h4>
+                            <div id="reorderStats">
+                                <p>Reminders sent today: <strong id="reorderRemindersToday">0</strong></p>
+                                <p>Total active: <strong id="activeReminders">0</strong></p>
+                            </div>
+                            <button class="btn btn-sm" onclick="configureReorderReminders()">Configure</button>
+                        </div>
+                        <div class="form-section" style="background: #fce4ec;">
+                            <h4>📅 Follow-up Scheduling</h4>
+                            <div id="followupStats">
+                                <p>Scheduled today: <strong id="followupsToday">0</strong></p>
+                                <p>Pending: <strong id="pendingFollowups">0</strong></p>
+                            </div>
+                            <button class="btn btn-sm" onclick="configureFollowups()">Configure</button>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Log -->
+                    <div class="form-section">
+                        <h4>📋 Workflow Execution Log</h4>
+                        <div id="workflowLog" style="max-height: 400px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                            <p style="text-align: center; color: #7f8c8d;">No workflow executions yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loyalty Program Tab -->
+            <div id="crm-loyalty" class="crm-subtab" style="display: none;">
+                <div class="form-section">
+                    <h3>🎁 Loyalty Program</h3>
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="showLoyaltyConfig()">⚙️ Configure Program</button>
+                        <button class="btn btn-info" onclick="refreshLoyaltyData()">🔄 Refresh</button>
+                        <button class="btn" onclick="viewLoyaltyReport()">📊 Reports</button>
+                    </div>
+
+                    <!-- Loyalty Tiers -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; border: 3px solid #cd7f32;">
+                            <h4>🥉 Bronze</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #cd7f32;" id="bronzeCount">0</div>
+                            <p>0 - N$ 2,499</p>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; border: 3px solid #c0c0c0;">
+                            <h4>🥈 Silver</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #c0c0c0;" id="silverCount">0</div>
+                            <p>N$ 2,500 - N$ 9,999</p>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; border: 3px solid #ffd700;">
+                            <h4>🥇 Gold</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffd700;" id="goldCount">0</div>
+                            <p>N$ 10,000 - N$ 24,999</p>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; border: 3px solid #b9f2ff;">
+                            <h4>💎 Platinum</h4>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #b9f2ff;" id="platinumCount">0</div>
+                            <p>N$ 25,000+</p>
+                        </div>
+                    </div>
+
+                    <!-- Loyalty Members -->
+                    <div class="form-section">
+                        <h4>🎁 Loyalty Program Members</h4>
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" id="loyaltySearch" placeholder="Search members..." onkeyup="filterLoyaltyMembers()" style="padding: 10px; width: 300px;">
+                        </div>
+                        <div id="loyaltyMembersList" style="max-height: 500px; overflow-y: auto;">
+                            <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading loyalty members...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4672,6 +5189,18 @@
         
         // Appointments tracking
         let appointments = [];
+        
+        // Time slots configuration
+        let timeSlots = {
+            morning: { start: '08:00', end: '12:00', interval: 30 },
+            afternoon: { start: '13:00', end: '17:00', interval: 30 }
+        };
+        
+        // Resources (consultants, dispensers, rooms)
+        let resources = [];
+        
+        // Appointment reminders queue
+        let reminderQueue = [];
         
         let lastDataHash = null;
         
@@ -6218,12 +6747,95 @@
             document.getElementById('mh_na').checked = true;
         }
 
+        // Enhanced signature with camera support
         function signDocument() {
-            const name = prompt('Enter your full name for signature:');
-            if (name) {
-                document.getElementById('signatureField').value = name;
-                document.getElementById('signaturePad').innerHTML = `Signed: ${name}<br>${new Date().toLocaleString()}`;
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Check if user wants to use camera or enter text
+                const useCamera = confirm('Would you like to capture signature using camera? (Click OK for camera, Cancel for text input)');
+                if (useCamera) {
+                    captureSignatureWithCamera();
+                } else {
+                    const name = prompt('Enter your full name for signature:');
+                    if (name) {
+                        document.getElementById('signatureField').value = name;
+                        document.getElementById('signaturePad').innerHTML = `Signed: ${name}<br>${new Date().toLocaleString()}`;
+                        document.getElementById('signaturePad').style.background = '#e8f5e9';
+                    }
+                }
+            } else {
+                const name = prompt('Enter your full name for signature:');
+                if (name) {
+                    document.getElementById('signatureField').value = name;
+                    document.getElementById('signaturePad').innerHTML = `Signed: ${name}<br>${new Date().toLocaleString()}`;
+                    document.getElementById('signaturePad').style.background = '#e8f5e9';
+                }
+            }
+        }
+
+        function captureSignatureWithCamera() {
+            const video = document.createElement('video');
+            video.style.width = '100%';
+            video.style.maxWidth = '400px';
+            video.autoplay = true;
+            video.playsInline = true;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;';
+            
+            const container = document.createElement('div');
+            container.style.cssText = 'background: white; padding: 20px; border-radius: 10px; max-width: 90%;';
+
+            const controls = document.createElement('div');
+            controls.style.cssText = 'margin-top: 15px; display: flex; gap: 10px; justify-content: center;';
+
+            const captureBtn = document.createElement('button');
+            captureBtn.className = 'btn btn-success';
+            captureBtn.textContent = '📷 Capture';
+            captureBtn.onclick = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                const dataURL = canvas.toDataURL('image/png');
+                document.getElementById('signatureField').value = 'Signature captured';
+                document.getElementById('signaturePad').innerHTML = `<img src="${dataURL}" style="max-width: 100%; border-radius: 5px;" alt="Signature"><br>Captured: ${new Date().toLocaleString()}`;
                 document.getElementById('signaturePad').style.background = '#e8f5e9';
+                // Store signature image
+                localStorage.setItem('lastSignature', dataURL);
+                stopCamera();
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-danger';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = stopCamera;
+
+            controls.appendChild(captureBtn);
+            controls.appendChild(cancelBtn);
+            container.appendChild(video);
+            container.appendChild(controls);
+            modal.appendChild(container);
+            document.body.appendChild(modal);
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    window.captureStream = stream;
+                })
+                .catch(err => {
+                    alert('Camera access denied. Please enter signature manually.');
+                    document.body.removeChild(modal);
+                });
+
+            function stopCamera() {
+                if (window.captureStream) {
+                    window.captureStream.getTracks().forEach(track => track.stop());
+                }
+                if (document.body.contains(modal)) {
+                    document.body.removeChild(modal);
+                }
             }
         }
 
@@ -10762,9 +11374,13 @@
                 isOpen: true,
                 openedBy: currentUser.fullName,
                 openedAt: new Date().toISOString(),
+                branch: currentUser ? currentUser.branch : (currentBranch || 'unknown'), // Save branch for finance access
                 drops: [],
                 expenses: []
             };
+            
+            // Save to localStorage for finance portal access
+            localStorage.setItem('dyna_cash_drawer', JSON.stringify(cashDrawer));
             
             alert(`✅ Cash drawer opened\nOpening Balance: N$${amount.toFixed(2)}\nOpened by: ${currentUser.fullName}`);
             displayCashDrawerStatus();
@@ -14162,6 +14778,89 @@
             document.getElementById('selectedDistributorCode').textContent = code;
             document.getElementById('selectedDistributorMobile').textContent = distributor.mobileNo || distributor.mobile || 'N/A';
             document.getElementById('selectedDistributorInfo').style.display = 'block';
+            document.getElementById('changeReferralBtn').style.display = 'block';
+        }
+        
+        function clearSelectedReferral() {
+            // Clear the search input
+            const searchInput = document.getElementById('distributorReferralSearch');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            
+            // Clear the hidden referral value
+            const referralValue = document.getElementById('distributorReferralValue');
+            if (referralValue) {
+                referralValue.value = '';
+            }
+            
+            // Hide the dropdown
+            const dropdown = document.getElementById('distributorReferralDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+                dropdown.innerHTML = '';
+            }
+            
+            // Hide the selected distributor info
+            const selectedInfo = document.getElementById('selectedDistributorInfo');
+            if (selectedInfo) {
+                selectedInfo.style.display = 'none';
+            }
+            
+            // Hide the change referral button
+            const changeBtn = document.getElementById('changeReferralBtn');
+            if (changeBtn) {
+                changeBtn.style.display = 'none';
+            }
+            
+            // Reset the no referral checkbox
+            const noReferralCheckbox = document.getElementById('noReferralCheckbox');
+            if (noReferralCheckbox) {
+                noReferralCheckbox.checked = false;
+            }
+        }
+        
+        function handleNoReferralCheckbox() {
+            const noReferralCheckbox = document.getElementById('noReferralCheckbox');
+            const referralSearch = document.getElementById('distributorReferralSearch');
+            const referralValue = document.getElementById('distributorReferralValue');
+            const referralField = document.getElementById('customerReferralField');
+            
+            if (noReferralCheckbox && noReferralCheckbox.checked) {
+                // Set default to Dynapharm Namibia
+                if (referralSearch) {
+                    referralSearch.value = 'Dynapharm Namibia';
+                    referralSearch.disabled = true;
+                }
+                if (referralValue) {
+                    referralValue.value = 'DYNAPHARM-NAMIBIA';
+                }
+                
+                // Hide the search field
+                if (referralField) {
+                    referralField.style.opacity = '0.7';
+                }
+                
+                // Hide dropdown and clear it
+                const dropdown = document.getElementById('distributorReferralDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            } else {
+                // Enable search field again
+                if (referralSearch) {
+                    referralSearch.value = '';
+                    referralSearch.disabled = false;
+                }
+                if (referralValue) {
+                    referralValue.value = '';
+                }
+                
+                // Show the search field
+                if (referralField) {
+                    referralField.style.opacity = '1';
+                }
+            }
         }
         
         function searchDistributorsForCustomerName() {
@@ -14428,9 +15127,9 @@
         }
 
         async function processWalkInPayment() {
-            const customerName = document.getElementById('walkInCustomerName').value;
-            const phone = document.getElementById('walkInPhone').value;
-            const email = document.getElementById('walkInEmail').value;
+            const customerName = document.getElementById('walkInCustomerName').value.trim();
+            const phone = document.getElementById('walkInPhone').value.trim();
+            const email = document.getElementById('walkInEmail').value.trim();
             const customerType = document.getElementById('walkInCustomerType').value;
             
             // Validation
@@ -14470,6 +15169,82 @@
                 referralName = customerName; // Their own name
             }
             
+            // Check if customer already exists as a client
+            let existingClient = null;
+            if (phone || email) {
+                existingClient = clients.find(c => {
+                    const clientName = (c.fullName || c.name || '').toLowerCase().trim();
+                    const clientPhone = (c.phone || '').trim();
+                    const clientEmail = (c.email || '').trim().toLowerCase();
+                    
+                    const searchName = customerName.toLowerCase().trim();
+                    const searchPhone = phone.trim();
+                    const searchEmail = email.trim().toLowerCase();
+                    
+                    // Match by name and phone/email
+                    const nameMatch = clientName === searchName;
+                    const phoneMatch = phone && clientPhone && clientPhone === searchPhone;
+                    const emailMatch = email && clientEmail && clientEmail === searchEmail;
+                    
+                    return nameMatch && (phoneMatch || emailMatch);
+                });
+            }
+            
+            let clientId = null;
+            let clientReferenceNumber = null;
+            
+            // Register new client if they don't exist
+            if (!existingClient && customerType === 'customer') {
+                try {
+                    // Generate reference number
+                    const firstName = customerName.split(' ')[0].toUpperCase();
+                    const nbNumber = phone ? `NB${phone.replace(/\D/g, '').slice(-8)}` : '';
+                    clientReferenceNumber = `CLT-${firstName}-${nbNumber}-${Date.now()}`;
+                    
+                    const newClient = {
+                        referenceNumber: clientReferenceNumber,
+                        fullName: customerName,
+                        phone: phone || '',
+                        email: email || '',
+                        nbNumber: nbNumber,
+                        membershipStatus: 'referred',
+                        referralName: referralName,
+                        referralNbNumber: referralId || '',
+                        branch: currentUser ? currentUser.branch : 'unknown',
+                        timestamp: new Date().toISOString(),
+                        firstVisit: new Date().toISOString(),
+                        registeredFrom: 'walkin_sale'
+                    };
+                    
+                    // Try to save via API first
+                    try {
+                        const result = await apiRequest('/clients', 'POST', newClient);
+                        if (result && result.id) {
+                            clientId = result.id;
+                            newClient.id = result.id;
+                        } else {
+                            clientId = clientReferenceNumber;
+                            newClient.id = clientReferenceNumber;
+                        }
+                        clients.push(newClient);
+                        console.log('✅ New walk-in client registered:', newClient.referenceNumber);
+                    } catch (apiError) {
+                        console.warn('API save failed, saving locally:', apiError);
+                        // Fallback to local storage
+                        clientId = clientReferenceNumber;
+                        newClient.id = clientReferenceNumber;
+                        clients.push(newClient);
+                        localStorage.setItem('dyna_clients', JSON.stringify(clients));
+                    }
+                } catch (error) {
+                    console.error('Error registering new client:', error);
+                    // Continue with sale even if client registration fails
+                }
+            } else if (existingClient) {
+                clientId = existingClient.id || existingClient.referenceNumber;
+                clientReferenceNumber = existingClient.referenceNumber;
+            }
+            
             // Use DP for distributors, CP for customers
             const subtotal = walkInCart.reduce((sum, item) => {
                 const pricePerUnit = customerType === 'distributor' ? item.dp : item.cp;
@@ -14483,8 +15258,13 @@
             // No tax - grand total equals subtotal
             const grandTotal = subtotal;
             
+            const now = new Date();
+            const saleDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format for finance
+            
             const sale = {
                 id: 'WALKIN-' + Date.now(),
+                clientId: clientId,
+                clientReferenceNumber: clientReferenceNumber,
                 customerName: customerName,
                 phone: phone,
                 email: email,
@@ -14497,10 +15277,13 @@
                 subtotal: subtotal,
                 tax: 0,
                 total: grandTotal,
+                totalAmount: grandTotal, // For finance compatibility
                 totalBV: totalBV,
-                timestamp: new Date().toISOString(),
+                date: saleDate, // For finance compatibility (YYYY-MM-DD)
+                timestamp: now.toISOString(),
                 soldBy: currentUser ? currentUser.fullName : 'Unknown',
-                branch: currentUser ? currentUser.branch : 'unknown'
+                branch: currentUser ? currentUser.branch : 'unknown',
+                paymentMethod: 'cash' // Default, can be updated if payment method tracking added
             };
             
             // Reduce inventory for sold items
@@ -14512,9 +15295,14 @@
             // Record department event
             recordDepartmentEvent('walkin_sale', sale);
 
-            // Save sale to localStorage
+            // Save sale to localStorage - save to both keys for compatibility
             walkInSales.push(sale);
             localStorage.setItem('dyna_walkin_sales', JSON.stringify(walkInSales));
+            
+            // Also save to the key finance portal expects (for backward compatibility)
+            const financeSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            financeSales.push(sale);
+            localStorage.setItem('dynapharm_walkin_sales', JSON.stringify(financeSales));
             
             // Update cash drawer
             const cashDrawer = JSON.parse(localStorage.getItem('dyna_cash_drawer') || '{}');
@@ -14526,8 +15314,14 @@
             });
             localStorage.setItem('dyna_cash_drawer', JSON.stringify(cashDrawer));
             
-            // Show success message
-            alert(`✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}`);
+            // Show success message with client registration info if applicable
+            let successMessage = `✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}`;
+            if (clientReferenceNumber && !existingClient) {
+                successMessage += `\n\n📝 New client registered!\nReference: ${clientReferenceNumber}`;
+            } else if (clientReferenceNumber) {
+                successMessage += `\n\n👤 Client: ${clientReferenceNumber}`;
+            }
+            alert(successMessage);
             
             // Close modal and reset
             closeModal('walkInSaleModal');
@@ -14548,7 +15342,8 @@
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <strong>${sale.customerName}</strong>
-                            <div style="font-size: 0.85rem; color: #666;">
+                            ${sale.clientReferenceNumber ? `<div style="font-size: 0.75rem; color: #27ae60; font-weight: 500; margin-top: 2px;">📝 ${sale.clientReferenceNumber}</div>` : ''}
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
                                 ${sale.phone || 'N/A'} | ${new Date(sale.timestamp).toLocaleString()}
                             </div>
                             <div style="font-size: 0.85rem; color: #666;">
@@ -15461,6 +16256,11 @@
             displayOndangwaStock();
             alert('Stock transferred to Windhoek Warehouse!');
             document.getElementById('transferToWindhoekForm').reset();
+            const windhoekAvailableQty = document.getElementById('windhoekAvailableQty');
+            if (windhoekAvailableQty) {
+                windhoekAvailableQty.value = '';
+                windhoekAvailableQty.placeholder = 'Select product to view available quantity';
+            }
         });
         
         // Transfer to Ondangwa Warehouse
@@ -15546,7 +16346,240 @@
             displayOndangwaStock();
             alert('Stock transferred to Ondangwa Warehouse!');
             document.getElementById('transferToOndangwaForm').reset();
+            const ondangwaAvailableQty = document.getElementById('ondangwaAvailableQty');
+            if (ondangwaAvailableQty) {
+                ondangwaAvailableQty.value = '';
+                ondangwaAvailableQty.placeholder = 'Select product to view available quantity';
+            }
         });
+        
+        // Load products for Windhoek transfer based on source
+        function loadWindhoekProducts() {
+            const source = document.getElementById('windhoekSource')?.value;
+            const productSelect = document.getElementById('windhoekProduct');
+            const availableQtyField = document.getElementById('windhoekAvailableQty');
+            
+            if (!productSelect || !source) return;
+            
+            // Reset fields
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            if (availableQtyField) {
+                availableQtyField.value = '';
+                availableQtyField.placeholder = 'Select product to view available quantity';
+            }
+            document.getElementById('windhoekQuantity').value = '';
+            
+            loadStockData();
+            let products = [];
+            
+            if (source === 'country') {
+                // Get products from country stock and barcode stock
+                const productMap = new Map();
+                
+                // Add from countryStock
+                countryStock.forEach(item => {
+                    if (!productMap.has(item.productName)) {
+                        productMap.set(item.productName, item.quantity);
+                    } else {
+                        productMap.set(item.productName, productMap.get(item.productName) + item.quantity);
+                    }
+                });
+                
+                // Add from barcode stock
+                try {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    barcodeStock.forEach(batch => {
+                        if (batch.location === 'country_stock' && batch.status === 'available') {
+                            const currentQty = productMap.get(batch.description) || 0;
+                            productMap.set(batch.description, currentQty + (batch.remainingQuantity || 0));
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading barcode stock:', error);
+                }
+                
+                products = Array.from(productMap.entries()).map(([name, qty]) => ({ productName: name, quantity: qty }));
+            } else if (source === 'ondangwa') {
+                // Get products from Ondangwa warehouse
+                products = ondangwaStock.map(item => ({
+                    productName: item.productName,
+                    quantity: item.quantity
+                }));
+            }
+            
+            // Populate dropdown
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.productName;
+                option.textContent = `${product.productName} (Available: ${product.quantity} units)`;
+                productSelect.appendChild(option);
+            });
+        }
+        
+        // Load products for Ondangwa transfer based on source
+        function loadOndangwaProducts() {
+            const source = document.getElementById('ondangwaSource')?.value;
+            const productSelect = document.getElementById('ondangwaProduct');
+            const availableQtyField = document.getElementById('ondangwaAvailableQty');
+            
+            if (!productSelect || !source) return;
+            
+            // Reset fields
+            productSelect.innerHTML = '<option value="">Select Product</option>';
+            if (availableQtyField) {
+                availableQtyField.value = '';
+                availableQtyField.placeholder = 'Select product to view available quantity';
+            }
+            document.getElementById('ondangwaQuantity').value = '';
+            
+            loadStockData();
+            let products = [];
+            
+            if (source === 'country') {
+                // Get products from country stock and barcode stock
+                const productMap = new Map();
+                
+                // Add from countryStock
+                countryStock.forEach(item => {
+                    if (!productMap.has(item.productName)) {
+                        productMap.set(item.productName, item.quantity);
+                    } else {
+                        productMap.set(item.productName, productMap.get(item.productName) + item.quantity);
+                    }
+                });
+                
+                // Add from barcode stock
+                try {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    barcodeStock.forEach(batch => {
+                        if (batch.location === 'country_stock' && batch.status === 'available') {
+                            const currentQty = productMap.get(batch.description) || 0;
+                            productMap.set(batch.description, currentQty + (batch.remainingQuantity || 0));
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading barcode stock:', error);
+                }
+                
+                products = Array.from(productMap.entries()).map(([name, qty]) => ({ productName: name, quantity: qty }));
+            } else if (source === 'windhoek') {
+                // Get products from Windhoek warehouse
+                products = windhoekStock.map(item => ({
+                    productName: item.productName,
+                    quantity: item.quantity
+                }));
+            }
+            
+            // Populate dropdown
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.productName;
+                option.textContent = `${product.productName} (Available: ${product.quantity} units)`;
+                productSelect.appendChild(option);
+            });
+        }
+        
+        // Update available quantity for Windhoek transfer
+        function updateWindhoekAvailableQuantity() {
+            const source = document.getElementById('windhoekSource')?.value;
+            const productName = document.getElementById('windhoekProduct')?.value;
+            const availableQtyField = document.getElementById('windhoekAvailableQty');
+            
+            if (!productName || !availableQtyField) {
+                if (availableQtyField) {
+                    availableQtyField.value = '';
+                    availableQtyField.placeholder = 'Select product to view available quantity';
+                }
+                return;
+            }
+            
+            loadStockData();
+            let availableQty = 0;
+            
+            if (source === 'country') {
+                // Check both countryStock and barcode stock
+                const item = countryStock.find(s => s.productName === productName);
+                if (item) {
+                    availableQty += item.quantity;
+                }
+                
+                // Check barcode stock
+                try {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    const matchingBatches = barcodeStock.filter(b => 
+                        b.description === productName && 
+                        b.location === 'country_stock' && 
+                        b.status === 'available'
+                    );
+                    const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
+                    availableQty += totalBarcodeQty;
+                } catch (error) {
+                    console.error('Error loading barcode stock:', error);
+                }
+            } else if (source === 'ondangwa') {
+                const item = ondangwaStock.find(s => s.productName === productName);
+                availableQty = item ? item.quantity : 0;
+            }
+            
+            if (availableQty > 0) {
+                availableQtyField.value = `${availableQty} units available`;
+                availableQtyField.style.color = '#27ae60';
+            } else {
+                availableQtyField.value = '0 units available';
+                availableQtyField.style.color = '#e74c3c';
+            }
+        }
+        
+        // Update available quantity for Ondangwa transfer
+        function updateOndangwaAvailableQuantity() {
+            const source = document.getElementById('ondangwaSource')?.value;
+            const productName = document.getElementById('ondangwaProduct')?.value;
+            const availableQtyField = document.getElementById('ondangwaAvailableQty');
+            
+            if (!productName || !availableQtyField) {
+                if (availableQtyField) {
+                    availableQtyField.value = '';
+                    availableQtyField.placeholder = 'Select product to view available quantity';
+                }
+                return;
+            }
+            
+            loadStockData();
+            let availableQty = 0;
+            
+            if (source === 'country') {
+                // Check both countryStock and barcode stock
+                const item = countryStock.find(s => s.productName === productName);
+                if (item) {
+                    availableQty += item.quantity;
+                }
+                
+                // Check barcode stock
+                try {
+                    const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
+                    const matchingBatches = barcodeStock.filter(b => 
+                        b.description === productName && 
+                        b.location === 'country_stock' && 
+                        b.status === 'available'
+                    );
+                    const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
+                    availableQty += totalBarcodeQty;
+                } catch (error) {
+                    console.error('Error loading barcode stock:', error);
+                }
+            } else if (source === 'windhoek') {
+                const item = windhoekStock.find(s => s.productName === productName);
+                availableQty = item ? item.quantity : 0;
+            }
+            
+            if (availableQty > 0) {
+                availableQtyField.value = `${availableQty} units available`;
+                availableQtyField.style.color = '#27ae60';
+            } else {
+                availableQtyField.value = '0 units available';
+                availableQtyField.style.color = '#e74c3c';
+            }
+        }
         
         // Distribute to branches
         document.getElementById('distributeStockForm')?.addEventListener('submit', function(e) {
@@ -15556,7 +16589,33 @@
             const productName = document.getElementById('distributionProduct').value; // Changed from productId to productName
             const quantity = parseInt(document.getElementById('distributionQuantity').value);
             const date = document.getElementById('distributionDate').value || new Date().toISOString().split('T')[0];
+            const expiryDate = document.getElementById('distributionExpiryDate').value;
+            const dispatchNumber = document.getElementById('distributionDispatchNumber').value.trim();
             const notes = document.getElementById('distributionNotes').value;
+            
+            // Validate required fields
+            if (!expiryDate) {
+                alert('❌ Expiry Date is required!');
+                return;
+            }
+            
+            if (!dispatchNumber) {
+                alert('❌ Dispatch Number is required!');
+                return;
+            }
+            
+            // Validate dispatch number is not empty after trim
+            if (dispatchNumber.length === 0) {
+                alert('❌ Dispatch Number cannot be empty!');
+                return;
+            }
+            
+            // Check if dispatch number already exists
+            const existingDispatch = distributionHistory.find(d => d.dispatchNumber && d.dispatchNumber.toLowerCase() === dispatchNumber.toLowerCase());
+            if (existingDispatch) {
+                alert(`❌ Dispatch Number "${dispatchNumber}" already exists! Please use a unique dispatch number.`);
+                return;
+            }
             
             let warehouseStock = warehouse === 'windhoek' ? windhoekStock : ondangwaStock;
             let item = warehouseStock.find(s => s.productName === productName); // Changed from s.id to s.productName
@@ -15577,6 +16636,8 @@
                 productName: productName,
                 quantity: quantity,
                 date: date,
+                expiryDate: expiryDate,
+                dispatchNumber: dispatchNumber,
                 notes: notes,
                 createdBy: currentUser?.username || 'system',
                 createdAt: new Date().toISOString()
@@ -15587,7 +16648,7 @@
             displayWindhoekStock();
             displayOndangwaStock();
             displayDistributionHistory();
-            alert('Stock distributed to branch successfully!');
+            alert('✅ Stock distributed to branch successfully!');
             document.getElementById('distributeStockForm').reset();
         });
         
@@ -15719,17 +16780,20 @@
                 return;
             }
             
-            container.innerHTML = distributionHistory.map(dist => `
+            container.innerHTML = distributionHistory.map(dist => {
+                const branchName = branches.find(b => b.id === dist.branch)?.name || dist.branch;
+                return `
                 <div class="client-card">
                     <h4>${dist.productName}</h4>
-                    <p><strong>From:</strong> ${dist.warehouse === 'windhoek' ? 'Windhoek Warehouse' : 'Ondangwa Warehouse'}</p>
-                    <p><strong>To:</strong> ${dist.branch}</p>
+                    <p><strong>Dispatch Number:</strong> ${dist.dispatchNumber || 'N/A'}</p>
+                    <p><strong>From:</strong> ${dist.warehouse === 'windhoek' ? 'Windhoek Warehouse' : 'Ondangwa Warehouse'} | <strong>To:</strong> ${branchName}</p>
                     <p><strong>Quantity:</strong> ${dist.quantity} units</p>
-                    <p><strong>Date:</strong> ${dist.date}</p>
+                    <p><strong>Distribution Date:</strong> ${dist.date} | <strong>Expiry Date:</strong> ${dist.expiryDate || 'N/A'}</p>
                     <p><strong>Distributed by:</strong> ${dist.createdBy}</p>
                     ${dist.notes ? `<p><em>${dist.notes}</em></p>` : ''}
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         // Show stock tab
@@ -15742,8 +16806,14 @@
             
             // Load data when switching tabs
             if (tabName === 'countryStock') displayCountryStock();
-            else if (tabName === 'windhoek') displayWindhoekStock();
-            else if (tabName === 'ondangwa') displayOndangwaStock();
+            else if (tabName === 'windhoek') {
+                displayWindhoekStock();
+                loadWindhoekProducts(); // Initialize products when tab is shown
+            }
+            else if (tabName === 'ondangwa') {
+                displayOndangwaStock();
+                loadOndangwaProducts(); // Initialize products when tab is shown
+            }
             else if (tabName === 'distribution') displayDistributionHistory();
             else if (tabName === 'inventory') displayInventoryMovements();
         }
@@ -16051,22 +17121,41 @@
         function searchDistribution() {
             const search = document.getElementById('distributionSearch')?.value.toLowerCase() || '';
             loadStockData();
-            const filtered = distributionHistory.filter(dist => 
-                dist.productName.toLowerCase().includes(search) ||
-                dist.branch.toLowerCase().includes(search) ||
-                dist.warehouse.toLowerCase().includes(search)
-            );
+            
+            const filtered = distributionHistory.filter(dist => {
+                const branchName = branches.find(b => b.id === dist.branch)?.name?.toLowerCase() || dist.branch?.toLowerCase() || '';
+                const dispatchNum = (dist.dispatchNumber || '').toLowerCase();
+                const expiryDate = (dist.expiryDate || '').toLowerCase();
+                
+                return dist.productName?.toLowerCase().includes(search) ||
+                    branchName.includes(search) ||
+                    dist.warehouse?.toLowerCase().includes(search) ||
+                    dispatchNum.includes(search) ||
+                    expiryDate.includes(search);
+            });
             
             const container = document.getElementById('distributionHistoryList');
             if (!container) return;
             
-            container.innerHTML = filtered.map(dist => `
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No matching distributions found.</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(dist => {
+                const branchName = branches.find(b => b.id === dist.branch)?.name || dist.branch;
+                return `
                 <div class="client-card">
                     <h4>${dist.productName}</h4>
-                    <p><strong>From:</strong> ${dist.warehouse} | <strong>To:</strong> ${dist.branch}</p>
-                    <p><strong>Quantity:</strong> ${dist.quantity}</p>
+                    <p><strong>Dispatch Number:</strong> ${dist.dispatchNumber || 'N/A'}</p>
+                    <p><strong>From:</strong> ${dist.warehouse === 'windhoek' ? 'Windhoek Warehouse' : 'Ondangwa Warehouse'} | <strong>To:</strong> ${branchName}</p>
+                    <p><strong>Quantity:</strong> ${dist.quantity} units</p>
+                    <p><strong>Distribution Date:</strong> ${dist.date} | <strong>Expiry Date:</strong> ${dist.expiryDate || 'N/A'}</p>
+                    <p><strong>Distributed by:</strong> ${dist.createdBy}</p>
+                    ${dist.notes ? `<p><em>${dist.notes}</em></p>` : ''}
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         function showLowStockWindhoek() {
@@ -16831,7 +17920,23 @@
                 const recentShift = cashShifts
                     .filter(s => s.branch === branch)
                     .sort((a, b) => new Date(b.closeTime) - new Date(a.closeTime))[0];
-                if (recentShift) openingFloat = recentShift.countedCash || 0;
+                if (recentShift) {
+                    openingFloat = recentShift.countedCash || 0;
+                } else {
+                    // Fallback: Check dispenser cash drawer data for this branch
+                    try {
+                        const drawerData = JSON.parse(localStorage.getItem('dyna_cash_drawer') || '{}');
+                        // If drawer is open and matches branch, use its opening balance
+                        if (drawerData.isOpen && drawerData.branch === branch) {
+                            openingFloat = drawerData.openingBalance || 0;
+                        } else if (drawerData.openingBalance) {
+                            // Use stored opening balance if available
+                            openingFloat = drawerData.openingBalance || 0;
+                        }
+                    } catch (e) {
+                        console.warn('Error reading cash drawer data:', e);
+                    }
+                }
             }
             
             // Calculate cash sales
@@ -16869,23 +17974,42 @@
         function getCashSalesForBranch(date, branch) {
             let total = 0;
             
-            // Check walk-in sales
-            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
-            walkinSales.forEach(sale => {
-                if (sale.date === date && sale.customerType === 'customer' && (!branch || sale.branch === branch)) {
-                    total += parseFloat(sale.totalAmount || 0);
+            // Check walk-in sales - check both storage keys
+            const walkinSales1 = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const walkinSales2 = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            const allWalkinSales = [...walkinSales1, ...walkinSales2];
+            const uniqueWalkinSales = Array.from(new Map(allWalkinSales.map(s => [s.id, s])).values());
+            
+            uniqueWalkinSales.forEach(sale => {
+                const saleDate = sale.date || (sale.timestamp ? sale.timestamp.split('T')[0] : null);
+                if (saleDate === date && sale.customerType === 'customer') {
+                    if (!branch || sale.branch === branch) {
+                        // Only count if it's cash payment (or estimate for customers)
+                        const amount = parseFloat(sale.totalAmount || sale.total || 0);
+                        if (sale.paymentMethod === 'cash' || !sale.paymentMethod) {
+                            total += amount;
+                        } else if (sale.paymentMethod === 'card') {
+                            // Card sales not counted as cash
+                        } else {
+                            // If unknown, assume cash for customer sales
+                            total += amount;
+                        }
+                    }
                 }
             });
             
-            // Add prescription sales marked as cash
+            // Add prescription sales (paid medicines) - these are typically cash
             reports.forEach(report => {
-                if (report.date === date) {
-                    if (report.prescription && Array.isArray(report.prescription)) {
-                        report.prescription.forEach(item => {
-                            if (item.paymentMethod === 'cash') {
-                                total += parseFloat(item.totalPrice || 0);
-                            }
-                        });
+                const reportDate = report.date || (report.timestamp ? report.timestamp.split('T')[0] : null);
+                if (reportDate === date) {
+                    if (!branch || report.branch === branch) {
+                        if (report.medicines && Array.isArray(report.medicines)) {
+                            report.medicines.forEach(med => {
+                                if (med.paid && med.amountPaid) {
+                                    total += parseFloat(med.amountPaid || 0);
+                                }
+                            });
+                        }
                     }
                 }
             });
@@ -16965,14 +18089,47 @@
             let card = 0;
             let total = 0;
             
-            // Walk-in sales
-            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
-            walkinSales.forEach(sale => {
-                if (sale.date === date && sale.branch === branch) {
-                    total += parseFloat(sale.totalAmount || 0);
-                    // For simplicity, assume 60% cash, 40% card
-                    cash += parseFloat(sale.totalAmount || 0) * 0.6;
-                    card += parseFloat(sale.totalAmount || 0) * 0.4;
+            // Walk-in sales - check both storage keys for compatibility
+            const walkinSales1 = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const walkinSales2 = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            const allWalkinSales = [...walkinSales1, ...walkinSales2];
+            
+            // Remove duplicates by ID
+            const uniqueWalkinSales = Array.from(new Map(allWalkinSales.map(s => [s.id, s])).values());
+            
+            uniqueWalkinSales.forEach(sale => {
+                const saleDate = sale.date || (sale.timestamp ? sale.timestamp.split('T')[0] : null);
+                if (saleDate === date && sale.branch === branch) {
+                    const amount = parseFloat(sale.totalAmount || sale.total || 0);
+                    total += amount;
+                    
+                    // Use paymentMethod if available, otherwise estimate
+                    if (sale.paymentMethod === 'cash') {
+                        cash += amount;
+                    } else if (sale.paymentMethod === 'card') {
+                        card += amount;
+                    } else {
+                        // Default: assume 60% cash, 40% card
+                        cash += amount * 0.6;
+                        card += amount * 0.4;
+                    }
+                }
+            });
+            
+            // Add prescription sales (paid medicines)
+            reports.forEach(report => {
+                const reportDate = report.date || (report.timestamp ? report.timestamp.split('T')[0] : null);
+                if (reportDate === date && report.branch === branch) {
+                    if (report.medicines && Array.isArray(report.medicines)) {
+                        report.medicines.forEach(med => {
+                            if (med.paid && med.amountPaid) {
+                                const amount = parseFloat(med.amountPaid || 0);
+                                total += amount;
+                                // Prescription payments are typically cash
+                                cash += amount;
+                            }
+                        });
+                    }
                 }
             });
             
@@ -16982,17 +18139,76 @@
         // Helper functions for totals
         function getAllSalesForDate(date) {
             let total = 0;
-            const walkinSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
-            walkinSales.forEach(sale => {
-                if (sale.date === date) {
-                    total += parseFloat(sale.totalAmount || 0);
+            
+            // Walk-in sales - check both storage keys
+            const walkinSales1 = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const walkinSales2 = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            const allWalkinSales = [...walkinSales1, ...walkinSales2];
+            const uniqueWalkinSales = Array.from(new Map(allWalkinSales.map(s => [s.id, s])).values());
+            
+            uniqueWalkinSales.forEach(sale => {
+                const saleDate = sale.date || (sale.timestamp ? sale.timestamp.split('T')[0] : null);
+                if (saleDate === date) {
+                    total += parseFloat(sale.totalAmount || sale.total || 0);
                 }
             });
+            
+            // Add prescription sales (paid medicines) from all branches
+            reports.forEach(report => {
+                const reportDate = report.date || (report.timestamp ? report.timestamp.split('T')[0] : null);
+                if (reportDate === date) {
+                    if (report.medicines && Array.isArray(report.medicines)) {
+                        report.medicines.forEach(med => {
+                            if (med.paid && med.amountPaid) {
+                                total += parseFloat(med.amountPaid || 0);
+                            }
+                        });
+                    }
+                }
+            });
+            
             return total;
         }
         
         function getAllCashSalesForDate(date) {
-            return getAllSalesForDate(date) * 0.6; // Approximate
+            let cashTotal = 0;
+            
+            // Walk-in sales - check both storage keys
+            const walkinSales1 = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+            const walkinSales2 = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+            const allWalkinSales = [...walkinSales1, ...walkinSales2];
+            const uniqueWalkinSales = Array.from(new Map(allWalkinSales.map(s => [s.id, s])).values());
+            
+            uniqueWalkinSales.forEach(sale => {
+                const saleDate = sale.date || (sale.timestamp ? sale.timestamp.split('T')[0] : null);
+                if (saleDate === date) {
+                    const amount = parseFloat(sale.totalAmount || sale.total || 0);
+                    if (sale.paymentMethod === 'cash') {
+                        cashTotal += amount;
+                    } else if (sale.paymentMethod === 'card') {
+                        // Don't count card
+                    } else {
+                        // Default: assume 60% cash, 40% card
+                        cashTotal += amount * 0.6;
+                    }
+                }
+            });
+            
+            // Add prescription sales (paid medicines) - typically cash
+            reports.forEach(report => {
+                const reportDate = report.date || (report.timestamp ? report.timestamp.split('T')[0] : null);
+                if (reportDate === date) {
+                    if (report.medicines && Array.isArray(report.medicines)) {
+                        report.medicines.forEach(med => {
+                            if (med.paid && med.amountPaid) {
+                                cashTotal += parseFloat(med.amountPaid || 0);
+                            }
+                        });
+                    }
+                }
+            });
+            
+            return cashTotal;
         }
         
         function getAllDepositsForDate(date) {
