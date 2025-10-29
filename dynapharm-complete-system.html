@@ -18012,6 +18012,9 @@
 
             // Initialize Product Photo Management
             try { populatePhotoProductSelect(); loadProductPhotos(); } catch (e) { console.warn('photo init error', e); }
+            
+            // Ensure shop products show immediately on first load
+            try { if (typeof loadShopProducts === 'function') loadShopProducts(); } catch (e) { console.warn('shop init error', e); }
         };
         
         // ==========================
