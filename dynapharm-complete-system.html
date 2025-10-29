@@ -2971,6 +2971,45 @@
                 </div>
                 
                 <div class="form-section">
+                    <h3>📸 Product Photo Management</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Upload and manage product photos for the online shop</p>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">Upload Product Photo</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="required">Select Product</label>
+                                <select id="photoProductSelect" required style="padding: 10px; width: 100%;">
+                                    <option value="">Select Product</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Product Photo</label>
+                                <input type="file" id="productPhotoInput" accept="image/*" style="padding: 10px; width: 100%;" onchange="previewProductPhoto(event)">
+                                <small style="color: #666;">Supported formats: JPG, PNG, WebP (Max 5MB)</small>
+                            </div>
+                        </div>
+                        <div id="photoPreview" style="margin-top: 15px; text-align: center;"></div>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-success" onclick="uploadProductPhoto()">📤 Upload Photo</button>
+                            <button class="btn btn-warning" onclick="clearPhotoForm()">Clear</button>
+                        </div>
+                        <div id="photoUploadStatus" style="margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 8px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px;">Product Photos Gallery</h4>
+                        <div class="search-box">
+                            <input type="text" id="photoSearch" placeholder="Search products..." style="flex: 1;" onkeyup="filterProductPhotos()">
+                            <button class="btn btn-success" onclick="loadProductPhotos()">🔄 Refresh</button>
+                        </div>
+                        <div id="productPhotosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                            <p style="text-align: center; color: #7f8c8d; padding: 20px;">Loading product photos...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
                     <h3>📦 Inventory Management</h3>
                     <div class="search-box">
                         <input type="text" id="inventorySearch" placeholder="Search products..." onkeyup="searchInventory()">
@@ -13788,6 +13827,17 @@
             
             // Update product pricing based on customer type
             loadAllProductsForSale();
+            
+            // Apply default referral when set to customer
+            if (customerType !== 'distributor') {
+                try {
+                    const defaultReferral = { name: 'Dynapharm Namibia', nb: 'NB005676' };
+                    const refName = document.querySelector('#customerReferralField input[name="referralName"]');
+                    const refNB = document.querySelector('#customerReferralField input[name="referralNbNumber"]');
+                    if (refName && !refName.value) refName.value = defaultReferral.name;
+                    if (refNB && !refNB.value) refNB.value = defaultReferral.nb;
+                } catch (e) { /* ignore */ }
+            }
         }
 
         function loadAllProductsForSale() {
@@ -17854,6 +17904,9 @@
             
             // Initialize HR Portal
             initHRPortal();
+
+            // Initialize Product Photo Management
+            try { populatePhotoProductSelect(); loadProductPhotos(); } catch (e) { console.warn('photo init error', e); }
         };
         
         // ==========================
@@ -17891,14 +17944,14 @@
             if (!shopProductsGrid) return;
             
             const products = PRICE_LIST || [];
+            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
             
             shopProductsGrid.innerHTML = products.map(product => {
                 const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
                 const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
                 
-                // Get product photo if available
-                const productPhoto = product.photo || 'https://via.placeholder.com/200x200?text=Product';
+                const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
                 
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -17920,6 +17973,7 @@
             const searchTerm = document.getElementById('shopSearch')?.value.toLowerCase() || '';
             const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
             const products = PRICE_LIST || [];
+            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
             
             const shopProductsGrid = document.getElementById('shopProductsGrid');
             if (!shopProductsGrid) return;
@@ -17931,7 +17985,7 @@
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
                 const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
-                const productPhoto = product.photo || 'https://via.placeholder.com/200x200?text=Product';
+                const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
                 
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -18026,6 +18080,8 @@
         function showCheckoutModal() {
             const modal = document.getElementById('checkoutModal') || createCheckoutModal();
             modal.style.display = 'block';
+            // Apply default referral for customers
+            try { applyDefaultReferral(); } catch (e) { /* ignore */ }
         }
         
         function createCheckoutModal() {
@@ -18038,6 +18094,13 @@
                     <h2>🛒 Checkout</h2>
                     <form id="checkoutForm" onsubmit="processCheckout(event)">
                         <div class="form-group">
+                            <label class="required">Customer Type</label>
+                            <select id="checkoutCustomerType" required onchange="onCheckoutCustomerTypeChange()">
+                                <option value="customer" selected>Customer</option>
+                                <option value="distributor">Distributor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label class="required">Full Name</label>
                             <input type="text" id="checkoutName" required>
                         </div>
@@ -18048,6 +18111,23 @@
                         <div class="form-group">
                             <label class="required">Email</label>
                             <input type="email" id="checkoutEmail" required>
+                        </div>
+                        <div id="checkoutDistributorSection" style="display:none; background:#f8f9fa; padding:12px; border-radius:6px;">
+                            <div class="form-group">
+                                <label class="required">Distributor NB Number</label>
+                                <input type="text" id="checkoutDistributorNB" placeholder="e.g., NB00001234" pattern="NB[0-9]+">
+                                <small id="checkoutDistributorNBStatus" style="display:block; margin-top:5px; color:#666;"></small>
+                            </div>
+                        </div>
+                        <div id="checkoutReferralSection" style="display:block; background:#f8f9fa; padding:12px; border-radius:6px;">
+                            <div class="form-group">
+                                <label class="required">Referral Name</label>
+                                <input type="text" id="checkoutReferralName" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Referral NB Number</label>
+                                <input type="text" id="checkoutReferralNB" required pattern="NB[0-9]+">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="required">Delivery Address</label>
@@ -18070,12 +18150,36 @@
                 </div>
             `;
             document.body.appendChild(modal);
+            // Initialize default referral values on create
+            try { applyDefaultReferral(); } catch (e) { /* ignore */ }
             return modal;
         }
         
         function processCheckout(event) {
             event.preventDefault();
             
+            // Validate customer type specific requirements
+            const customerType = document.getElementById('checkoutCustomerType')?.value || 'customer';
+            if (customerType === 'distributor') {
+                const nb = (document.getElementById('checkoutDistributorNB')?.value || '').trim().toUpperCase();
+                const valid = validateDistributorNB(nb);
+                const status = document.getElementById('checkoutDistributorNBStatus');
+                if (!valid) {
+                    if (status) status.textContent = 'Invalid or unknown NB number. Please ensure it exists in uploaded distributors.';
+                    alert('Please provide a valid Distributor NB number from uploaded distributors.');
+                    return;
+                }
+                if (status) status.textContent = 'NB verified ✓';
+            } else {
+                // Ensure referral fields populated (default is applied on open/change)
+                const refName = (document.getElementById('checkoutReferralName')?.value || '').trim();
+                const refNB = (document.getElementById('checkoutReferralNB')?.value || '').trim();
+                if (!refName || !refNB) {
+                    alert('Please provide referral name and NB number.');
+                    return;
+                }
+            }
+
             const order = {
                 id: 'ORD' + Date.now(),
                 date: new Date().toISOString(),
@@ -18084,6 +18188,12 @@
                 customerEmail: document.getElementById('checkoutEmail').value,
                 customerAddress: document.getElementById('checkoutAddress').value,
                 paymentMethod: document.getElementById('checkoutPaymentMethod').value,
+                customerType: document.getElementById('checkoutCustomerType')?.value || 'customer',
+                distributorNB: document.getElementById('checkoutCustomerType')?.value === 'distributor' ? (document.getElementById('checkoutDistributorNB')?.value || '').toUpperCase() : null,
+                referral: document.getElementById('checkoutCustomerType')?.value === 'customer' ? {
+                    name: document.getElementById('checkoutReferralName')?.value || '',
+                    nb: (document.getElementById('checkoutReferralNB')?.value || '').toUpperCase()
+                } : null,
                 items: shopCart,
                 status: 'pending',
                 total: shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
@@ -18100,6 +18210,36 @@
         // ==========================
         // Front Desk Portal Functions
         // ==========================
+        function onCheckoutCustomerTypeChange() {
+            const type = document.getElementById('checkoutCustomerType')?.value || 'customer';
+            const refSec = document.getElementById('checkoutReferralSection');
+            const distSec = document.getElementById('checkoutDistributorSection');
+            if (type === 'distributor') {
+                if (refSec) refSec.style.display = 'none';
+                if (distSec) distSec.style.display = 'block';
+            } else {
+                if (refSec) refSec.style.display = 'block';
+                if (distSec) distSec.style.display = 'none';
+                applyDefaultReferral();
+            }
+        }
+
+        function applyDefaultReferral() {
+            const defaultReferral = { name: 'Dynapharm Namibia', nb: 'NB005676' };
+            const refNameEl = document.getElementById('checkoutReferralName');
+            const refNBEl = document.getElementById('checkoutReferralNB');
+            if (refNameEl && !refNameEl.value) refNameEl.value = defaultReferral.name;
+            if (refNBEl && !refNBEl.value) refNBEl.value = defaultReferral.nb;
+        }
+
+        function validateDistributorNB(nb) {
+            if (!nb || !/^NB[0-9]+$/.test(nb)) return false;
+            try {
+                // distributors may be loaded globally by loadDistributors()
+                const all = Array.isArray(distributors) ? distributors : [];
+                return all.some(d => (d.DRN || d.NB || d.nb || '').toString().toUpperCase() === nb);
+            } catch (e) { return false; }
+        }
         function showOrderTab(tabName) {
             document.querySelectorAll('.order-tab-content').forEach(tab => {
                 tab.style.display = 'none';
@@ -18260,6 +18400,99 @@
             link.href = url;
             link.download = 'orders-report-' + new Date().toISOString() + '.json';
             link.click();
+        }
+
+        // ==========================
+        // Admin - Product Photos
+        // ==========================
+        function populatePhotoProductSelect() {
+            const select = document.getElementById('photoProductSelect');
+            if (!select || !Array.isArray(PRICE_LIST)) return;
+            select.innerHTML = '<option value="">Select Product</option>';
+            PRICE_LIST.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.description;
+                opt.textContent = p.description;
+                select.appendChild(opt);
+            });
+        }
+
+        function previewProductPhoto(event) {
+            const file = event.target.files && event.target.files[0];
+            const preview = document.getElementById('photoPreview');
+            if (!file || !preview) return;
+            if (file.size > 5 * 1024 * 1024) {
+                document.getElementById('photoUploadStatus').textContent = 'File too large. Max 5MB.';
+                event.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                preview.innerHTML = `<img src="${reader.result}" alt="Preview" style="max-width: 300px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function uploadProductPhoto() {
+            const productName = document.getElementById('photoProductSelect')?.value || '';
+            const fileInput = document.getElementById('productPhotoInput');
+            const status = document.getElementById('photoUploadStatus');
+            if (!productName) { status.textContent = 'Please select a product.'; return; }
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) { status.textContent = 'Please choose a photo.'; return; }
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) { status.textContent = 'File too large. Max 5MB.'; return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+                photoMap[productName] = reader.result;
+                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                status.textContent = 'Photo uploaded successfully!';
+                loadProductPhotos();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearPhotoForm() {
+            const select = document.getElementById('photoProductSelect');
+            const input = document.getElementById('productPhotoInput');
+            const preview = document.getElementById('photoPreview');
+            const status = document.getElementById('photoUploadStatus');
+            if (select) select.value = '';
+            if (input) input.value = '';
+            if (preview) preview.innerHTML = '';
+            if (status) status.textContent = '';
+        }
+
+        function loadProductPhotos() {
+            const container = document.getElementById('productPhotosGrid');
+            if (!container) return;
+            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+            const search = (document.getElementById('photoSearch')?.value || '').toLowerCase();
+            const names = Object.keys(photoMap).filter(n => n.toLowerCase().includes(search)).sort();
+            if (names.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No product photos yet</p>';
+                return;
+            }
+            container.innerHTML = names.map(name => `
+                <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                    <img src="${photoMap[name]}" alt="${name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-size: 0.95rem; color: #2c3e50;">${name}</span>
+                        <button class="btn btn-danger" onclick="removeProductPhoto('${name.replace(/'/g, "\\'")}')">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterProductPhotos() { loadProductPhotos(); }
+
+        function removeProductPhoto(productName) {
+            const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+            if (photoMap[productName]) {
+                delete photoMap[productName];
+                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                loadProductPhotos();
+            }
         }
     </script>
 </body>
