@@ -18062,11 +18062,38 @@
                 const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
                 
-                const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
+                // Handle both legacy single photo and new array format
+                let productPhotos = photoMap[product.description];
+                if (!productPhotos) {
+                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                } else if (typeof productPhotos === 'string') {
+                    // Legacy format: convert single photo to array
+                    productPhotos = [productPhotos];
+                }
+                // Ensure it's an array
+                if (!Array.isArray(productPhotos)) {
+                    productPhotos = [productPhotos];
+                }
+                if (productPhotos.length === 0) {
+                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                }
+                
+                const uniqueId = `product-carousel-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
                 
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <img src="${productPhoto}" alt="${product.description}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+                        <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
+                            ${productPhotos.map((photo, idx) => `
+                                <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
+                                     data-index="${idx}" 
+                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
+                            `).join('')}
+                            ${productPhotos.length > 1 ? `
+                                <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;">
+                                    ${productPhotos.map((_, idx) => `<div class="carousel-dot" data-index="${idx}" style="width: 8px; height: 8px; border-radius: 50%; background: ${idx === 0 ? '#fff' : 'rgba(255,255,255,0.5)'}; cursor: pointer; transition: background 0.3s;"></div>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
                         <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
                         <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
                             N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
@@ -18078,6 +18105,9 @@
                     </div>
                 `;
             }).join('');
+            
+            // Initialize all carousels after HTML is set
+            initializeProductCarousels();
         }
         
         function onShopCustomerTypeChange() {
@@ -18121,11 +18151,39 @@
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
                 const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
-                const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
+                
+                // Handle both legacy single photo and new array format
+                let productPhotos = photoMap[product.description];
+                if (!productPhotos) {
+                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                } else if (typeof productPhotos === 'string') {
+                    // Legacy format: convert single photo to array
+                    productPhotos = [productPhotos];
+                }
+                // Ensure it's an array
+                if (!Array.isArray(productPhotos)) {
+                    productPhotos = [productPhotos];
+                }
+                if (productPhotos.length === 0) {
+                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                }
+                
+                const uniqueId = `product-carousel-filter-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
                 
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <img src="${productPhoto}" alt="${product.description}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">
+                        <div id="${uniqueId}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
+                            ${productPhotos.map((photo, idx) => `
+                                <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
+                                     data-index="${idx}" 
+                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
+                            `).join('')}
+                            ${productPhotos.length > 1 ? `
+                                <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;">
+                                    ${productPhotos.map((_, idx) => `<div class="carousel-dot" data-index="${idx}" style="width: 8px; height: 8px; border-radius: 50%; background: ${idx === 0 ? '#fff' : 'rgba(255,255,255,0.5)'}; cursor: pointer; transition: background 0.3s;"></div>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
                         <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
                         <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
                             N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
@@ -18135,6 +18193,71 @@
                             Add to Cart
                         </button>
                     </div>
+                    <script>
+                        (function() {
+                            const container = document.getElementById('${uniqueId}');
+                            if (!container || ${productPhotos.length} <= 1) return;
+                            
+                            let currentIndex = 0;
+                            const images = container.querySelectorAll('img');
+                            const dots = container.querySelectorAll('.carousel-dot');
+                            let autoRotateInterval;
+                            
+                            function showImage(index) {
+                                images.forEach((img, idx) => {
+                                    img.style.opacity = idx === index ? '1' : '0';
+                                    img.style.position = idx === index ? 'relative' : 'absolute';
+                                    img.style.zIndex = idx === index ? '1' : '0';
+                                });
+                                dots.forEach((dot, idx) => {
+                                    dot.style.background = idx === index ? '#fff' : 'rgba(255,255,255,0.5)';
+                                });
+                                currentIndex = index;
+                            }
+                            
+                            function nextImage() {
+                                currentIndex = (currentIndex + 1) % ${productPhotos.length};
+                                showImage(currentIndex);
+                            }
+                            
+                            function startAutoRotate() {
+                                autoRotateInterval = setInterval(nextImage, 3000);
+                            }
+                            
+                            function stopAutoRotate() {
+                                if (autoRotateInterval) {
+                                    clearInterval(autoRotateInterval);
+                                }
+                            }
+                            
+                            let isPaused = false;
+                            container.addEventListener('click', function(e) {
+                                if (e.target.classList.contains('carousel-dot')) {
+                                    const index = parseInt(e.target.getAttribute('data-index'));
+                                    showImage(index);
+                                    stopAutoRotate();
+                                    isPaused = true;
+                                    setTimeout(() => {
+                                        if (!isPaused) startAutoRotate();
+                                    }, 5000);
+                                } else {
+                                    nextImage();
+                                    stopAutoRotate();
+                                    isPaused = true;
+                                    setTimeout(() => {
+                                        isPaused = false;
+                                        startAutoRotate();
+                                    }, 10000);
+                                }
+                            });
+                            
+                            startAutoRotate();
+                            container.addEventListener('mouseenter', stopAutoRotate);
+                            container.addEventListener('mouseleave', function() {
+                                if (!isPaused) startAutoRotate();
+                            });
+                        })();
+                    </script>
                 `;
             }).join('');
         }
