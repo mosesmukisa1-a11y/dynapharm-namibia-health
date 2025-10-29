@@ -18057,9 +18057,10 @@
             const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
             
             shopProductsGrid.innerHTML = products.map(product => {
-                const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
-                const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
-                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                const selectedType = document.getElementById('shopCustomerType')?.value || '';
+                const effectiveType = shopCustomerTypeSelected ? (previousCustomerType || selectedType || 'customer') : 'distributor';
+                const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
+                const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
                 
                 const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
                 
@@ -18105,7 +18106,8 @@
         
         function filterShopProducts() {
             const searchTerm = document.getElementById('shopSearch')?.value.toLowerCase() || '';
-            const customerType = document.getElementById('shopCustomerType')?.value || 'customer';
+            const selectedType = document.getElementById('shopCustomerType')?.value || '';
+            const effectiveType = shopCustomerTypeSelected ? (previousCustomerType || selectedType || 'customer') : 'distributor';
             const products = PRICE_LIST || [];
             const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
             
@@ -18117,8 +18119,8 @@
             );
             
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
-                const displayPrice = customerType === 'distributor' ? product.dp : product.cp;
-                const priceLabel = customerType === 'distributor' ? 'DP' : 'CP';
+                const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
+                const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
                 const productPhoto = photoMap[product.description] || 'https://via.placeholder.com/200x200?text=Product';
                 
                 return `
@@ -18202,6 +18204,8 @@
             // Set customer type for all cart items
             shopCustomerTypeSelected = true;
             previousCustomerType = customerType;
+            // Update product pricing display to reflect selection
+            try { filterShopProducts(); } catch (e) { /* ignore */ }
             
             // Add item to cart
             addToCartWithCustomerType(
@@ -18250,6 +18254,7 @@
                 cartSection.style.display = 'none';
                 shopCustomerTypeSelected = false;
                 previousCustomerType = '';
+                try { filterShopProducts(); } catch (e) { /* ignore */ }
                 return;
             }
             
