@@ -18327,6 +18327,10 @@
                     <h2>🛒 Checkout</h2>
                     <form id="checkoutForm" onsubmit="processCheckout(event)">
                         <div class="form-group">
+                            <label class="required">Nearest Branch (Order will be fulfilled from)</label>
+                            <select id="checkoutBranch" required></select>
+                        </div>
+                        <div class="form-group">
                             <label class="required">Customer Type</label>
                             <select id="checkoutCustomerType" required onchange="onCheckoutCustomerTypeChange()">
                                 <option value="customer" selected>Customer</option>
@@ -18385,6 +18389,8 @@
             document.body.appendChild(modal);
             // Initialize default referral values on create
             try { applyDefaultReferral(); } catch (e) { /* ignore */ }
+            // Populate branch selector
+            try { populateCheckoutBranch(); } catch (e) { /* ignore */ }
             return modal;
         }
         
@@ -18415,7 +18421,10 @@
 
             const order = {
                 id: 'ORD' + Date.now(),
+                receiptNo: 'WEB' + Date.now(),
+                source: 'online',
                 date: new Date().toISOString(),
+                branch: (document.getElementById('checkoutBranch')?.value || ''),
                 customerName: document.getElementById('checkoutName').value,
                 customerPhone: document.getElementById('checkoutPhone').value,
                 customerEmail: document.getElementById('checkoutEmail').value,
@@ -18454,6 +18463,36 @@
                 if (refSec) refSec.style.display = 'block';
                 if (distSec) distSec.style.display = 'none';
                 applyDefaultReferral();
+            }
+        }
+
+        function populateCheckoutBranch() {
+            const select = document.getElementById('checkoutBranch');
+            if (!select) return;
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select Branch';
+            select.appendChild(defaultOption);
+            try {
+                if (Array.isArray(branches) && branches.length > 0) {
+                    branches.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.id || b.name || '';
+                        opt.textContent = b.name || b.id || '';
+                        select.appendChild(opt);
+                    });
+                } else {
+                    // Fallback static list if branches not loaded
+                    ['TOWNSHOP','KHOMASDAL','KATIMA','OUTAPI','ONDANGWA','OKONGO','OKAHAO','NKURENKURU','SWAKOPMUND','HOCHLAND PARK','RUNDU','GOBABIS','WALVISBAY','EENHANA','OTJIWARONGO']
+                        .forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name.toLowerCase().replace(/\s+/g,'-');
+                            opt.textContent = name;
+                            select.appendChild(opt);
+                        });
+                }
+            } catch (e) {
+                // ignore
             }
         }
 
@@ -18559,8 +18598,8 @@
                     <div style="background: white; border: 2px solid ${statusColors[order.status]}; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                             <div>
-                                <h4 style="color: #2c3e50; margin-bottom: 5px;">Order #${order.id}</h4>
-                                <p style="color: #666; font-size: 0.9rem;">${order.date}</p>
+                                <h4 style="color: #2c3e50; margin-bottom: 5px;">Order #${order.id} ${order.receiptNo ? `&middot; Receipt: ${order.receiptNo}` : ''}</h4>
+                                <p style="color: #666; font-size: 0.9rem;">${order.date} ${order.branch ? `&middot; Branch: ${order.branch}` : ''} ${order.source ? `&middot; Source: ${order.source}` : ''}</p>
                             </div>
                             <span style="background: ${statusColors[order.status]}; color: white; padding: 8px 15px; border-radius: 20px; font-weight: bold;">
                                 ${statusLabels[order.status]}
