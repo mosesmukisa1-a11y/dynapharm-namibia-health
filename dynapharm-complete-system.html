@@ -13685,11 +13685,9 @@
             walkInCart = [];
             document.getElementById('walkInCustomerType').value = 'customer';
             
-            // Clear distributor search fields
-            document.getElementById('distributorReferralSearch').value = '';
-            document.getElementById('distributorReferralValue').value = '';
+            // Clear distributor search fields and checkbox
+            clearSelectedReferral();
             document.getElementById('distributorReferralDropdown').style.display = 'none';
-            document.getElementById('selectedDistributorInfo').style.display = 'none';
             document.getElementById('customerNameDropdown').style.display = 'none';
             
             // Update title
@@ -13712,9 +13710,15 @@
                 return;
             }
             
-            const searchTerm = document.getElementById('distributorReferralSearch').value.trim();
-            const dropdown = document.getElementById('distributorReferralDropdown');
             const searchInput = document.getElementById('distributorReferralSearch');
+            
+            // Don't search if input is disabled (when "no referral" checkbox is checked)
+            if (searchInput.disabled) {
+                return;
+            }
+            
+            const searchTerm = searchInput.value.trim();
+            const dropdown = document.getElementById('distributorReferralDropdown');
             
             if (!searchTerm) {
                 dropdown.style.display = 'none';
@@ -13864,6 +13868,9 @@
                 
                 // Hide the customer name dropdown
                 document.getElementById('customerNameDropdown').style.display = 'none';
+                
+                // Clear referral fields and reset checkbox
+                clearSelectedReferral();
             } else {
                 // Regular customer - manual name entry
                 customerNameField.placeholder = 'Full Name';
@@ -13877,21 +13884,13 @@
                 
                 // Hide the customer name dropdown
                 document.getElementById('customerNameDropdown').style.display = 'none';
+                
+                // Clear referral fields and reset checkbox when switching to customer
+                clearSelectedReferral();
             }
             
             // Update product pricing based on customer type
             loadAllProductsForSale();
-            
-            // Apply default referral when set to customer
-            if (customerType !== 'distributor') {
-                try {
-                    const defaultReferral = { name: 'Dynapharm Namibia', nb: 'NB005676' };
-                    const refName = document.querySelector('#customerReferralField input[name="referralName"]');
-                    const refNB = document.querySelector('#customerReferralField input[name="referralNbNumber"]');
-                    if (refName && !refName.value) refName.value = defaultReferral.name;
-                    if (refNB && !refNB.value) refNB.value = defaultReferral.nb;
-                } catch (e) { /* ignore */ }
-            }
         }
 
         function loadAllProductsForSale() {
@@ -18033,18 +18032,21 @@
         
         function onShopCustomerTypeChange() {
             const customerType = document.getElementById('shopCustomerType')?.value;
-            if (customerType) {
-                // Clear cart when customer type changes to prevent mixing different pricing
-                if (shopCart.length > 0) {
-                    if (confirm('Changing customer type will clear your current cart. Do you want to continue?')) {
-                        shopCart = [];
-                        updateShopCart();
-                    } else {
-                        // Revert to previous selection
-                        return;
-                    }
+            
+            // If there's a previous selection and the cart has items, warn the user
+            if (previousCustomerType && customerType && previousCustomerType !== customerType && shopCart.length > 0) {
+                if (!confirm('Changing customer type will clear your current cart. Do you want to continue?')) {
+                    // Revert to previous selection
+                    document.getElementById('shopCustomerType').value = previousCustomerType;
+                    return;
                 }
+                shopCart = [];
+                updateShopCart();
+            }
+            
+            if (customerType) {
                 shopCustomerTypeSelected = true;
+                previousCustomerType = customerType;
                 filterShopProducts();
             } else {
                 shopCustomerTypeSelected = false;
