@@ -18049,6 +18049,92 @@
             }
         }
         
+        function initializeProductCarousels() {
+            // Use setTimeout to ensure DOM is fully updated
+            setTimeout(() => {
+                const containers = document.querySelectorAll('.product-carousel-container');
+                if (!containers || containers.length === 0) return;
+                
+                containers.forEach(container => {
+                    // Skip if already initialized
+                    if (container.dataset.initialized === 'true') return;
+                    
+                    const photoCount = parseInt(container.getAttribute('data-photo-count') || '1');
+                    if (photoCount <= 1) {
+                        // Even if only one photo, mark as initialized to avoid re-processing
+                        container.dataset.initialized = 'true';
+                        return;
+                    }
+                    
+                    container.dataset.initialized = 'true';
+                    
+                    let currentIndex = 0;
+                    const images = container.querySelectorAll('img');
+                    const dots = container.querySelectorAll('.carousel-dot');
+                    let autoRotateInterval;
+                    
+                    function showImage(index) {
+                        images.forEach((img, idx) => {
+                            img.style.opacity = idx === index ? '1' : '0';
+                            img.style.position = idx === index ? 'relative' : 'absolute';
+                            img.style.zIndex = idx === index ? '1' : '0';
+                        });
+                        dots.forEach((dot, idx) => {
+                            dot.style.background = idx === index ? '#fff' : 'rgba(255,255,255,0.5)';
+                        });
+                        currentIndex = index;
+                    }
+                    
+                    function nextImage() {
+                        currentIndex = (currentIndex + 1) % photoCount;
+                        showImage(currentIndex);
+                    }
+                    
+                    function startAutoRotate() {
+                        autoRotateInterval = setInterval(nextImage, 3000); // Change every 3 seconds
+                    }
+                    
+                    function stopAutoRotate() {
+                        if (autoRotateInterval) {
+                            clearInterval(autoRotateInterval);
+                        }
+                    }
+                    
+                    let isPaused = false;
+                    container.addEventListener('click', function(e) {
+                        // Click on dot navigates to specific image
+                        if (e.target.classList.contains('carousel-dot')) {
+                            const index = parseInt(e.target.getAttribute('data-index'));
+                            showImage(index);
+                            stopAutoRotate();
+                            isPaused = true;
+                            setTimeout(() => {
+                                if (!isPaused) startAutoRotate();
+                            }, 5000);
+                        } else {
+                            // Click anywhere else on carousel advances to next image
+                            nextImage();
+                            stopAutoRotate();
+                            isPaused = true;
+                            setTimeout(() => {
+                                isPaused = false;
+                                startAutoRotate();
+                            }, 10000);
+                        }
+                    });
+                    
+                    // Start auto-rotation
+                    startAutoRotate();
+                    
+                    // Pause on hover
+                    container.addEventListener('mouseenter', stopAutoRotate);
+                    container.addEventListener('mouseleave', function() {
+                        if (!isPaused) startAutoRotate();
+                    });
+                }); // Close forEach
+            }, 10); // Close setTimeout (small delay to ensure DOM is ready)
+        }
+        
         function loadShopProducts() {
             const shopProductsGrid = document.getElementById('shopProductsGrid');
             if (!shopProductsGrid) return;
@@ -18107,7 +18193,11 @@
             }).join('');
             
             // Initialize all carousels after HTML is set
-            initializeProductCarousels();
+            try {
+                initializeProductCarousels();
+            } catch (e) {
+                console.error('Error initializing carousels:', e);
+            }
         }
         
         function onShopCustomerTypeChange() {
@@ -18172,7 +18262,7 @@
                 
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <div id="${uniqueId}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
+                        <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
                             ${productPhotos.map((photo, idx) => `
                                 <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
                                      data-index="${idx}" 
@@ -18193,73 +18283,15 @@
                             Add to Cart
                         </button>
                     </div>
-                    <script>
-                        (function() {
-                            const container = document.getElementById('${uniqueId}');
-                            if (!container || ${productPhotos.length} <= 1) return;
-                            
-                            let currentIndex = 0;
-                            const images = container.querySelectorAll('img');
-                            const dots = container.querySelectorAll('.carousel-dot');
-                            let autoRotateInterval;
-                            
-                            function showImage(index) {
-                                images.forEach((img, idx) => {
-                                    img.style.opacity = idx === index ? '1' : '0';
-                                    img.style.position = idx === index ? 'relative' : 'absolute';
-                                    img.style.zIndex = idx === index ? '1' : '0';
-                                });
-                                dots.forEach((dot, idx) => {
-                                    dot.style.background = idx === index ? '#fff' : 'rgba(255,255,255,0.5)';
-                                });
-                                currentIndex = index;
-                            }
-                            
-                            function nextImage() {
-                                currentIndex = (currentIndex + 1) % ${productPhotos.length};
-                                showImage(currentIndex);
-                            }
-                            
-                            function startAutoRotate() {
-                                autoRotateInterval = setInterval(nextImage, 3000);
-                            }
-                            
-                            function stopAutoRotate() {
-                                if (autoRotateInterval) {
-                                    clearInterval(autoRotateInterval);
-                                }
-                            }
-                            
-                            let isPaused = false;
-                            container.addEventListener('click', function(e) {
-                                if (e.target.classList.contains('carousel-dot')) {
-                                    const index = parseInt(e.target.getAttribute('data-index'));
-                                    showImage(index);
-                                    stopAutoRotate();
-                                    isPaused = true;
-                                    setTimeout(() => {
-                                        if (!isPaused) startAutoRotate();
-                                    }, 5000);
-                                } else {
-                                    nextImage();
-                                    stopAutoRotate();
-                                    isPaused = true;
-                                    setTimeout(() => {
-                                        isPaused = false;
-                                        startAutoRotate();
-                                    }, 10000);
-                                }
-                            });
-                            
-                            startAutoRotate();
-                            container.addEventListener('mouseenter', stopAutoRotate);
-                            container.addEventListener('mouseleave', function() {
-                                if (!isPaused) startAutoRotate();
-                            });
-                        })();
-                    </script>
                 `;
             }).join('');
+            
+            // Initialize all carousels after HTML is set
+            try {
+                initializeProductCarousels();
+            } catch (e) {
+                console.error('Error initializing carousels:', e);
+            }
         }
         
         // Store pending product info for cart addition
