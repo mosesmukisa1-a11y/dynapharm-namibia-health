@@ -1,8 +1,9 @@
-const CACHE_NAME = 'dynapharm-v2.2';
+const CACHE_NAME = 'dynapharm-v2.3';
 const urlsToCache = [
   './',
   './dynapharm-complete-system.html',
-  './manifest.json'
+  './manifest.json',
+  './web-modules/barcode-stock.js'
 ];
 
 // Install event - cache resources
@@ -20,35 +21,56 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(
-          (response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            // Clone the response
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            return response;
+  const req = event.request;
+
+  // Auto-fix: if a browser tries to import a script from /api/*.js,
+  // rewrite to /web-modules/*.js when available to avoid Vercel serverless path
+  try {
+    const url = new URL(req.url);
+    if (req.destination === 'script' && url.pathname.startsWith('/api/') && url.pathname.endsWith('.js')) {
+      const fallbackPath = url.pathname.replace(/^\/api\//, '/web-modules/');
+      const fallbackUrl = new URL(fallbackPath, url.origin).toString();
+      event.respondWith(
+        fetch(fallbackUrl).then((resp) => {
+          if (resp && resp.ok) {
+            console.warn('[SW] Remapped script import', url.pathname, '->', fallbackPath);
+            return resp;
           }
-        );
-      })
-      .catch(() => {
-        // If fetch fails, try to serve offline page
-        if (event.request.destination === 'document') {
-          return caches.match('./dynapharm-complete-system.html');
+          return fetch(req);
+        }).catch(() => fetch(req))
+      );
+      return;
+    }
+  } catch (_) {}
+
+  // Network-first for HTML documents to avoid serving stale pages
+  if (req.destination === 'document') {
+    event.respondWith(
+      fetch(req)
+        .then((networkResp) => {
+          const respClone = networkResp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, respClone));
+          return networkResp;
+        })
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./dynapharm-complete-system.html')))
+    );
+    return;
+  }
+
+  // Cache-first for other assets
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((networkResp) => {
+        // Only cache successful, basic responses
+        if (!networkResp || networkResp.status !== 200 || networkResp.type !== 'basic') {
+          return networkResp;
         }
-      })
+        const respClone = networkResp.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, respClone));
+        return networkResp;
+      });
+    })
   );
 });
 

@@ -17164,8 +17164,8 @@
             `;
         }
         
-        // Import barcode stock API
-        import('/api/barcode-stock.js').then(module => {
+        // Import barcode stock API (moved out of /api to avoid Vercel serverless routing)
+        import('./web-modules/barcode-stock.js').then(module => {
             window.barcodeStockAPI = module;
             console.log('✅ Barcode Stock API loaded successfully');
         }).catch(err => {
