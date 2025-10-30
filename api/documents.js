@@ -9,6 +9,7 @@ export default function handler(req, res) {
 
     if (!global.documents || global.documents.length === 0) {
         try {
+            ensureDataDir();
             const fp = filePath();
             global.documents = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
         } catch(e){ global.documents = []; }
@@ -17,11 +18,14 @@ export default function handler(req, res) {
     if (req.method === 'GET') {
         res.status(200).json(global.documents);
     } else if (req.method === 'POST') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const body = req.body || {};
+        if (!body.title) { res.status(400).json({ error: 'Missing title' }); return; }
         const rec = { id:`DOC-${Date.now()}`, title: body.title, userId: body.userId || null, category: body.category || 'policy', url: body.url || '', createdAt:new Date().toISOString() };
         global.documents.push(rec); save();
         res.status(201).json(rec);
     } else if (req.method === 'DELETE') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id } = req.query; if(!id){ res.status(400).json({ error:'Missing id' }); return; }
         const idx = global.documents.findIndex(d => d.id === id);
         if (idx === -1) { res.status(404).json({ error: 'Document not found' }); return; }
@@ -33,6 +37,8 @@ export default function handler(req, res) {
 }
 
 function filePath(){ return path.join(process.cwd(), 'cloud-data', 'documents_data.json'); }
-function save(){ try { fs.writeFileSync(filePath(), JSON.stringify(global.documents, null, 2)); } catch(e){} }
+function save(){ try { ensureDataDir(); fs.writeFileSync(filePath(), JSON.stringify(global.documents, null, 2)); } catch(e){} }
+function ensureDataDir(){ const dir = path.join(process.cwd(),'cloud-data'); if (!fs.existsSync(dir)) { try { fs.mkdirSync(dir); } catch(e){} } }
+function isHR(req){ const role = req.headers['x-role'] || req.headers['x-user-role']; return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase()); }
 
 

@@ -365,6 +365,7 @@
             <input type="text" class="filter-input" id="searchInput" placeholder="Search transactions...">
             
             <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+            <button class="btn btn-primary" onclick="exportCSV()">⬇️ Export CSV</button>
         </div>
         
         <div class="main-content">
@@ -395,6 +396,28 @@
                 <h2>Recent Activity</h2>
                 <div class="recent-activity" id="recentActivity">
                     <div class="no-data">Loading activity...</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Branch Performance</h2>
+                <div style="overflow-x: auto;">
+                    <table class="transaction-table" id="branchPerformanceTable">
+                        <thead>
+                            <tr>
+                                <th>Branch</th>
+                                <th>Revenue</th>
+                                <th>Transactions</th>
+                                <th>Active Clients</th>
+                                <th>Avg Txn Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="branchPerformanceBody">
+                            <tr>
+                                <td colspan="5" class="no-data">Loading branch performance...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -440,11 +463,10 @@
                 // Update branches from transactions
                 allBranches = [...new Set(allTransactions.map(t => t.branch))];
                 
-                // Load clients for reference
+                // Load clients for reference (serverless API returns array)
                 try {
-                    const clientsResponse = await fetch('./api/clients.js');
-                    const clientsData = await clientsResponse.json();
-                    allClients = clientsData.clients || [];
+                    const clientsData = await fetch('/api/clients').then(r => r.json());
+                    allClients = Array.isArray(clientsData) ? clientsData : [];
                 } catch (e) {
                     allClients = [];
                 }
@@ -679,6 +701,7 @@
                 updateDashboard();
                 loadTransactionsTable();
                 loadRecentActivity();
+                loadBranchPerformance();
                 
                 // Show success indicator
                 const btn = document.querySelector('.btn-primary');
@@ -719,6 +742,60 @@
         
         // Initialize when page loads
         initializePortal();
+
+        // Export current filtered transactions to CSV
+        function exportCSV() {
+            const filtered = filterTransactions();
+            if (!filtered.length) {
+                alert('No transactions to export for current filter.');
+                return;
+            }
+            const headers = ['ID','Client','Branch','Amount','Date','Status'];
+            const rows = filtered.map(t => [
+                t.id,
+                t.clientName,
+                t.branch,
+                parseFloat(t.amount).toFixed(2),
+                t.date,
+                t.status
+            ]);
+            const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `gm-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load branch performance using API helper
+        async function loadBranchPerformance() {
+            try {
+                const { getBranchPerformance } = await import('./api/transactions.js');
+                const performance = await getBranchPerformance();
+                const tbody = document.getElementById('branchPerformanceBody');
+                if (!performance || !performance.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No branch data available</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = performance.map(p => `
+                    <tr>
+                        <td>${p.branch}</td>
+                        <td>NAD ${parseFloat(p.revenue).toFixed(2)}</td>
+                        <td>${p.transactions}</td>
+                        <td>${p.activeClients}</td>
+                        <td>NAD ${parseFloat(p.avgTransactionValue).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading branch performance:', e);
+                const tbody = document.getElementById('branchPerformanceBody');
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">Failed to load branch performance</td></tr>';
+            }
+        }
     </script>
 </body>
 </html>

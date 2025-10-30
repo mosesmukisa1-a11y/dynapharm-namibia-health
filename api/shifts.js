@@ -9,6 +9,7 @@ export default function handler(req, res) {
 
     if (!global.shifts || global.shifts.length === 0) {
         try {
+            ensureDataDir();
             const fp = filePath();
             if (fs.existsSync(fp)) { global.shifts = JSON.parse(fs.readFileSync(fp, 'utf8')); }
             else { global.shifts = sample(); }
@@ -27,7 +28,9 @@ export default function handler(req, res) {
         if (startDate && endDate) list = list.filter(s => s.date >= startDate && s.date <= endDate);
         res.status(200).json(list);
     } else if (req.method === 'POST') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const body = req.body || {};
+        if (!body.userId || !body.fullName || !body.branch || !body.date) { res.status(400).json({ error: 'Missing required fields: userId, fullName, branch, date' }); return; }
         const rec = {
             id: `SHF-${Date.now()}`,
             userId: body.userId,
@@ -48,6 +51,7 @@ export default function handler(req, res) {
         writeAudit('shift_created', { id: rec.id, userId: rec.userId, date: rec.date });
         res.status(201).json(rec);
     } else if (req.method === 'PUT') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id, ...rest } = req.body || {};
         const idx = global.shifts.findIndex(s => s.id === id);
         if (idx === -1) { res.status(404).json({ error: 'Shift not found' }); return; }
@@ -56,6 +60,7 @@ export default function handler(req, res) {
         writeAudit('shift_updated', { id });
         res.status(200).json(global.shifts[idx]);
     } else if (req.method === 'DELETE') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id } = req.query;
         if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
         const idx = global.shifts.findIndex(s => s.id === id);
@@ -70,7 +75,7 @@ export default function handler(req, res) {
 }
 
 function filePath(){ return path.join(process.cwd(), 'cloud-data', 'shifts_data.json'); }
-function save(){ try { fs.writeFileSync(filePath(), JSON.stringify(global.shifts, null, 2)); } catch(e){ console.error('❌ Error saving shifts:', e); } }
+function save(){ try { ensureDataDir(); fs.writeFileSync(filePath(), JSON.stringify(global.shifts, null, 2)); } catch(e){ console.error('❌ Error saving shifts:', e); } }
 function sample(){
     const today = new Date().toISOString().split('T')[0];
     return [
@@ -80,11 +85,14 @@ function sample(){
 
 function writeAudit(event, details){
     try {
+        ensureDataDir();
         const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
         const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
         list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
         fs.writeFileSync(fp, JSON.stringify(list, null, 2));
     } catch(e){}
 }
+function ensureDataDir(){ const dir = path.join(process.cwd(),'cloud-data'); if (!fs.existsSync(dir)) { try { fs.mkdirSync(dir); } catch(e){} } }
+function isHR(req){ const role = req.headers['x-role'] || req.headers['x-user-role']; return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase()); }
 
 

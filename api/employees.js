@@ -10,6 +10,7 @@ export default function handler(req, res) {
 
     if (!global.employees || global.employees.length === 0) {
         try {
+            ensureDataDir();
             const fp = getFilePath();
             if (fs.existsSync(fp)) {
                 const data = JSON.parse(fs.readFileSync(fp, 'utf8'));
@@ -37,7 +38,9 @@ export default function handler(req, res) {
         }
         res.status(200).json(list);
     } else if (req.method === 'POST') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const body = req.body || {};
+        if (!body.fullName || !body.userId || !body.role || !body.branch) { res.status(400).json({ error: 'Missing required fields: fullName, userId, role, branch' }); return; }
         const item = {
             id: `EMP-${Date.now()}`,
             userId: body.userId || `STAFF-${Date.now()}`,
@@ -59,6 +62,7 @@ export default function handler(req, res) {
         writeAudit('employee_created', { id: item.id, userId: item.userId, role: item.role });
         res.status(201).json(item);
     } else if (req.method === 'PUT') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id, ...rest } = req.body || {};
         const idx = global.employees.findIndex(e => e.id === id);
         if (idx === -1) { res.status(404).json({ error: 'Employee not found' }); return; }
@@ -66,6 +70,7 @@ export default function handler(req, res) {
         save(); writeAudit('employee_updated', { id });
         res.status(200).json(global.employees[idx]);
     } else if (req.method === 'DELETE') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id } = req.query;
         if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
         const idx = global.employees.findIndex(e => e.id === id);
@@ -80,7 +85,7 @@ export default function handler(req, res) {
 
 function getFilePath(){ return path.join(process.cwd(), 'cloud-data', 'employees_data.json'); }
 function save(){
-    try { fs.writeFileSync(getFilePath(), JSON.stringify(global.employees, null, 2)); }
+    try { ensureDataDir(); fs.writeFileSync(getFilePath(), JSON.stringify(global.employees, null, 2)); }
     catch(e){ console.error('❌ Error saving employees:', e); }
 }
 function sampleEmployees(){
@@ -92,11 +97,14 @@ function sampleEmployees(){
 
 function writeAudit(event, details){
     try {
+        ensureDataDir();
         const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
         const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
         list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
         fs.writeFileSync(fp, JSON.stringify(list, null, 2));
     } catch(e){}
 }
+function ensureDataDir(){ const dir = path.join(process.cwd(),'cloud-data'); if (!fs.existsSync(dir)) { try { fs.mkdirSync(dir); } catch(e){} } }
+function isHR(req){ const role = req.headers['x-role'] || req.headers['x-user-role']; return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase()); }
 
 

@@ -7,9 +7,10 @@ export async function getTransactions(filters = {}) {
         const reportsData = await fetch('/reports_data.json').then(r => r.json());
         const reports = reportsData.reports || [];
         
-        // Load clients data
-        const clientsData = await fetch('/api/clients.js').then(r => r.json()).catch(() => ({ clients: [] }));
-        const clients = clientsData.clients || [];
+        // Load clients data (serverless endpoint returns an array)
+        const clients = await fetch('/api/clients')
+            .then(r => r.json())
+            .catch(() => []);
         
         // Transform reports into transactions
         const transactions = reports.map((report, index) => {

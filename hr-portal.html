@@ -79,7 +79,9 @@
 
         async function api(path, options={}){
             const url = path.startsWith('/api/') ? path : `/api${path.startsWith('/')?'':'/'}${path}`;
-            const res = await fetch(url, { headers: { 'Content-Type':'application/json' }, ...options });
+            const user = getCurrentUser();
+            const headers = { 'Content-Type':'application/json', 'X-Role': (user?.role||'') };
+            const res = await fetch(url, { headers, ...options });
             if(!res.ok) throw new Error(`API ${res.status}`);
             return res.json();
         }
@@ -617,6 +619,42 @@
             document.getElementById('repOut').innerHTML = rows.length ? `<div style="overflow:auto;"><table><thead><tr><th>Branch</th><th>Headcount</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.branch}</td><td>${r.count}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">No data.</div>`;
         }
 
+        // Notification bell
+        (function setupBell(){
+            const header = document.querySelector('.header');
+            if(!header) return;
+            const bell = document.createElement('button');
+            bell.className = 'btn';
+            bell.id = 'notifBell';
+            bell.style.position = 'relative';
+            bell.textContent = 'Notifications';
+            const dot = document.createElement('span');
+            dot.id = 'notifDot';
+            dot.style.position = 'absolute'; dot.style.top = '-4px'; dot.style.right = '-4px'; dot.style.background = '#ef4444'; dot.style.borderRadius = '999px'; dot.style.width = '10px'; dot.style.height = '10px';
+            bell.appendChild(dot);
+            header.appendChild(bell);
+            async function refresh(){
+                try { const list = await api('/notifications?unread=1'); dot.style.display = list.length? 'inline-block':'none'; bell.setAttribute('data-count', String(list.length)); }
+                catch { dot.style.display = 'none'; }
+            }
+            bell.addEventListener('click', async () => {
+                try {
+                    const list = await api('/notifications?unread=1');
+                    alert(list.map(n => `${n.title}: ${n.message}`).join('\n') || 'No unread notifications');
+                    for (const n of list) { await api('/notifications', { method:'PUT', body: JSON.stringify({ id:n.id, read:true }) }); }
+                    refresh();
+                } catch {}
+            });
+            refresh(); setInterval(refresh, 15000);
+        })();
+
+        // Print styles for reports and timesheets
+        (function(){
+            const style = document.createElement('style');
+            style.textContent = '@media print { .tabs, .header .btn, .row button { display:none !important; } table { font-size:12px; } }';
+            document.head.appendChild(style);
+        })();
+
         async function renderTimesheets(){
             const container = document.getElementById('content');
             const today = new Date();
@@ -632,6 +670,8 @@
                             <div class="field"><label>End</label><input type="date" id="tsEnd" value="${ymd(end)}"></div>
                         </div>
                         <div class="row" style="gap:6px;">
+                            <button class="btn" onclick="setTsRange('week')">This Week</button>
+                            <button class="btn" onclick="setTsRange('month')">This Month</button>
                             <button class="btn" onclick="renderTimesheets()">Generate</button>
                             <button class="btn" onclick="downloadTimesheet()">Export CSV</button>
                         </div>
@@ -672,6 +712,24 @@
                 </div>
             ` : `<div class="empty">No attendance in date range.</div>`;
             window.__tsRows = rows;
+        }
+        function setTsRange(kind){
+            const now = new Date();
+            let s, e;
+            if(kind==='week'){
+                const day = now.getDay() || 7; // Mon=1..Sun=7
+                const start = new Date(now); start.setDate(now.getDate() - (day-1));
+                const end = new Date(start); end.setDate(start.getDate()+6);
+                s = start; e = end;
+            } else {
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                const end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+                s = start; e = end;
+            }
+            const ymd = d => new Date(d).toISOString().split('T')[0];
+            document.getElementById('tsStart').value = ymd(s);
+            document.getElementById('tsEnd').value = ymd(e);
+            renderTimesheets();
         }
         async function downloadTimesheet(){
             const rows = window.__tsRows||[]; const csv = toCSV(rows);

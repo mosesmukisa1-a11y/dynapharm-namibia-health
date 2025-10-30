@@ -15,6 +15,7 @@ export default function handler(req, res) {
     // Load attendance data from file
     if (!global.attendance || global.attendance.length === 0) {
         try {
+            ensureDataDir();
             const attendanceFilePath = path.join(process.cwd(), 'cloud-data', 'attendance_data.json');
             if (fs.existsSync(attendanceFilePath)) {
                 const fileData = fs.readFileSync(attendanceFilePath, 'utf8');
@@ -50,6 +51,9 @@ export default function handler(req, res) {
         
         res.status(200).json(filtered);
     } else if (req.method === 'POST') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
+        const body = req.body || {};
+        if (!body.userId || !body.fullName || !body.branch || !body.date) { res.status(400).json({ error: 'Missing required fields: userId, fullName, branch, date' }); return; }
         const newAttendance = {
             id: `ATT-${Date.now()}`,
             ...req.body,
@@ -63,6 +67,7 @@ export default function handler(req, res) {
         
         res.status(201).json(newAttendance);
     } else if (req.method === 'PUT') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id, ...updateData } = req.body;
         const attendanceIndex = global.attendance.findIndex(a => a.id === id);
         if (attendanceIndex !== -1) {
@@ -74,6 +79,7 @@ export default function handler(req, res) {
             res.status(404).json({ error: 'Attendance record not found' });
         }
     } else if (req.method === 'DELETE') {
+        if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const { id } = req.query;
         if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
         const idx = global.attendance.findIndex(a => a.id === id);
@@ -92,6 +98,7 @@ export default function handler(req, res) {
 
 function saveAttendanceToFile() {
     try {
+        ensureDataDir();
         const attendanceFilePath = path.join(process.cwd(), 'cloud-data', 'attendance_data.json');
         fs.writeFileSync(attendanceFilePath, JSON.stringify(global.attendance, null, 2));
     } catch (error) {
@@ -133,9 +140,19 @@ function generateSampleAttendanceData() {
 
 function writeAudit(event, details){
     try {
+        ensureDataDir();
         const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
         const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
         list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
         fs.writeFileSync(fp, JSON.stringify(list, null, 2));
     } catch(e){}
+}
+
+function ensureDataDir(){
+    const dir = path.join(process.cwd(), 'cloud-data');
+    if (!fs.existsSync(dir)) { try { fs.mkdirSync(dir); } catch(e){} }
+}
+function isHR(req){
+    const role = req.headers['x-role'] || req.headers['x-user-role'];
+    return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase());
 }

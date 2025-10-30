@@ -4192,6 +4192,7 @@
                     <button class="btn btn-ghost" onclick="clearBonusUpload()">Clear</button>
                     <button class="btn btn-secondary" onclick="downloadBonusTemplate()">Download Template</button>
                     <button class="btn" onclick="exportBankBatch()">🏦 Export Bank Batch</button>
+                    <button class="btn" onclick="exportPain001()">📄 Export PAIN.001</button>
                     <button class="btn" onclick="exportCashSheet()">💵 Export Cash Sheet</button>
                     <button class="btn" onclick="showFinanceReconciliation()">🧾 Reconciliation</button>
                 </div>
@@ -9711,6 +9712,9 @@
             // Initialize body systems selector
             initializeBodySystems();
             
+            // Start autosave
+            startAutosave();
+            
             document.getElementById('reportModal').style.display = 'block';
         }
 
@@ -11047,6 +11051,242 @@
                 } else {
                     notesDisplay.innerHTML = '';
                 }
+            }
+        }
+
+        // Autosave functionality
+        let autosaveInterval;
+        let autosaveTimeout;
+        
+        function startAutosave() {
+            // Clear any existing autosave
+            clearInterval(autosaveInterval);
+            
+            // Autosave every 30 seconds
+            autosaveInterval = setInterval(() => {
+                autosaveDraft();
+            }, 30000);
+        }
+        
+        function stopAutosave() {
+            clearInterval(autosaveInterval);
+        }
+        
+        function autosaveDraft() {
+            if (!currentClientId) return;
+            
+            const reportData = {
+                clientId: currentClientId,
+                consultant: currentUser.fullName,
+                consultantNotes: document.getElementById('consultantNotes')?.value || '',
+                followUpDate: document.getElementById('followUpDate')?.value || '',
+                followUpNotes: document.getElementById('followUpNotes')?.value || '',
+                timestamp: new Date().toISOString(),
+                status: 'draft'
+            };
+            
+            // Save to localStorage as draft
+            const drafts = JSON.parse(localStorage.getItem('consultant_drafts') || '[]');
+            const existingIndex = drafts.findIndex(d => d.clientId === currentClientId);
+            
+            if (existingIndex >= 0) {
+                drafts[existingIndex] = reportData;
+            } else {
+                drafts.push(reportData);
+            }
+            
+            localStorage.setItem('consultant_drafts', JSON.stringify(drafts));
+            
+            // Show autosave indicator
+            const status = document.getElementById('autosaveStatus');
+            const time = document.getElementById('autosaveTime');
+            if (status && time) {
+                time.textContent = new Date().toLocaleTimeString();
+                status.style.display = 'block';
+                
+                // Hide after 5 seconds
+                clearTimeout(autosaveTimeout);
+                autosaveTimeout = setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Template functions
+        function openReportTemplateSelector() {
+            displayReportTemplates();
+            document.getElementById('reportTemplateModal').style.display = 'block';
+        }
+        
+        function displayReportTemplates() {
+            const templates = [
+                {
+                    name: 'General Consultation',
+                    icon: '🩺',
+                    description: 'Basic consultation template',
+                    data: {
+                        notes: 'Patient presents for general consultation.\n\nAssessment: General health evaluation.\n\nPlan: Continue healthy lifestyle, regular follow-up as needed.'
+                    }
+                },
+                {
+                    name: 'Respiratory Issues',
+                    icon: '🫁',
+                    description: 'Cough, cold, asthma',
+                    data: {
+                        notes: 'Patient presents with respiratory concerns.\n\nAssessment: Respiratory symptoms noted.\n\nPlan: Rest, hydration, monitor symptoms. Follow-up if symptoms persist.'
+                    }
+                },
+                {
+                    name: 'Digestive Health',
+                    icon: '💊',
+                    description: 'Stomach, digestion issues',
+                    data: {
+                        notes: 'Patient presents with digestive concerns.\n\nAssessment: Digestive symptoms evaluated.\n\nPlan: Dietary modifications, hydration. Follow-up as needed.'
+                    }
+                },
+                {
+                    name: 'Pain Management',
+                    icon: '🤕',
+                    description: 'Headache, body pain',
+                    data: {
+                        notes: 'Patient presents with pain concerns.\n\nAssessment: Pain symptoms assessed.\n\nPlan: Pain management, rest, monitoring. Review progress.'
+                    }
+                },
+                {
+                    name: 'Wellness Check',
+                    icon: '✨',
+                    description: 'General wellness, vitamins',
+                    data: {
+                        notes: 'Patient presents for wellness consultation.\n\nAssessment: General wellness evaluation.\n\nPlan: Continue health maintenance, consider supplementation if needed.'
+                    }
+                }
+            ];
+            
+            const list = document.getElementById('templateList');
+            list.innerHTML = templates.map(t => `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 2px solid #ddd; cursor: pointer;" onclick="applyTemplate('${t.name}')">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">${t.icon}</div>
+                    <h4 style="color: #2c3e50; margin-bottom: 5px;">${t.name}</h4>
+                    <p style="color: #7f8c8d; font-size: 0.9rem;">${t.description}</p>
+                </div>
+            `).join('');
+        }
+        
+        function applyTemplate(templateName) {
+            const templates = {
+                'General Consultation': { notes: 'Patient presents for general consultation.\n\nAssessment: General health evaluation.\n\nPlan: Continue healthy lifestyle, regular follow-up as needed.' },
+                'Respiratory Issues': { notes: 'Patient presents with respiratory concerns.\n\nAssessment: Respiratory symptoms noted.\n\nPlan: Rest, hydration, monitor symptoms. Follow-up if symptoms persist.' },
+                'Digestive Health': { notes: 'Patient presents with digestive concerns.\n\nAssessment: Digestive symptoms evaluated.\n\nPlan: Dietary modifications, hydration. Follow-up as needed.' },
+                'Pain Management': { notes: 'Patient presents with pain concerns.\n\nAssessment: Pain symptoms assessed.\n\nPlan: Pain management, rest, monitoring. Review progress.' },
+                'Wellness Check': { notes: 'Patient presents for wellness consultation.\n\nAssessment: General wellness evaluation.\n\nPlan: Continue health maintenance, consider supplementation if needed.' }
+            };
+            
+            const template = templates[templateName];
+            if (template) {
+                const notesField = document.getElementById('consultantNotes');
+                if (notesField) {
+                    notesField.value = template.notes;
+                    updateNotesDisplay();
+                }
+            }
+            
+            closeModal('reportTemplateModal');
+        }
+
+        // Finalize and e-sign
+        function finalizeReport() {
+            if (!currentClientId) {
+                alert('Please select a client first');
+                return;
+            }
+            
+            const consultantNotes = document.getElementById('consultantNotes')?.value.trim();
+            if (!consultantNotes) {
+                alert('Please add diagnosis and treatment notes before finalizing');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to finalize and e-sign this report? This action cannot be undone.')) {
+                // Mark as finalized with e-signature
+                const report = reports.find(r => r.clientId === currentClientId);
+                if (report) {
+                    report.status = 'finalized';
+                    report.finalizedDate = new Date().toISOString();
+                    report.eSignedBy = currentUser.fullName;
+                    report.eSignedDate = new Date().toISOString();
+                    
+                    saveData();
+                    alert('Report finalized and e-signed successfully!');
+                    closeModal('reportModal');
+                    stopAutosave();
+                }
+            }
+        }
+
+        // PDF Export
+        function exportReportPDF() {
+            printReport(); // Reuse print functionality
+        }
+
+        // Show drafts
+        function showMyDrafts() {
+            const drafts = JSON.parse(localStorage.getItem('consultant_drafts') || '[]');
+            if (drafts.length === 0) {
+                alert('No draft reports found');
+                return;
+            }
+            
+            let list = 'Available Drafts:\n\n';
+            drafts.forEach((draft, idx) => {
+                const client = clients.find(c => c.referenceNumber === draft.clientId);
+                list += `${idx + 1}. ${client ? client.fullName : draft.clientId} (${new Date(draft.timestamp).toLocaleDateString()})\n`;
+            });
+            
+            const selection = prompt(list + '\nEnter draft number to open:');
+            if (selection) {
+                const idx = parseInt(selection) - 1;
+                if (idx >= 0 && idx < drafts.length) {
+                    const draft = drafts[idx];
+                    createReport(draft.clientId);
+                    
+                    // Restore draft data after a short delay
+                    setTimeout(() => {
+                        const notesField = document.getElementById('consultantNotes');
+                        const followUpDateField = document.getElementById('followUpDate');
+                        const followUpNotesField = document.getElementById('followUpNotes');
+                        
+                        if (notesField) notesField.value = draft.consultantNotes;
+                        if (followUpDateField) followUpDateField.value = draft.followUpDate;
+                        if (followUpNotesField) followUpNotesField.value = draft.followUpNotes;
+                        
+                        updateNotesDisplay();
+                    }, 500);
+                }
+            }
+        }
+
+        // Show today's appointments
+        function showTodaysAppointments() {
+            const today = new Date().toISOString().split('T')[0];
+            const todaysAppts = appointments.filter(a => 
+                a.consultant === currentUser.fullName && 
+                a.date === today &&
+                a.status !== 'cancelled'
+            );
+            
+            if (todaysAppts.length === 0) {
+                alert('No appointments scheduled for today');
+                return;
+            }
+            
+            // Scroll to appointments section and filter
+            const followUpSearch = document.getElementById('followUpSearch');
+            if (followUpSearch) {
+                followUpSearch.value = today;
+                filterFollowUps();
+                
+                // Scroll to appointments
+                followUpSearch.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
@@ -19751,10 +19991,13 @@
             };
         }
         
-        // Handle file upload
+        // Handle file upload with inline validation & progress
         async function handleBonusFileUpload(e) {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
+            const wrap = document.getElementById('bonusUploadTableWrap');
+            const totals = document.getElementById('bonusUploadTotals');
+            if (totals) totals.innerHTML = '<div style="color:#334e68;">Parsing CSV...</div>';
             const text = await file.text();
             const rows = parseBonusCsv(text);
             if (!rows.length) { alert('CSV appears empty.'); return; }
@@ -19762,12 +20005,37 @@
             const required = ['drn','name','stockist','area','nad'];
             const missing = required.filter(r => !bonusUploadHeaders.includes(r));
             if (missing.length) { alert('Missing columns: ' + missing.join(', ')); return; }
-            bonusUploadData = rows.slice(1).map(mapBonusRow).filter(r => r.drn || r.name);
+            const errors = [];
+            const data = [];
+            const maxPreview = 10;
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const mapped = mapBonusRow(row);
+                if (!mapped.drn || !mapped.name) {
+                    errors.push({ row: i+1, message: 'Missing DRN or Name' });
+                } else if (isNaN(mapped.amount)) {
+                    errors.push({ row: i+1, message: 'Invalid NAD amount' });
+                } else {
+                    data.push(mapped);
+                }
+                if (i <= maxPreview && totals) {
+                    totals.innerHTML = `<div style="color:#334e68;">Parsing row ${i}/${rows.length}...</div>`;
+                }
+            }
+            bonusUploadData = data;
             renderBonusUploadTable();
-            
-            // Enable upload button
+            if (errors.length) {
+                const errHtml = errors.slice(0, 10).map(e => `<div style='color:#c41e3a;'>Row ${e.row}: ${e.message}</div>`).join('');
+                if (totals) totals.innerHTML += `<div style='margin-top:6px;'>${errHtml}${errors.length>10?`<div>...and ${errors.length-10} more</div>`:''}</div>`;
+            }
+            if (wrap) wrap.style.display = 'block';
             const uploadBtn = document.getElementById('bonusUploadBtn');
-            if (uploadBtn) uploadBtn.disabled = false;
+            if (uploadBtn) uploadBtn.disabled = bonusUploadData.length === 0;
+            // Remember selections
+            const monthInput = document.getElementById('bonusUploadMonth');
+            const branchFilter = document.getElementById('bonusUploadBranchFilter');
+            localStorage.setItem('finance_bonus_month', monthInput?.value || '');
+            localStorage.setItem('finance_bonus_branch', branchFilter?.value || '');
         }
         
         // Render bonus upload table
@@ -19805,7 +20073,7 @@
             wrap.style.display = data.length === 0 ? 'none' : 'block';
         }
         
-        // Upload bonus CSV
+        // Upload bonus CSV with progress indicator
         async function uploadBonusCsv() {
             const monthInput = document.getElementById('bonusUploadMonth');
             if (!monthInput || !monthInput.value) {
@@ -19839,8 +20107,8 @@
             
             let message = '';
             try {
-                const base = getApiBase();
-                const res = await fetch(`${base}/bonus`, {
+            const base = getApiBase();
+            const res = await fetch(`${base}/bonus`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -19857,6 +20125,10 @@
                 message = `⚠️ API not reachable. Data saved locally. Please try again when online.\n\nMonth: ${month}\nRecords: ${bonusUploadData.length}`;
             }
             alert(message);
+            // Save last settings
+            localStorage.setItem('finance_bonus_month', month);
+            const branchFilter = document.getElementById('bonusUploadBranchFilter');
+            localStorage.setItem('finance_bonus_branch', branchFilter?.value || '');
         }
 
         // Approve/Reject monthly upload
@@ -19922,6 +20194,21 @@
             } catch (e) { alert(`❌ ${e.message}`); }
         }
 
+        async function exportPain001() {
+            const month = document.getElementById('bonusUploadMonth')?.value;
+            if (!month) { alert('Select month first'); return; }
+            const base = getApiBase();
+            const url = `${base}/bonus?action=export-bank-pain001&month=${encodeURIComponent(month)}`;
+            try {
+                const res = await fetch(url, { headers: { 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') } });
+                if (!res.ok) { const e = await res.text(); throw new Error(e || 'Export failed'); }
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = `bank_batch_${month}.pain.001.xml`; a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+
         // Reconciliation view
         function showFinanceReconciliation() {
             const section = document.getElementById('financeReconciliation');
@@ -19945,6 +20232,10 @@
                 if (!res.ok) throw new Error(data.error || 'Failed to load reconciliation');
                 const body = document.getElementById('reconBody');
                 const summary = document.getElementById('reconSummary');
+                // Load config for tolerance
+                const cfgRes = await fetch(`${base}/bonus?action=config`);
+                const cfg = await cfgRes.json();
+                const tol = (cfg?.varianceTolerance ?? 0.5);
                 if (body) body.innerHTML = '';
                 let totalUpload = 0, totalPaid = 0, outliers = 0;
                 data.items.forEach(r => {
@@ -19952,7 +20243,8 @@
                     totalPaid += (r.paidAmount || 0);
                     const tr = document.createElement('tr');
                     const variance = (r.variance || 0);
-                    if (Math.abs(variance) > 0.01) outliers++;
+                    const isOutlier = Math.abs(variance) > tol;
+                    if (isOutlier) outliers++;
                     tr.innerHTML = `
                         <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.drn}</td>
                         <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.name || ''}</td>
@@ -19960,13 +20252,30 @@
                         <td style="padding:10px;border-bottom:1px solid #eef2f7;">${(r.paidAmount||0).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                         <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.method || ''}</td>
                         <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.status}</td>
-                        <td style="padding:10px;border-bottom:1px solid #eef2f7; color:${Math.abs(variance)>0.01?'#c41e3a':'#2e7d32'};">${variance.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7; color:${isOutlier?'#c41e3a':'#2e7d32'};">
+                            ${variance.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}
+                            ${isOutlier && r.status !== 'unpaid' ? `<button class='btn btn-sm' style='margin-left:8px' onclick="approveVariance('${month}','${r.drn}')">Approve</button>` : ''}
+                        </td>
                     `;
                     body?.appendChild(tr);
                 });
                 if (summary) {
-                    summary.innerHTML = `Uploaded: N$ ${totalUpload.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Paid: N$ ${totalPaid.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Variance: N$ ${(totalPaid-totalUpload).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Duplicates: ${data.duplicateKeys?.length || 0} · Outliers: ${outliers}`;
+                    summary.innerHTML = `Uploaded: N$ ${totalUpload.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Paid: N$ ${totalPaid.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Variance: N$ ${(totalPaid-totalUpload).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Duplicates: ${data.duplicateKeys?.length || 0} · Outliers: ${outliers} (tol N$ ${tol})`;
                 }
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+
+        async function approveVariance(month, drn) {
+            try {
+                const base = getApiBase();
+                const res = await fetch(`${base}/bonus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') },
+                    body: JSON.stringify({ action: 'approve-variance', month, drn })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to approve variance');
+                loadReconciliation();
             } catch (e) { alert(`❌ ${e.message}`); }
         }
         

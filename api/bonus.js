@@ -241,6 +241,42 @@ export default function handler(req, res) {
             res.setHeader('Content-Disposition', `attachment; filename="bank_batch_${month}.csv"`);
             return res.status(200).send(csv);
         }
+        if (action === 'export-bank-pain001' && month) {
+            const payments = (bonusData.payments || []).filter(p => p.month === month && p.method === 'bank' && p.status === 'approved');
+            const total = payments.reduce((s,p)=>s + (p.amount||0), 0).toFixed(2);
+            const msgId = `MSG-${Date.now()}`;
+            const created = new Date().toISOString();
+            // Minimal PAIN.001.001.03 XML
+            const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>';
+            const xml = `${xmlHeader}
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>${msgId}</MsgId>
+      <CreDtTm>${created}</CreDtTm>
+      <NbOfTxs>${payments.length}</NbOfTxs>
+      <CtrlSum>${total}</CtrlSum>
+      <InitgPty><Nm>Dynapharm Namibia</Nm></InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>${msgId}-P1</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <NbOfTxs>${payments.length}</NbOfTxs>
+      <CtrlSum>${total}</CtrlSum>
+      <ReqdExctnDt>${created.substring(0,10)}</ReqdExctnDt>
+      ${payments.map((p,i)=>`<CdtTrfTxInf>
+        <PmtId><EndToEndId>${p.drn}-${p.month}</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="NAD">${(p.amount||0).toFixed(2)}</InstdAmt></Amt>
+        <Cdtr><Nm>${(p.name||'').replace(/&/g,'&amp;')}</Nm></Cdtr>
+        <RmtInf><Ustrd>Bonus ${p.month} DRN ${p.drn}</Ustrd></RmtInf>
+      </CdtTrfTxInf>`).join('')}
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>`;
+            res.setHeader('Content-Type', 'application/xml');
+            res.setHeader('Content-Disposition', `attachment; filename="bank_batch_${month}.pain.001.xml"`);
+            return res.status(200).send(xml);
+        }
         if (action === 'export-cash-csv' && month) {
             const payments = (bonusData.payments || []).filter(p => p.month === month && p.method === 'cash' && p.status === 'approved');
             const header = 'Branch,DRN,Name,Amount,Signature,Month';
@@ -407,9 +443,22 @@ export default function handler(req, res) {
             const { drn, month } = data;
             const idx = bonusData.payments?.findIndex(p => p.drn === drn && p.month === month);
             if (idx === -1) return res.status(404).json({ error: 'Payment not found' });
-            bonusData.payments[idx].status = 'approved';
-            bonusData.payments[idx].approvedAt = new Date().toISOString();
-            bonusData.payments[idx].approvedBy = userName;
+            const threshold = bonusData.config?.secondApproverThreshold || 5000;
+            const requiresSecond = (bonusData.payments[idx].amount || 0) > threshold;
+            const approvers = bonusData.payments[idx].approvals || [];
+            // Prevent same user from both approvals
+            if (approvers.find(a => a.by === userName)) {
+                return res.status(409).json({ error: 'This approver already approved' });
+            }
+            approvers.push({ by: userName, role: userRole, at: new Date().toISOString() });
+            bonusData.payments[idx].approvals = approvers;
+            if (requiresSecond && approvers.length < 2) {
+                bonusData.payments[idx].status = 'pending_approval_level2';
+            } else {
+                bonusData.payments[idx].status = 'approved';
+                bonusData.payments[idx].approvedAt = new Date().toISOString();
+                bonusData.payments[idx].approvedBy = userName;
+            }
             logAudit({ type: 'payment_approved', month, drn });
             saveBonusData(bonusData);
             notify({ kind: 'payment_approved', month, drn });
@@ -431,6 +480,19 @@ export default function handler(req, res) {
             logAudit({ type: 'payment_disbursed', month, drn });
             saveBonusData(bonusData);
             notify({ kind: 'payment_disbursed', month, drn });
+            return res.status(200).json(bonusData.payments[idx]);
+        }
+
+        if (action === 'approve-variance') {
+            if (!requireRole(['finance_manager', 'gm', 'director'])) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+            const { drn, month } = data;
+            const idx = bonusData.payments?.findIndex(p => p.drn === drn && p.month === month);
+            if (idx === -1) return res.status(404).json({ error: 'Payment not found' });
+            bonusData.payments[idx].varianceApproved = { by: userName, at: new Date().toISOString() };
+            logAudit({ type: 'variance_approved', month, drn });
+            saveBonusData(bonusData);
             return res.status(200).json(bonusData.payments[idx]);
         }
         
