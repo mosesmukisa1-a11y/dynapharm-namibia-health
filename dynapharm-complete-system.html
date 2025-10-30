@@ -1470,6 +1470,7 @@
             <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
             </div>
         </div>
+        <div id="globalAlerts" class="global-alerts"></div>
 
         <div class="tabs">
             <button class="tab-button active" onclick="openTab('client', event)">Distributor / Guest</button>
@@ -3676,6 +3677,8 @@
                     <h2>👔 GM Portal - Country Overview</h2>
                     <p>Monitor KPIs, Approve Special Sales, Oversee Operations</p>
                     <button class="btn btn-primary" onclick="refreshGMData()">🔄 Refresh Data</button>
+                    <button class="btn" onclick="exportSectionToPDF('gmContent')">🖨️ Export PDF</button>
+                    <a class="btn" href="gm-portal-integration.html" target="_blank" rel="noopener" style="margin-left: 10px;">📊 Open GM Business Portal</a>
                 </div>
                 
                 <!-- KPI Dashboard -->
@@ -15782,6 +15785,42 @@
                     console.error('Error initializing default distributors:', error);
                 }
             }
+        }
+
+        // Ensure all required distributor fields are populated and aliases are set
+        function normalizeDistributors(list) {
+            let changed = false;
+            const normalized = (list || []).map((d, i) => {
+                const dist = { ...d };
+                const hasName = (dist.distributorName || dist.name || '').trim().length > 0;
+                const hasCode = (dist.distributorCode || dist.code || '').trim().length > 0;
+                // Prefer canonical fields
+                if (!dist.distributorName && dist.name) dist.distributorName = dist.name;
+                if (!dist.distributorCode && dist.code) dist.distributorCode = dist.code;
+                // Try extract NB from name if code missing
+                if (!dist.distributorCode && dist.distributorName) {
+                    const m = String(dist.distributorName).toUpperCase().match(/NB\d+/);
+                    if (m) dist.distributorCode = m[0];
+                }
+                // Generate fallback code/name if still missing
+                if (!dist.distributorCode || String(dist.distributorCode).trim() === '') {
+                    dist.distributorCode = 'DIST-' + (dist.id || Date.now() + '-' + i);
+                }
+                if (!dist.distributorName || String(dist.distributorName).trim() === '') {
+                    dist.distributorName = 'Distributor ' + dist.distributorCode;
+                }
+                // Mirror to aliases used elsewhere
+                if (dist.code !== dist.distributorCode) dist.code = dist.distributorCode;
+                if (dist.name !== dist.distributorName) dist.name = dist.distributorName;
+                // Normalise mobile alias
+                if (!dist.mobileNo && dist.mobile) dist.mobileNo = dist.mobile;
+                if (!dist.mobile && dist.mobileNo) dist.mobile = dist.mobileNo;
+                // Track if anything changed
+                if (!hasName || !hasCode || dist.code !== d.code || dist.name !== d.name) changed = true;
+                return dist;
+            });
+            if (changed) console.log('normalizeDistributors: populated required fields for one or more records');
+            return normalized;
         }
 
         function showWalkInSaleModal(customerType) {
