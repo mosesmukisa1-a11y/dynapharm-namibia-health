@@ -10,6 +10,10 @@
     { "src": "api/clients.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" }
   ],
+  "routes": [
+    { "src": "/", "dest": "/dynapharm-complete-system.html" },
+    { "src": "/dynapharm-complete-system", "dest": "/dynapharm-complete-system.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.html",
