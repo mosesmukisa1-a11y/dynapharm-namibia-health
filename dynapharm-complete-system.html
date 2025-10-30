@@ -1439,34 +1439,7 @@
     </div>
 
     <div class="container">
-        <div class="logo">
-            <svg width="300" height="180" viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
-                <!-- Red Arc with Text -->
-                <path d="M 40 40 Q 200 20 360 40" fill="none" stroke="#c41e3a" stroke-width="4" stroke-linecap="round"/>
-                <text x="200" y="40" text-anchor="middle" fill="#c41e3a" font-size="14" font-weight="bold" font-family="Arial, sans-serif">HEALTH | WEALTH | FREEDOM</text>
-                
-                <!-- Central Geometric Design - Abstract structure with depth -->
-                <g transform="translate(200, 110)">
-                    <!-- Left pillar/structure -->
-                    <path d="M -60 30 L -50 -20 L -40 30 L -40 40 L -60 40 Z" fill="#c41e3a" opacity="0.9"/>
-                    <path d="M -50 -20 L -35 -25 L -25 30 L -40 30 Z" fill="#c41e3a" opacity="0.7"/>
-                    <path d="M -35 -25 L -20 -20 L -15 30 L -25 30 Z" fill="#c41e3a" opacity="0.5"/>
-                    
-                    <!-- Right pillar/structure (mirrored) -->
-                    <path d="M 60 30 L 50 -20 L 40 30 L 40 40 L 60 40 Z" fill="#c41e3a" opacity="0.9"/>
-                    <path d="M 50 -20 L 35 -25 L 25 30 L 40 30 Z" fill="#c41e3a" opacity="0.7"/>
-                    <path d="M 35 -25 L 20 -20 L 15 30 L 25 30 Z" fill="#c41e3a" opacity="0.5"/>
-                    
-                    <!-- Central connecting elements -->
-                    <rect x="-25" y="25" width="50" height="8" fill="#c41e3a" opacity="0.8"/>
-                    <rect x="-15" y="15" width="30" height="6" fill="#c41e3a" opacity="0.6"/>
-                </g>
-                
-                <!-- Company Name -->
-                <text x="200" y="170" text-anchor="middle" fill="#c41e3a" font-size="32" font-weight="bold" font-family="Georgia, serif">DYNAPHARM</text>
-                <text x="200" y="195" text-anchor="middle" fill="#c41e3a" font-size="20" font-weight="bold" font-family="Arial, sans-serif">NAMIBIA</text>
-            </svg>
-        </div>
+        <div class="logo"><img src="./assets/dynapharm-logo.png" alt="Dynapharm Namibia Logo" style="max-width:300px;height:auto;"></div>
 
         <div class="header">
             <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
@@ -1541,6 +1514,10 @@
             <!-- Full Body Check Up Tab -->
             <div id="distributor-checkup-tab" class="distributor-subtab" style="display: none;">
                 <h2>🏥 Full Body Check Up</h2>
+                <div style="margin: 10px 0 16px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-success" onclick="openClientReg('appointment')">📅 Book Appointment</button>
+                    <button class="btn" onclick="openClientReg('walkin')">🚶 Walk-in</button>
+                </div>
             <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
             
             <div class="form-section" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:12px;">
@@ -1559,7 +1536,11 @@
                 <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
             </div>
             
+            <div class="modal" id="clientRegModal" style="display: none;">
+                <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+                    <span class="close" onclick="closeModal('clientRegModal')">&times;</span>
             <form id="clientForm">
+                <input type="hidden" name="visitType" id="visitType" value="">
                 <!-- Member/Referral Information -->
                 <div class="form-section">
                     <h3>Member/Referral Information</h3>
@@ -2145,6 +2126,8 @@
                     <button type="button" class="btn" onclick="printClientForm()">Print</button>
                 </div>
             </form>
+                </div>
+            </div>
             </div>
             
         </div>
@@ -20970,11 +20953,11 @@
                 const uniqueId = `product-carousel-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
                 
                     return `
-                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); content-visibility: auto; contain-intrinsic-size: 300px 260px;">
                         <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0; perspective: 800px; transform-style: preserve-3d;">
                             ${productPhotos.map((photo, idx) => `
                                 <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" loading="lazy" decoding="async"
+                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden;">
                             `).join('')}
                             ${productPhotos.length > 1 ? `
@@ -21070,11 +21053,11 @@
                 const uniqueId = `product-carousel-filter-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
                 
                 return `
-                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); content-visibility: auto; contain-intrinsic-size: 300px 260px;">
                         <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
                             ${productPhotos.map((photo, idx) => `
                                 <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" 
+                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
                             `).join('')}
                             ${productPhotos.length > 1 ? `
@@ -21551,7 +21534,8 @@
                 'shipped': 'shippedOrders',
                 'delivered': 'deliveredOrders',
                 'all': 'allOrders',
-                'crm': 'frontdeskCRM'
+                'crm': 'frontdeskCRM',
+                'documents': 'frontdeskDocuments'
             };
             
             const tabElement = document.getElementById(tabMap[tabName]);
@@ -21571,6 +21555,10 @@
                 refreshAllOrders();
             } else if (tabName === 'crm') {
                 refreshCRMLeads();
+            } else if (tabName === 'documents') {
+                try { populateBranchFilterOptions(); } catch(_) {}
+                try { renderDocumentLibrary(); } catch(_) {}
+                try { ensureDocReminderTimer(); } catch(_) {}
             }
         }
         
@@ -22209,7 +22197,7 @@ This sale appears in the Dispenser Portal sales reports.
                     <div style="${gridStyle}">
                         ${previewImages.map((img, idx) => `
                             <div style="position: relative; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 2px solid #e0e0e0;">
-                                <img src="${img.src}" alt="Preview ${idx + 1}" 
+                                <img src="${img.src}" alt="Preview ${idx + 1}" loading="lazy" decoding="async"
                                      style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px; display: block;">
                                 <div style="margin-top: 8px; text-align: center;">
                                     <small style="color: #666; font-size: 0.75rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" 
@@ -22319,7 +22307,7 @@ This sale appears in the Dispenser Portal sales reports.
                 return `
                     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
                         <div style="position: relative;">
-                            <img src="${displayPhoto}" alt="${name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
+                            <img src="${displayPhoto}" alt="${name}" loading="lazy" decoding="async" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
                             ${photoCount > 1 ? `
                                 <div style="position: absolute; top: 5px; right: 5px; background: rgba(196, 30, 58, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
                                     ${photoCount} photos
@@ -22483,6 +22471,14 @@ This sale appears in the Dispenser Portal sales reports.
                                 <option>Invoice</option>
                                 <option>Other</option>
                             </select>
+                            <select id="docStatusFilter" onchange="renderDocumentLibrary()">
+                                <option value="">All Statuses</option>
+                                <option>Draft</option>
+                                <option>Pending Approval</option>
+                                <option>Approved</option>
+                                <option>Completed</option>
+                                <option>Archived</option>
+                            </select>
                             <select id="docBranchFilter" onchange="renderDocumentLibrary()">
                                 <option value="">All Branches</option>
                             </select>
@@ -22518,10 +22514,12 @@ This sale appears in the Dispenser Portal sales reports.
             const list = document.getElementById('documentList'); if (!list) return;
             const q = (document.getElementById('docSearch')?.value || '').toLowerCase();
             const type = document.getElementById('docTypeFilter')?.value || '';
+            const status = document.getElementById('docStatusFilter')?.value || '';
             const branch = document.getElementById('docBranchFilter')?.value || '';
             const docs = getDocuments().filter(d =>
                 (!q || `${d.title} ${d.client||''} ${d.branch||''} ${d.type||''}`.toLowerCase().includes(q)) &&
                 (!type || d.type === type) &&
+                (!status || (d.status||'Draft') === status) &&
                 (!branch || d.branch === branch)
             );
             if (docs.length === 0) { list.innerHTML = '<p style="color:#7f8c8d;">No documents yet</p>'; return; }
@@ -22530,15 +22528,30 @@ This sale appears in the Dispenser Portal sales reports.
                     <input type="checkbox" data-doc-id="${d.id}">
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <strong>${d.title}</strong>
-                            <span class="na-option">${d.type||'Other'}</span>
+                            <div>
+                                <strong>${d.title}</strong>
+                                <span style="margin-left:8px;padding:2px 8px;border-radius:12px;font-size:0.8rem;background:#f4f6f8;border:1px solid #e1e5e8;">${d.type||'Other'}</span>
+                            </div>
+                            <div>
+                                <span style="margin-right:8px;padding:2px 8px;border-radius:12px;font-size:0.8rem;${docStatusBadgeStyle(d.status)}">${d.status||'Draft'}</span>
+                                <span style="font-size:0.8rem;color:#666;">${d.assignedTo?('👤 '+d.assignedTo):''}</span>
+                            </div>
                         </div>
                         <div style="color:#666;font-size:.9rem;">Client: ${d.client||'-'} • Branch: ${d.branch||'-'} • ${new Date(d.createdAt).toLocaleString()}</div>
+                        ${d.dueAt ? `<div style=\"margin-top:4px;font-size:0.85rem;\">Due: <strong>${new Date(d.dueAt).toLocaleString()}</strong> ${isOverdue(d)?'<span style=\\"color:#c0392b;margin-left:6px;\\">(Overdue)</span>':''}</div>`:''}
                     </div>
-                    <button class="btn" onclick="previewDocument('${d.id}')">Preview</button>
-                    <button class="btn btn-warning" onclick="printDocument('${d.id}')">Print</button>
-                    <button class="btn btn-success" onclick="emailDocument('${d.id}')">Email</button>
-                    <button class="btn btn-danger" onclick="archiveDocument('${d.id}')">Archive</button>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                        <button class="btn" onclick="previewDocument('${d.id}')">Preview</button>
+                        <button class="btn btn-warning" onclick="printDocument('${d.id}')">Print</button>
+                        <button class="btn btn-success" onclick="emailDocument('${d.id}')">Email</button>
+                        <button class="btn" onclick="assignDocument('${d.id}')">Assign</button>
+                        <button class="btn" onclick="advanceDocumentStatus('${d.id}')">Advance</button>
+                        <button class="btn" onclick="overrideDocumentStatus('${d.id}')">Override</button>
+                        <button class="btn" onclick="setDocumentDueDate('${d.id}')">Set Due</button>
+                        <button class="btn" onclick="addDocumentComment('${d.id}')">Comment</button>
+                        <button class="btn btn-danger" onclick="archiveDocument('${d.id}')">Archive</button>
+                        <button class="btn" onclick="viewDocumentActivity('${d.id}')">Activity</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -22548,9 +22561,209 @@ This sale appears in the Dispenser Portal sales reports.
             const type = prompt('Type (Report, Prescription, Invoice, Other)') || 'Other';
             const client = prompt('Client name (optional)') || '';
             const branch = prompt('Branch (optional)') || '';
+            const assignedTo = prompt('Assign to (name, optional)') || '';
             const content = prompt('Document content (plain text)') || '';
-            const doc = { id: 'doc_'+Date.now(), title, type, client, branch, content, createdAt: Date.now(), archived: false };
+            const slaHoursStr = prompt('SLA (due in hours, optional)', '48') || '';
+            const now = Date.now();
+            const dueAt = slaHoursStr && !isNaN(Number(slaHoursStr)) ? new Date(now + Number(slaHoursStr)*3600*1000).toISOString() : '';
+            const doc = { id: 'doc_'+now, title, type, client, branch, content, createdAt: now, archived: false, status: 'Draft', assignedTo: assignedTo||'', dueAt };
+            addDocumentActivity(doc, `Created document '${title}'`);
             const docs = getDocuments(); docs.unshift(doc); saveDocuments(docs); renderDocumentLibrary();
+        }
+
+        // ---- Document Workflow helpers ----
+        function docStatusBadgeStyle(status){
+            const s = (status||'Draft');
+            if (s==='Draft') return 'background:#fff3cd;border:1px solid #ffeeba;color:#7d6608;';
+            if (s==='Pending Approval') return 'background:#e8f4fd;border:1px solid #d6eaf8;color:#0b5fa5;';
+            if (s==='Approved') return 'background:#eafaf1;border:1px solid #d4efdf;color:#1e8449;';
+            if (s==='Completed') return 'background:#f2f4f4;border:1px solid #e5e8e8;color:#424949;';
+            if (s==='Archived') return 'background:#f8f9f9;border:1px solid #ebedef;color:#7b7d7d;';
+            return 'background:#f4f6f8;border:1px solid #e1e5e8;color:#566573;';
+        }
+
+        function isOverdue(doc){
+            if (!doc || !doc.dueAt) return false;
+            const terminal = ['Completed','Archived'];
+            if (terminal.includes(doc.status)) return false;
+            const due = new Date(doc.dueAt).getTime();
+            return Date.now() > due;
+        }
+
+        function addDocumentActivity(docOrId, message){
+            const docs = getDocuments();
+            const id = typeof docOrId === 'string' ? docOrId : docOrId.id;
+            const idx = docs.findIndex(d=>d.id===id);
+            const now = new Date().toISOString();
+            if (idx>=0){
+                docs[idx].activity = Array.isArray(docs[idx].activity)? docs[idx].activity: [];
+                docs[idx].activity.push({ at: now, by: (currentUser && currentUser.fullName) || 'Front Desk', message });
+                saveDocuments(docs);
+            } else if (typeof docOrId !== 'string') {
+                docOrId.activity = [{ at: now, by: (currentUser && currentUser.fullName) || 'Front Desk', message }];
+            }
+        }
+
+        function assignDocument(id){
+            const name = prompt('Assign to (name)'); if (!name) return;
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            docs[idx].assignedTo = name;
+            saveDocuments(docs);
+            addDocumentActivity(id, `Assigned to ${name}`);
+            renderDocumentLibrary();
+        }
+
+        function advanceDocumentStatus(id){
+            const order = ['Draft','Pending Approval','Approved','Completed'];
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            const curr = docs[idx].status || 'Draft';
+            const i = order.indexOf(curr);
+            if (i < order.length-1) {
+                const next = order[i+1];
+                if (!canChangeDocumentStatus(currentUser?.role, curr, next)) { alert('Not permitted to advance to '+next); return; }
+                docs[idx].status = next;
+                saveDocuments(docs);
+                addDocumentActivity(id, `Status changed: ${curr} → ${next}`);
+                renderDocumentLibrary();
+            } else {
+                alert('Already at final status.');
+            }
+        }
+
+        function overrideDocumentStatus(id){
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            const curr = docs[idx].status || 'Draft';
+            const target = prompt("Set status to (Draft, Pending Approval, Approved, Completed, Archived)", curr);
+            const allowed = ['Draft','Pending Approval','Approved','Completed','Archived'];
+            if (!target || !allowed.includes(target)) return;
+            if (!canChangeDocumentStatus(currentUser?.role, curr, target)) { alert('Not permitted to set status to '+target); return; }
+            docs[idx].status = target;
+            if (target==='Archived') docs[idx].archived = true;
+            saveDocuments(docs);
+            addDocumentActivity(id, `Status overridden: ${curr} → ${target}`);
+            renderDocumentLibrary();
+        }
+
+        // Multi-step approvals
+        function approveDocument(id){
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            const role = currentUser?.role || 'guest';
+            const from = docs[idx].status || 'Draft';
+            let to = from;
+            if (role==='consultant' && from==='Pending Approval') to = 'Approved';
+            else if ((role==='gm'||role==='admin'||role==='director') && from==='Approved') to = 'Completed';
+            else { alert('Approval not allowed at this stage for your role.'); return; }
+            if (!canChangeDocumentStatus(role, from, to)) { alert('Not permitted.'); return; }
+            docs[idx].status = to;
+            saveDocuments(docs);
+            addDocumentActivity(id, `Approved by ${currentUser?.fullName||role}. Status: ${from} → ${to}`);
+            renderDocumentLibrary();
+        }
+
+        function requestDocumentChanges(id){
+            const reason = prompt('Reason for changes (optional)') || '';
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            const from = docs[idx].status || 'Draft';
+            docs[idx].status = 'Draft';
+            saveDocuments(docs);
+            addDocumentActivity(id, `Requested changes${reason?': '+reason:''}. Status: ${from} → Draft`);
+            renderDocumentLibrary();
+        }
+
+        // SLA reminders
+        let docReminderTimer = null;
+        function ensureDocReminderTimer(){
+            if (docReminderTimer) return;
+            docReminderTimer = setInterval(runDocReminderSweep, 60000);
+        }
+        function runDocReminderSweep(){
+            const docs = getDocuments();
+            let changed = false;
+            docs.forEach(d => {
+                if (!d || !d.dueAt) return;
+                if (['Completed','Archived'].includes(d.status)) return;
+                const dueMs = new Date(d.dueAt).getTime();
+                const lead = typeof d.reminderLeadMs === 'number' ? d.reminderLeadMs : 2*3600*1000;
+                d.notifications = d.notifications || {};
+                const now = Date.now();
+                if (!d.notifications.dueSoonSent && now >= (dueMs - lead) && now < dueMs){
+                    sendDocumentNotification(d, `Document '${d.title}' is due soon (${new Date(d.dueAt).toLocaleString()}).`);
+                    d.notifications.dueSoonSent = true; changed = true;
+                }
+                if (!d.notifications.overdueSent && now >= dueMs){
+                    sendDocumentNotification(d, `Document '${d.title}' is OVERDUE (${new Date(d.dueAt).toLocaleString()}).`);
+                    d.notifications.overdueSent = true; changed = true;
+                }
+            });
+            if (changed) saveDocuments(docs);
+        }
+        function sendDocumentNotification(doc, message){
+            try {
+                const queue = JSON.parse(localStorage.getItem('dyna_notifications') || '[]');
+                queue.push({ id: 'NTF-'+Date.now(), docId: doc.id, message, at: new Date().toISOString(), to: doc.assignedTo||'Front Desk' });
+                localStorage.setItem('dyna_notifications', JSON.stringify(queue));
+            } catch(e) {}
+            console.log('[Notification]', message);
+        }
+
+        function canChangeDocumentStatus(role, from, to){
+            const r = role || 'guest';
+            const power = {
+                'frontdesk': [ ['Draft','Pending Approval'] ],
+                'consultant': [ ['Draft','Pending Approval'], ['Pending Approval','Approved'] ],
+                'gm': [ ['Draft','Pending Approval'], ['Pending Approval','Approved'], ['Approved','Completed'], ['Draft','Archived'], ['Pending Approval','Archived'], ['Approved','Archived'], ['Completed','Archived'] ],
+                'admin': 'any',
+                'director': 'any'
+            };
+            if (to===from) return true;
+            if (r==='admin' || r==='director') return true;
+            const rules = power[r] || [];
+            return rules==='any' ? true : rules.some(([a,b])=>a===from&&b===to);
+        }
+
+        function setDocumentDueDate(id){
+            const docs = getDocuments();
+            const idx = docs.findIndex(d=>d.id===id); if (idx<0) return;
+            const current = docs[idx].dueAt ? new Date(docs[idx].dueAt).toISOString() : '';
+            const input = prompt('Set due date/time (ISO or YYYY-MM-DD HH:mm)', current);
+            if (!input) return;
+            let iso = '';
+            try {
+                if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2})?$/.test(input)) {
+                    const normalized = input.replace(' ', 'T');
+                    iso = new Date(normalized).toISOString();
+                } else {
+                    iso = new Date(input).toISOString();
+                }
+            } catch(e) { alert('Invalid date'); return; }
+            if (!iso || isNaN(new Date(iso).getTime())) { alert('Invalid date'); return; }
+            docs[idx].dueAt = iso;
+            docs[idx].notifications = docs[idx].notifications || {};
+            docs[idx].notifications.dueSoonSent = false;
+            docs[idx].notifications.overdueSent = false;
+            saveDocuments(docs);
+            addDocumentActivity(id, `Due date set: ${new Date(iso).toLocaleString()}`);
+            renderDocumentLibrary();
+        }
+
+        function addDocumentComment(id){
+            const note = prompt('Comment'); if (!note) return;
+            addDocumentActivity(id, `Comment: ${note}`);
+            renderDocumentLibrary();
+        }
+
+        function viewDocumentActivity(id){
+            const docs = getDocuments();
+            const doc = docs.find(d=>d.id===id); if (!doc) return;
+            const items = (doc.activity||[]).slice().sort((a,b)=> new Date(a.at)-new Date(b.at));
+            if (items.length===0) { alert('No activity yet.'); return; }
+            const text = items.map(x=>`${new Date(x.at).toLocaleString()} — ${x.by}: ${x.message}`).join('\n');
+            alert(`Activity for ${doc.title}\n\n${text}`);
         }
 
         function previewDocument(id) {
@@ -22561,15 +22774,16 @@ This sale appears in the Dispenser Portal sales reports.
         }
         function printDocument(id) { const doc = getDocuments().find(d => d.id === id); if (!doc) return; const w = window.open('', '_blank'); w.document.write(`<pre>${doc.content||''}</pre>`); w.document.close(); w.print(); }
         function emailDocument(id) { alert('Email queued for document: '+ id); }
-        function archiveDocument(id) { const docs = getDocuments().map(d => d.id===id?{...d, archived:true}:d); saveDocuments(docs); renderDocumentLibrary(); }
+        function archiveDocument(id) { const docs = getDocuments().map(d => d.id===id?{...d, archived:true, status:'Archived'}:d); saveDocuments(docs); renderDocumentLibrary(); }
         function bulkSelectedIds() { return Array.from(document.querySelectorAll('[data-doc-id]:checked')).map(cb => cb.getAttribute('data-doc-id')); }
         function bulkPrintSelectedDocuments() { bulkSelectedIds().forEach(printDocument); }
         function bulkEmailSelectedDocuments() { alert('Emails queued: '+ bulkSelectedIds().length); }
-        function bulkArchiveSelectedDocuments() { const ids = new Set(bulkSelectedIds()); const docs = getDocuments().map(d => ids.has(d.id)?{...d, archived:true}:d); saveDocuments(docs); renderDocumentLibrary(); }
+        function bulkArchiveSelectedDocuments() { const ids = new Set(bulkSelectedIds()); const docs = getDocuments().map(d => ids.has(d.id)?{...d, archived:true, status:'Archived'}:d); saveDocuments(docs); renderDocumentLibrary(); }
 
         // Initialize documents and optional advanced reports section if present
         document.addEventListener('DOMContentLoaded', () => {
             ensureDocumentsTab();
+            try { ensureDocReminderTimer(); } catch(_) {}
             // If Advanced Reports tab exists, ensure a basic canvas exists
             const advancedTabButton = document.querySelector('[onclick="openTab(\'advanced-reports\')"]');
             if (advancedTabButton && !document.getElementById('advanced-reports')) {

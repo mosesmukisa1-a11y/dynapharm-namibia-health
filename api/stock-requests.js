@@ -304,6 +304,13 @@ export function updateTransferStatus(transferId, nextStatus, meta = {}) {
             transfer.status = 'dispatched';
             transfer.dispatchedAt = now;
             transfer.dispatchedBy = meta.user || transfer.dispatchedBy;
+            // Deduct stock from source warehouse for each item
+            try {
+                (transfer.items || []).forEach(it => {
+                    if (!it || typeof it.quantity !== 'number') return;
+                    updateWarehouseStock(transfer.fromWarehouse, it.productId || it.id || it.description, Number(it.quantity), 'out');
+                });
+            } catch (_) {}
         } else if (nextStatus === 'delivered') {
             transfer.status = 'delivered';
             transfer.deliveredAt = now;
@@ -311,6 +318,13 @@ export function updateTransferStatus(transferId, nextStatus, meta = {}) {
             transfer.status = 'received';
             transfer.receivedAt = now;
             transfer.receivedBy = meta.user || transfer.receivedBy;
+            // Add stock into destination branch (treat branch as warehouse bucket)
+            try {
+                (transfer.items || []).forEach(it => {
+                    if (!it || typeof it.quantity !== 'number') return;
+                    updateWarehouseStock(transfer.toBranch, it.productId || it.id || it.description, Number(it.quantity), 'in');
+                });
+            } catch (_) {}
         } else if (nextStatus === 'cancelled') {
             transfer.status = 'cancelled';
         }

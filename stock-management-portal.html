@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>Dynapharm Stock Management Portal</title>
+    <link rel="icon" href="./favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -14,6 +15,8 @@
         header { position: sticky; top:0; z-index:10; background: rgba(11,16,32,0.8); backdrop-filter: blur(8px); border-bottom: 1px solid #1e2a44; }
         .container { max-width: 1280px; margin: 0 auto; padding: 16px; }
         .top-bar { display:flex; align-items:center; justify-content: space-between; gap: 12px; }
+        .brand { display:flex; align-items:center; gap:10px; }
+        .logo img { display:block; height:32px; width:auto; }
         .title { font-weight:700; letter-spacing: .2px; }
         .filters { display:flex; flex-wrap: wrap; gap: 8px; align-items:center; }
         .select, .input { background: #0e162b; color: var(--text); border: 1px solid #223154; border-radius: 8px; padding: 8px 10px; }
@@ -108,7 +111,10 @@
 <body>
     <header>
         <div class="container top-bar">
-            <div class="title">📦 Dynapharm Stock Management Portal</div>
+            <div class="brand">
+                <div class="logo"><img src="./assets/dynapharm-logo.png" alt="Dynapharm Namibia Logo"></div>
+                <div class="title">📦 Dynapharm Stock Management Portal</div>
+            </div>
             <div class="filters">
                 <select id="branchFilter" class="select">
                     <option value="all">All Branches</option>
@@ -174,6 +180,7 @@
                             <th>Request #</th>
                             <th>From → To</th>
                             <th>Status</th>
+                            <th>Note</th>
                             <th>Age</th>
                             <th></th>
                         </tr>
@@ -208,7 +215,7 @@
             <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Quick Actions <button class="btn" data-help="requests">Help</button></h3>
             <div class="row">
                 <button class="btn primary" id="qaNewRequest">➕ New Stock Request</button>
-                <button class="btn" id="qaImportBarcode">📥 Import Barcode Stock</button>
+                <button class="btn" id="qaImportBarcode">📥 Import Barcode Stock (CSV)</button>
                 <button class="btn" id="qaViewAudit">🧾 View Audit Log</button>
             </div>
         </section>
@@ -263,8 +270,76 @@
         </div>
     </div>
 
+    <!-- Dispatch Details Modal -->
+    <div id="dispatchModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:55;">
+        <div style="width:min(760px,94vw); max-height:84vh; overflow:auto; background: var(--card); border:1px solid #1e2a44; border-radius:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #1e2a44;">
+                <div style="font-weight:700;">Dispatch Details</div>
+                <div><button id="dispatchCloseBtn" class="btn">Close</button></div>
+            </div>
+            <div style="padding:12px 14px;">
+                <div id="dispatchMeta" class="muted" style="margin-bottom:8px;"></div>
+                <div id="dispatchNote" style="margin-bottom:10px;"></div>
+                <table class="table">
+                    <thead><tr><th>Product</th><th>Qty</th></tr></thead>
+                    <tbody id="dispatchItems"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Request Modal -->
+    <div id="requestModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:56;">
+        <div style="width:min(680px,94vw); background: var(--card); border:1px solid #1e2a44; border-radius:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #1e2a44;">
+                <div style="font-weight:700;">New Stock Request</div>
+                <div><button id="requestCloseBtn" class="btn">Close</button></div>
+            </div>
+            <div style="padding:12px 14px; display:grid; gap:10px;">
+                <div class="row">
+                    <select id="reqBranch" class="select"></select>
+                    <select id="reqType" class="select">
+                        <option value="sales_replenishment">Sales Replenishment</option>
+                        <option value="internal">Internal</option>
+                    </select>
+                    <select id="reqPriority" class="select">
+                        <option value="normal">Normal</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <input id="reqProduct" class="input" placeholder="Product (name or ID)" />
+                    <input id="reqQty" type="number" class="input" placeholder="Qty" />
+                </div>
+                <textarea id="reqNotes" class="input" placeholder="Notes" style="min-height:80px;"></textarea>
+                <div style="text-align:right;">
+                    <button id="reqSubmitBtn" class="btn primary">Create Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import Modal -->
+    <div id="csvModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:57;">
+        <div style="width:min(720px,94vw); background: var(--card); border:1px solid #1e2a44; border-radius:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #1e2a44;">
+                <div style="font-weight:700;">Import Stock From CSV</div>
+                <div><button id="csvCloseBtn" class="btn">Close</button></div>
+            </div>
+            <div style="padding:12px 14px; display:grid; gap:10px;">
+                <div class="muted">Required headers: cartonNo, description, batchNo, expiryDate (YYYY-MM), quantity, totalCtns</div>
+                <input type="file" id="csvFileInput" accept=".csv" class="input" />
+                <div id="csvPreview" class="muted" style="font-size:12px; max-height:180px; overflow:auto; border:1px dashed #223154; border-radius:8px; padding:8px; display:none;"></div>
+                <div style="text-align:right;">
+                    <button id="csvImportBtn" class="btn primary" disabled>Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
-        import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics, approveStockRequest, updateTransferStatus } from './api/stock-requests.js';
+        import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics, approveStockRequest, updateTransferStatus, createStockRequest } from './api/stock-requests.js';
+        import { importStockWithBarcode } from './api/barcode-stock.js';
         import { getBarcodeStockStatistics } from './api/barcode-stock.js';
         import { getProducts } from './api/products.js';
 
@@ -792,15 +867,18 @@
             const active = transfers.filter(t => ['pending','dispatched','delivered'].includes(t.status)).slice(0, 12);
             active.forEach(t => {
                 const tr = document.createElement('tr');
+                const canReceive = (window.parent && window.parent.currentUser && window.parent.currentUser.branch) ? (window.parent.currentUser.branch === t.toBranch) : true;
                 tr.innerHTML = `
                     <td>${t.requestNumber}</td>
                     <td>${t.fromWarehouse||'—'} → ${t.toBranch||'—'}</td>
                     <td>${makeStatusPill(t.status)}</td>
+                    <td class="muted">${t.dispatchNotes ? (String(t.dispatchNotes).slice(0,40) + (String(t.dispatchNotes).length>40?'…':'')) : '—'}</td>
                     <td>${formatAge(t.createdAt)}</td>
                     <td style="text-align:right;">
+                        <button class="btn" data-view-dispatch="${t.id}">View</button>
                         ${t.status==='pending'?'<button class="btn" data-tstatus="dispatched" data-id="'+t.id+'">Dispatch</button>':''}
                         ${t.status==='dispatched'?'<button class="btn" data-tstatus="delivered" data-id="'+t.id+'">Mark Delivered</button>':''}
-                        ${t.status==='delivered'?'<button class="btn" data-tstatus="received" data-id="'+t.id+'">Mark Received</button>':''}
+                        ${t.status==='delivered'?('<button class="btn primary" data-tstatus="received" data-id="'+t.id+'" '+(canReceive?'':'disabled')+'>Confirm & Receive</button>'):''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -813,15 +891,172 @@
                 showToast('Transfer updated: ' + status, 'success');
                 refreshData();
             }));
+            tbody.querySelectorAll('[data-view-dispatch]').forEach(btn => btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-view-dispatch');
+                const { data: transfersAll = [] } = getStockTransfers({ status: 'all' }) || { data: [] };
+                const t = transfersAll.find(x => x.id === id);
+                if (!t) return;
+                const meta = document.getElementById('dispatchMeta');
+                meta.textContent = `${t.requestNumber} • ${t.fromWarehouse||'—'} → ${t.toBranch||'—'} • ${new Date(t.createdAt).toLocaleString()}`;
+                document.getElementById('dispatchNote').textContent = t.dispatchNotes || '—';
+                const tb = document.getElementById('dispatchItems');
+                tb.innerHTML = '';
+                (t.items||[]).forEach(it => {
+                    const trEl = document.createElement('tr');
+                    trEl.innerHTML = `<td>${it.productId||it.id||it.description||'—'}</td><td>${it.quantity||0}</td>`;
+                    tb.appendChild(trEl);
+                });
+                document.getElementById('dispatchModal').style.display = 'flex';
+            }));
         }
 
         // Quick actions (lightweight wired)
         const qaNewRequest = document.getElementById('qaNewRequest');
-        if (qaNewRequest) qaNewRequest.addEventListener('click', () => openHelp('requests'));
+        if (qaNewRequest) qaNewRequest.addEventListener('click', () => {
+            const sel = document.getElementById('reqBranch');
+            sel.innerHTML = '';
+            const currentBranch = (window.parent && window.parent.currentUser && window.parent.currentUser.branch) ? window.parent.currentUser.branch : null;
+            const all = [{ id:'all', name:'Select Branch' }, ...branches];
+            all.forEach(b => { const opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.name||b.id; sel.appendChild(opt); });
+            if (currentBranch) sel.value = currentBranch;
+            document.getElementById('requestModal').style.display = 'flex';
+        });
         const qaImportBarcode = document.getElementById('qaImportBarcode');
-        if (qaImportBarcode) qaImportBarcode.addEventListener('click', () => openHelp('warehouse'));
+        if (qaImportBarcode) qaImportBarcode.addEventListener('click', () => {
+            // reset modal state
+            const preview = document.getElementById('csvPreview');
+            preview.style.display = 'none';
+            preview.textContent = '';
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('csvImportBtn').disabled = true;
+            document.getElementById('csvModal').style.display = 'flex';
+        });
         const qaViewAudit = document.getElementById('qaViewAudit');
         if (qaViewAudit) qaViewAudit.addEventListener('click', () => openHelp('roles'));
+
+        // Modal close handlers
+        const dispatchCloseBtn = document.getElementById('dispatchCloseBtn');
+        if (dispatchCloseBtn) dispatchCloseBtn.addEventListener('click', () => { document.getElementById('dispatchModal').style.display = 'none'; });
+        const dispatchModal = document.getElementById('dispatchModal');
+        if (dispatchModal) dispatchModal.addEventListener('click', (e) => { if (e.target && e.target.id === 'dispatchModal') dispatchModal.style.display = 'none'; });
+
+        const requestCloseBtn = document.getElementById('requestCloseBtn');
+        if (requestCloseBtn) requestCloseBtn.addEventListener('click', () => { document.getElementById('requestModal').style.display = 'none'; });
+        const requestModal = document.getElementById('requestModal');
+        if (requestModal) requestModal.addEventListener('click', (e) => { if (e.target && e.target.id === 'requestModal') requestModal.style.display = 'none'; });
+
+        const csvCloseBtn = document.getElementById('csvCloseBtn');
+        if (csvCloseBtn) csvCloseBtn.addEventListener('click', () => { document.getElementById('csvModal').style.display = 'none'; });
+        const csvModal = document.getElementById('csvModal');
+        if (csvModal) csvModal.addEventListener('click', (e) => { if (e.target && e.target.id === 'csvModal') csvModal.style.display = 'none'; });
+
+        const reqSubmitBtn = document.getElementById('reqSubmitBtn');
+        if (reqSubmitBtn) reqSubmitBtn.addEventListener('click', () => {
+            const branch = document.getElementById('reqBranch').value;
+            const type = document.getElementById('reqType').value;
+            const priority = document.getElementById('reqPriority').value;
+            const product = document.getElementById('reqProduct').value.trim();
+            const qty = Number(document.getElementById('reqQty').value);
+            const notes = document.getElementById('reqNotes').value.trim();
+            if (!branch || branch==='all' || !product || !qty || qty<=0) { showToast('Fill branch, product, and quantity','error'); return; }
+            const user = (window.parent && window.parent.currentUser) ? window.parent.currentUser : { fullName:'Requestor', role:'dispenser' };
+            const res = createStockRequest({ branch, type, priority, items:[{ productId: product, quantity: qty }], notes, requestedBy: user.fullName, requestedByRole: user.role });
+            if (res && res.success) {
+                showToast('Request created: '+res.data.requestNumber,'success');
+                document.getElementById('requestModal').style.display = 'none';
+                refreshData();
+            } else {
+                showToast('Failed to create request','error');
+            }
+        });
+
+        // CSV parsing and import
+        const csvFileInput = document.getElementById('csvFileInput');
+        const csvImportBtn = document.getElementById('csvImportBtn');
+        const csvPreview = document.getElementById('csvPreview');
+        let csvParsedRows = [];
+
+        function parseCSV(text){
+            // Robust comma-delimited parser with RFC4180-style quoted fields
+            function splitCSVLine(line){
+                const out = [];
+                let cur = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (ch === '"') {
+                        if (inQuotes && line[i+1] === '"') { // escaped quote
+                            cur += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (ch === ',' && !inQuotes) {
+                        out.push(cur);
+                        cur = '';
+                    } else {
+                        cur += ch;
+                    }
+                }
+                out.push(cur);
+                return out.map(s => s.trim());
+            }
+            const rawLines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            const lines = rawLines.filter(l => l.trim().length > 0);
+            if (lines.length === 0) return { headers: [], rows: [] };
+            const headers = splitCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
+            const rows = lines.slice(1).map(line => {
+                const cols = splitCSVLine(line).map(c => c.replace(/^"|"$/g, ''));
+                const obj = {};
+                headers.forEach((h, i) => { obj[h] = (cols[i] ?? ''); });
+                return obj;
+            });
+            return { headers, rows };
+        }
+
+        if (csvFileInput) csvFileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev){
+                const text = ev.target.result;
+                const { headers, rows } = parseCSV(text);
+                const required = ['cartonNo','description','batchNo','expiryDate','quantity','totalCtns'];
+                const missing = required.filter(k => !headers.includes(k));
+                if (missing.length){
+                    csvPreview.style.display = 'block';
+                    csvPreview.textContent = 'Missing required headers: ' + missing.join(', ');
+                    csvImportBtn.disabled = true;
+                    csvParsedRows = [];
+                    return;
+                }
+                // Preview first 5 rows
+                const previewLines = rows.slice(0,5).map((r,i) => `${i+1}) ${r.cartonNo}, ${r.description}, ${r.batchNo}, ${r.expiryDate}, ${r.quantity}, ${r.totalCtns}`);
+                csvPreview.style.display = 'block';
+                csvPreview.textContent = 'Rows detected: ' + rows.length + '\n' + previewLines.join('\n');
+                csvParsedRows = rows;
+                csvImportBtn.disabled = rows.length === 0;
+            };
+            reader.readAsText(file);
+        });
+
+        if (csvImportBtn) csvImportBtn.addEventListener('click', () => {
+            if (!csvParsedRows || csvParsedRows.length === 0){ showToast('No rows to import','error'); return; }
+            let ok = 0, fail = 0;
+            csvParsedRows.forEach(r => {
+                const qty = parseInt(r.quantity, 10);
+                const ctns = parseInt(r.totalCtns, 10);
+                const dateOk = /^\d{4}-\d{2}$/.test(String(r.expiryDate||''));
+                if (!r.cartonNo || !r.description || !r.batchNo || !dateOk || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(ctns) || ctns <= 0){
+                    fail++; return;
+                }
+                const res = importStockWithBarcode({ cartonNo:r.cartonNo, description:r.description, batchNo:r.batchNo, expiryDate:r.expiryDate, quantity:qty, totalCtns:ctns });
+                if (res && res.success) ok++; else fail++;
+            });
+            showToast(`Import done: ${ok} ok, ${fail} failed`, fail ? 'error' : 'success');
+            document.getElementById('csvModal').style.display = 'none';
+            refreshData();
+        });
 
 
         (async function init(){

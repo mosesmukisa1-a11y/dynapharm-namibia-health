@@ -57,6 +57,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Cache-first strategy tailored for images (stale-while-revalidate-like)
+  if (req.destination === 'image') {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const fetchAndCache = fetch(req)
+          .then((networkResp) => {
+            // Cache even opaque image responses (cross-origin), skip only non-200 non-opaque
+            if (networkResp && (networkResp.ok || networkResp.type === 'opaque')) {
+              const respClone = networkResp.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, respClone)).catch(() => {});
+            }
+            return networkResp;
+          })
+          .catch(() => cached || fetch(req));
+        return cached || fetchAndCache;
+      })
+    );
+    return;
+  }
+
   // Cache-first for other assets
   event.respondWith(
     caches.match(req).then((cached) => {
