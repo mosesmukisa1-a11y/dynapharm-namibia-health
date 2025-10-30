@@ -21103,6 +21103,252 @@ This sale appears in the Dispenser Portal sales reports.
                 loadProductPhotos();
             }
         }
+        // --- PWA: Service Worker Registration and Notifications ---
+        (function registerPWA() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').then(function (registration) {
+                        console.log('ServiceWorker registered with scope:', registration.scope);
+                    }).catch(function (err) {
+                        console.warn('ServiceWorker registration failed:', err);
+                    });
+                });
+            }
+            if ('Notification' in window && Notification.permission === 'default') {
+                try { Notification.requestPermission(); } catch (e) {}
+            }
+        })();
+
+        // --- Mobile Utilities: Barcode, GPS, Voice Notes ---
+        async function startBarcodeScanner(onDetect) {
+            try {
+                const supported = 'BarcodeDetector' in window;
+                const video = document.createElement('video');
+                video.autoplay = true; video.playsInline = true; video.style.maxWidth = '100%';
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'background:#fff;padding:16px;border-radius:8px;max-width:95%;width:480px;text-align:center;';
+                const controls = document.createElement('div');
+                controls.style.cssText = 'margin-top:10px;display:flex;gap:8px;justify-content:center;';
+                const close = document.createElement('button'); close.className='btn btn-danger'; close.textContent='Close';
+                close.onclick = stop;
+                wrap.appendChild(video); wrap.appendChild(controls); controls.appendChild(close); modal.appendChild(wrap); document.body.appendChild(modal);
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+
+                let rafId = 0, detector = null;
+                if (supported) detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'ean_8'] });
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                async function tick() {
+                    if (video.readyState >= 2) {
+                        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        if (detector) {
+                            try {
+                                const codes = await detector.detect(canvas);
+                                if (codes && codes.length > 0) {
+                                    const value = codes[0].rawValue || codes[0].data || '';
+                                    if (typeof onDetect === 'function') onDetect(value);
+                                    stop();
+                                    return;
+                                }
+                            } catch (_) {}
+                        }
+                    }
+                    rafId = requestAnimationFrame(tick);
+                }
+                rafId = requestAnimationFrame(tick);
+
+                function stop() {
+                    if (rafId) cancelAnimationFrame(rafId);
+                    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+                    if (document.body.contains(modal)) document.body.removeChild(modal);
+                }
+            } catch (err) {
+                const manual = prompt('Barcode scanner unavailable. Enter code manually:');
+                if (manual && typeof onDetect === 'function') onDetect(manual.trim());
+            }
+        }
+
+        function getCurrentLocation(callback) {
+            if (!('geolocation' in navigator)) { alert('GPS not supported'); return; }
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() };
+                try { localStorage.setItem('dyna_last_location', JSON.stringify(coords)); } catch (_) {}
+                if (typeof callback === 'function') callback(coords);
+            }, (err) => {
+                alert('Location error: ' + err.message);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        }
+
+        // Voice notes using MediaRecorder
+        let voiceMediaRecorder = null; let voiceChunks = [];
+        async function startVoiceNote() {
+            if (!('MediaRecorder' in window)) { alert('Voice notes not supported'); return; }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            voiceChunks = [];
+            voiceMediaRecorder = new MediaRecorder(stream);
+            voiceMediaRecorder.ondataavailable = e => { if (e.data.size > 0) voiceChunks.push(e.data); };
+            voiceMediaRecorder.onstop = () => { stream.getTracks().forEach(t => t.stop()); };
+            voiceMediaRecorder.start();
+        }
+        async function stopVoiceNote(saveKey = 'dyna_last_voice_note') {
+            return new Promise((resolve) => {
+                if (!voiceMediaRecorder) { resolve(null); return; }
+                voiceMediaRecorder.onstop = async () => {
+                    const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const b64 = reader.result;
+                        try { localStorage.setItem(saveKey, b64); } catch (_) {}
+                        resolve(b64);
+                    };
+                    reader.readAsDataURL(blob);
+                };
+                voiceMediaRecorder.stop();
+            });
+        }
+
+        // --- Document Management System (localStorage-backed) ---
+        function ensureDocumentsTab() {
+            try {
+                const tabsBar = document.querySelector('.tabs');
+                const existingBtn = document.querySelector('[onclick="openTab(\'documents\')"]');
+                if (tabsBar && !existingBtn) {
+                    const btn = document.createElement('button');
+                    btn.className = 'tab-button'; btn.textContent = 'Documents';
+                    btn.setAttribute('onclick', "openTab('documents')");
+                    tabsBar.insertBefore(btn, tabsBar.lastElementChild);
+                }
+                const container = document.querySelector('#documents');
+                if (!container) {
+                    const main = document.createElement('div');
+                    main.id = 'documents'; main.className = 'tab-content';
+                    main.innerHTML = `
+                        <div class="portal-header"><h2>📁 Document Library</h2><p>Store and manage reports, prescriptions, invoices</p></div>
+                        <div class="search-box">
+                            <input id="docSearch" placeholder="Search documents by title, type, client, branch" oninput="renderDocumentLibrary()">
+                            <select id="docTypeFilter" onchange="renderDocumentLibrary()">
+                                <option value="">All Types</option>
+                                <option>Report</option>
+                                <option>Prescription</option>
+                                <option>Invoice</option>
+                                <option>Other</option>
+                            </select>
+                            <select id="docBranchFilter" onchange="renderDocumentLibrary()">
+                                <option value="">All Branches</option>
+                            </select>
+                            <button class="btn" onclick="openNewDocumentModal()">➕ New Document</button>
+                            <button class="btn btn-warning" onclick="bulkPrintSelectedDocuments()">🖨️ Bulk Print</button>
+                            <button class="btn btn-success" onclick="bulkEmailSelectedDocuments()">✉️ Bulk Email</button>
+                            <button class="btn btn-danger" onclick="bulkArchiveSelectedDocuments()">🗄️ Archive</button>
+                        </div>
+                        <div id="documentList"></div>
+                    `;
+                    const tabsContentRoot = document.querySelector('.container') || document.body;
+                    tabsContentRoot.appendChild(main);
+                }
+                populateBranchFilterOptions();
+                renderDocumentLibrary();
+            } catch (e) { console.warn('Documents tab init failed', e); }
+        }
+
+        function getDocuments() { return JSON.parse(localStorage.getItem('dyna_documents') || '[]'); }
+        function saveDocuments(docs) { localStorage.setItem('dyna_documents', JSON.stringify(docs)); }
+
+        function populateBranchFilterOptions() {
+            const select = document.getElementById('docBranchFilter'); if (!select) return;
+            const branches = (JSON.parse(localStorage.getItem('branches') || '[]')).map(b => b.name) || [];
+            const existing = new Set(Array.from(select.options).map(o => o.value));
+            branches.forEach(name => { if (!existing.has(name)) { const o = document.createElement('option'); o.value = o.textContent = name; select.appendChild(o); } });
+        }
+
+        function renderDocumentLibrary() {
+            const list = document.getElementById('documentList'); if (!list) return;
+            const q = (document.getElementById('docSearch')?.value || '').toLowerCase();
+            const type = document.getElementById('docTypeFilter')?.value || '';
+            const branch = document.getElementById('docBranchFilter')?.value || '';
+            const docs = getDocuments().filter(d =>
+                (!q || `${d.title} ${d.client||''} ${d.branch||''} ${d.type||''}`.toLowerCase().includes(q)) &&
+                (!type || d.type === type) &&
+                (!branch || d.branch === branch)
+            );
+            if (docs.length === 0) { list.innerHTML = '<p style="color:#7f8c8d;">No documents yet</p>'; return; }
+            list.innerHTML = docs.map(d => `
+                <div class="client-card" style="display:flex;gap:12px;align-items:center;">
+                    <input type="checkbox" data-doc-id="${d.id}">
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong>${d.title}</strong>
+                            <span class="na-option">${d.type||'Other'}</span>
+                        </div>
+                        <div style="color:#666;font-size:.9rem;">Client: ${d.client||'-'} • Branch: ${d.branch||'-'} • ${new Date(d.createdAt).toLocaleString()}</div>
+                    </div>
+                    <button class="btn" onclick="previewDocument('${d.id}')">Preview</button>
+                    <button class="btn btn-warning" onclick="printDocument('${d.id}')">Print</button>
+                    <button class="btn btn-success" onclick="emailDocument('${d.id}')">Email</button>
+                    <button class="btn btn-danger" onclick="archiveDocument('${d.id}')">Archive</button>
+                </div>
+            `).join('');
+        }
+
+        function openNewDocumentModal() {
+            const title = prompt('Document title'); if (!title) return;
+            const type = prompt('Type (Report, Prescription, Invoice, Other)') || 'Other';
+            const client = prompt('Client name (optional)') || '';
+            const branch = prompt('Branch (optional)') || '';
+            const content = prompt('Document content (plain text)') || '';
+            const doc = { id: 'doc_'+Date.now(), title, type, client, branch, content, createdAt: Date.now(), archived: false };
+            const docs = getDocuments(); docs.unshift(doc); saveDocuments(docs); renderDocumentLibrary();
+        }
+
+        function previewDocument(id) {
+            const doc = getDocuments().find(d => d.id === id); if (!doc) return;
+            const win = window.open('', '_blank');
+            win.document.write(`<pre style="font-family:inherit;white-space:pre-wrap;padding:16px;">${doc.content || ''}</pre>`);
+            win.document.close();
+        }
+        function printDocument(id) { const doc = getDocuments().find(d => d.id === id); if (!doc) return; const w = window.open('', '_blank'); w.document.write(`<pre>${doc.content||''}</pre>`); w.document.close(); w.print(); }
+        function emailDocument(id) { alert('Email queued for document: '+ id); }
+        function archiveDocument(id) { const docs = getDocuments().map(d => d.id===id?{...d, archived:true}:d); saveDocuments(docs); renderDocumentLibrary(); }
+        function bulkSelectedIds() { return Array.from(document.querySelectorAll('[data-doc-id]:checked')).map(cb => cb.getAttribute('data-doc-id')); }
+        function bulkPrintSelectedDocuments() { bulkSelectedIds().forEach(printDocument); }
+        function bulkEmailSelectedDocuments() { alert('Emails queued: '+ bulkSelectedIds().length); }
+        function bulkArchiveSelectedDocuments() { const ids = new Set(bulkSelectedIds()); const docs = getDocuments().map(d => ids.has(d.id)?{...d, archived:true}:d); saveDocuments(docs); renderDocumentLibrary(); }
+
+        // Initialize documents and optional advanced reports section if present
+        document.addEventListener('DOMContentLoaded', () => {
+            ensureDocumentsTab();
+            // If Advanced Reports tab exists, ensure a basic canvas exists
+            const advancedTabButton = document.querySelector('[onclick="openTab(\'advanced-reports\')"]');
+            if (advancedTabButton && !document.getElementById('advanced-reports')) {
+                const section = document.createElement('div');
+                section.id = 'advanced-reports'; section.className = 'tab-content';
+                section.innerHTML = `
+                    <div class="portal-header"><h2>📊 Advanced Reports</h2><p>Drag-and-drop fields to build custom reports</p></div>
+                    <div class="report-builder-container">
+                        <div class="report-data-sources" id="reportDataSources">
+                            <div class="data-source-item" draggable="true">Clients</div>
+                            <div class="data-source-item" draggable="true">Prescriptions</div>
+                            <div class="data-source-item" draggable="true">Sales</div>
+                            <div class="data-source-item" draggable="true">Attendance</div>
+                            <div class="data-source-item" draggable="true">Stock</div>
+                        </div>
+                        <div class="report-canvas" id="reportCanvas">
+                            <div class="drop-zone">Drop data sources here</div>
+                        </div>
+                        <div class="report-properties" id="reportProperties">
+                            <div><strong>Properties</strong></div>
+                            <div class="conditional-format-rule">No rules yet</div>
+                        </div>
+                    </div>
+                `;
+                const tabsContentRoot = document.querySelector('.container') || document.body;
+                tabsContentRoot.appendChild(section);
+            }
+        });
     </script>
 </body>
 </html>
