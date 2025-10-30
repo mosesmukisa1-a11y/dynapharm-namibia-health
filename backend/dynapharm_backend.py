@@ -20,6 +20,7 @@ USERS_FILE = os.path.join(DATA_DIR, "users.json")
 BRANCHES_FILE = os.path.join(DATA_DIR, "branches.json")
 REPORTS_FILE = os.path.join(DATA_DIR, "reports.json")
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
+EMAILS_FILE = os.path.join(DATA_DIR, "emails.json")
 
 # Create data directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -209,6 +210,20 @@ class DynapharmAPIHandler(BaseHTTPRequestHandler):
                 orders.append(data)
                 save_json_file(ORDERS_FILE, orders)
                 response = {"success": True, "message": "Order saved", "order": data}
+            
+            elif path == '/api/email':
+                # Store email payloads for auditing/testing in lieu of SMTP
+                emails = load_json_file(EMAILS_FILE, [])
+                email_record = {
+                    "id": f"EML{int(time.time()*1000)}",
+                    "to": data.get('to'),
+                    "subject": data.get('subject'),
+                    "body": data.get('body'),
+                    "meta": {"createdAt": datetime.utcnow().isoformat() + 'Z'}
+                }
+                emails.append(email_record)
+                save_json_file(EMAILS_FILE, emails)
+                response = {"success": True, "message": "Email queued", "email": email_record}
                 
             else:
                 response = {"error": "Endpoint not found"}
