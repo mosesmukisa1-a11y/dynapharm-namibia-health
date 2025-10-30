@@ -2,13 +2,23 @@
   "version": 2,
   "name": "dynapharm-cloud",
   "builds": [
-    { "src": "index.html", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "dynapharm-complete-system.html", "use": "@vercel/static" },
+    { "src": "sw.js", "use": "@vercel/static" },
+    { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "api/health.js", "use": "@vercel/node" },
+    { "src": "api/clients.js", "use": "@vercel/node" },
+    { "src": "api/users.js", "use": "@vercel/node" }
   ],
   "headers": [
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

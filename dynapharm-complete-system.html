@@ -11,7 +11,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dynapharm">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Optional: Backend API base override (set this in deployments) -->
+    <!-- Example: <meta name="api-base" content="https://dynapharm-backend-production.up.railway.app/api"> -->
+    <meta name="api-base" content="">
     <title>Dynapharm International Namibia - v2.0</title>
     <!-- FullCalendar.js -->
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
@@ -21107,7 +21111,7 @@ This sale appears in the Dispenser Portal sales reports.
         (function registerPWA() {
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
-                    navigator.serviceWorker.register('/sw.js').then(function (registration) {
+                    navigator.serviceWorker.register('./sw.js').then(function (registration) {
                         console.log('ServiceWorker registered with scope:', registration.scope);
                     }).catch(function (err) {
                         console.warn('ServiceWorker registration failed:', err);

@@ -1,8 +1,8 @@
-const CACHE_NAME = 'dynapharm-v2.1';
+const CACHE_NAME = 'dynapharm-v2.2';
 const urlsToCache = [
-  '/',
-  '/dynapharm-complete-system.html',
-  '/manifest.json'
+  './',
+  './dynapharm-complete-system.html',
+  './manifest.json'
 ];
 
 // Install event - cache resources
@@ -14,6 +14,8 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
+  // Activate new service worker immediately
+  self.skipWaiting();
 });
 
 // Fetch event - serve from cache, fallback to network
@@ -44,7 +46,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // If fetch fails, try to serve offline page
         if (event.request.destination === 'document') {
-          return caches.match('/dynapharm-complete-system.html');
+          return caches.match('./dynapharm-complete-system.html');
         }
       })
   );
@@ -64,6 +66,8 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Take control of uncontrolled clients as soon as activated
+  self.clients.claim();
 });
 
 // Push notification event
