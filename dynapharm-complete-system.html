@@ -4780,10 +4780,34 @@
                     </div>
                 </div>
 
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="saveReport()">💾 Save Report</button>
-                    <button class="btn btn-warning" onclick="printReport()">🖨️ Print</button>
+                <div class="action-buttons" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div id="autosaveStatus" style="display: none; padding: 8px 15px; background: #fff; border-radius: 5px; color: #666; font-size: 0.9rem;">
+                        <span style="color: #27ae60;">✓</span> Draft saved at <span id="autosaveTime"></span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="saveReport()">💾 Save Report</button>
+                        <button class="btn btn-primary" onclick="finalizeReport()">✅ Finalize & E-Sign</button>
+                        <button class="btn btn-warning" onclick="printReport()">🖨️ Print</button>
+                        <button class="btn" onclick="exportReportPDF()">📄 Export PDF</button>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Template Modal -->
+    <div class="modal" id="reportTemplateModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('reportTemplateModal')">&times;</span>
+            <h2>📋 Select Report Template</h2>
+            <p style="margin-bottom: 20px; color: #666;">Choose a template to quickly fill in common consultation details</p>
+            
+            <div id="templateList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                <!-- Templates will be populated by JavaScript -->
+            </div>
+            
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="closeModal('reportTemplateModal')">Cancel</button>
             </div>
         </div>
     </div>
@@ -5494,6 +5518,9 @@
         // Appointments tracking
         let appointments = [];
         
+        // Visits tracking (created at check-in)
+        let visits = [];
+        
         // Time slots configuration
         let timeSlots = {
             morning: { start: '08:00', end: '12:00', interval: 30 },
@@ -5528,6 +5555,16 @@
                 return JSON.parse(defaultJsonString);
             }
         }
+
+        // Load persisted appointments/visits on startup (if present)
+        try {
+            const storedAppointments = localStorage.getItem('dyna_appointments');
+            if (storedAppointments) { appointments = JSON.parse(storedAppointments) || []; }
+        } catch(e) {}
+        try {
+            const storedVisits = localStorage.getItem('dyna_visits');
+            if (storedVisits) { visits = JSON.parse(storedVisits) || []; }
+        } catch(e) {}
 
         const DEFAULT_USERS_JSON = '[{"id":"USR001","username":"admin","password":"walker33","fullName":"Administrator","email":"admin@dynapharm.com.na","phone":"061-300877","role":"admin","branch":"townshop","branches":["townshop"]},{"id":"USR1759829667953","username":"moses","password":"walker33","fullName":"MOSES MUKISA","email":"mosesmukisa1@gmail.com","phone":"0817317160","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:34:27.953Z"},{"id":"USR1759829814781","username":"Geneva","password":"Pearl_11","fullName":"Jennifer Joseph","email":"shange1124@gmail.com","phone":"0852803618","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-07T09:36:54.781Z"},{"id":"USR1759830625722","username":"NAEM","password":"PASSWORD","fullName":"NAEM HANGULA","email":"naemhangula4@gmail.com","phone":"0817499757","role":"dispenser","branch":"townshop","branches":["townshop"],"createdAt":"2025-10-07T09:50:25.722Z"},{"id":"USR1759928153488","username":"GEINGOS","password":"ALBERTO99","fullName":"HILMA C","email":"geingoshilma@gmail","phone":"0814137106","role":"consultant","branch":"townshop","branches":["townshop","khomasdal","katima","outapi","ondangwa","okongo","okahao","nkurenkuru","swakopmund","hochland-park","rundu","gobabis","walvisbay","eenhana","otjiwarongo"],"createdAt":"2025-10-08T12:55:53.488Z"},{"id":"USR2000000000001","username":"stock","password":"stock123","fullName":"Stock Manager","email":"stock@dynapharm.com.na","phone":"0812000000","role":"stock","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"},{"id":"USR2000000000002","username":"mis","password":"mis123","fullName":"MIS Manager","email":"mis@dynapharm.com.na","phone":"0813000000","role":"mis","branch":"townshop","branches":["townshop"],"createdAt":"2025-01-20T10:00:00.000Z"}]';
 
@@ -8514,10 +8551,11 @@
                                     ${apt.notes ? `<p style="font-size: 0.85rem; color: #666; margin-top: 5px;">📝 ${apt.notes}</p>` : ''}
                                 </div>
                                 <div>
-                                    ${apt.status === 'scheduled' ? `<button class="btn btn-sm" onclick="checkInAppointment('${apt.id}')" style="margin-right: 5px; background:#3498db;color:white;">🧾 Check-in</button>` : ''}
-                                    ${apt.status === 'checked_in' ? `<button class="btn btn-sm" onclick="startFullBodyCheckup('${apt.id}')" style="margin-right: 5px; background:#f39c12;color:white;">▶ Start</button>` : ''}
-                                    <button class="btn btn-sm btn-success" onclick="markAppointmentComplete('${apt.id}')" style="margin-right: 5px;">✅ Complete</button>
-                                    <button class="btn btn-sm btn-danger" onclick="cancelAppointment('${apt.id}')">❌ Cancel</button>
+                                    ${apt.status === 'scheduled' ? `<button class=\"btn btn-sm\" onclick=\"checkInAppointment('${apt.id}')\" style=\"margin-right: 5px; background:#3498db;color:white;\">🧾 Check-in</button>` : ''}
+                                    ${apt.status === 'checked_in' ? `<button class=\"btn btn-sm\" onclick=\"startFullBodyCheckup('${apt.id}')\" style=\"margin-right: 5px; background:#f39c12;color:white;\">▶ Start</button>` : ''}
+                                    <button class=\"btn btn-sm btn-success\" onclick=\"markAppointmentComplete('${apt.id}')\" style=\"margin-right: 5px;\">✅ Complete</button>
+                                    ${apt.status === 'completed' ? `<button class=\"btn btn-sm\" onclick=\"createFollowUpAppointment('${apt.id}')\" style=\"margin-right: 5px; background:#27ae60;color:white;\">➕ Follow-up</button>` : ''}
+                                    <button class=\"btn btn-sm btn-danger\" onclick=\"cancelAppointment('${apt.id}')\">❌ Cancel</button>
                                 </div>
                             </div>
                         </div>
@@ -8531,10 +8569,25 @@
             if (index !== -1) {
                 appointments[index].status = 'completed';
                 appointments[index].completedAt = new Date().toISOString();
+                // If a visit exists, close it
+                try {
+                    if (appointments[index].visitId) {
+                        const vIdx = (visits || []).findIndex(v => v.id === appointments[index].visitId);
+                        if (vIdx !== -1) {
+                            visits[vIdx].status = 'completed';
+                            visits[vIdx].completedAt = new Date().toISOString();
+                        }
+                        localStorage.setItem('dyna_visits', JSON.stringify(visits));
+                    }
+                } catch(e) {}
                 try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
                 try { recordDepartmentEvent('appointment_completed', appointments[index]); } catch(e){}
                 alert('✅ Appointment marked as complete');
                 viewTodayAppointments();
+                // Optional quick follow-up prompt
+                if (confirm('Create a follow-up appointment?')) {
+                    createFollowUpAppointment(appointments[index].id);
+                }
             }
         }
 
@@ -8544,6 +8597,23 @@
                 appointments[index].status = 'checked_in';
                 appointments[index].checkInAt = new Date().toISOString();
                 appointments[index].serviceType = appointments[index].serviceType || 'Full Body Check-Up';
+                // Create Visit record
+                const visit = {
+                    id: 'VIS' + Date.now(),
+                    appointmentId: appointments[index].id,
+                    clientName: appointments[index].clientName,
+                    consultant: appointments[index].consultant || (currentUser && currentUser.fullName) || 'Unknown',
+                    serviceType: appointments[index].serviceType,
+                    branch: appointments[index].branch || (currentUser && currentUser.branch) || 'unknown',
+                    status: 'checked_in',
+                    createdAt: new Date().toISOString(),
+                    checkInAt: appointments[index].checkInAt
+                };
+                try {
+                    visits.push(visit);
+                    appointments[index].visitId = visit.id;
+                    localStorage.setItem('dyna_visits', JSON.stringify(visits));
+                } catch(e) {}
                 try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
                 try { recordDepartmentEvent('appointment_checkin', appointments[index]); } catch(e){}
                 viewTodayAppointments();
@@ -8556,10 +8626,46 @@
                 appointments[index].status = 'in_progress';
                 appointments[index].startedAt = new Date().toISOString();
                 appointments[index].serviceType = appointments[index].serviceType || 'Full Body Check-Up';
+                // Update related visit
+                try {
+                    if (appointments[index].visitId) {
+                        const vIdx = (visits || []).findIndex(v => v.id === appointments[index].visitId);
+                        if (vIdx !== -1) {
+                            visits[vIdx].status = 'in_progress';
+                            visits[vIdx].startedAt = appointments[index].startedAt;
+                        }
+                        localStorage.setItem('dyna_visits', JSON.stringify(visits));
+                    }
+                } catch(e) {}
                 try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
                 try { recordDepartmentEvent('appointment_started', appointments[index]); } catch(e){}
                 viewTodayAppointments();
             }
+        }
+
+        function createFollowUpAppointment(sourceAptId) {
+            const source = appointments.find(a => a.id === sourceAptId);
+            const date = prompt('Enter follow-up date (YYYY-MM-DD):', new Date(Date.now()+7*24*60*60*1000).toISOString().split('T')[0]);
+            if (!date) return;
+            const time = prompt('Enter follow-up time (HH:MM in 24-hour format):', '09:00');
+            if (!time) return;
+            const followUp = {
+                id: 'APT' + Date.now(),
+                date: date,
+                time: time,
+                clientName: source ? source.clientName : 'Client',
+                consultant: (source && source.consultant) || (currentUser && currentUser.fullName) || 'Consultant',
+                notes: 'Follow-up appointment',
+                serviceType: (source && source.serviceType) || 'Full Body Check-Up',
+                status: 'scheduled',
+                createdAt: new Date().toISOString(),
+                followUpOf: sourceAptId
+            };
+            appointments.push(followUp);
+            try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+            try { recordDepartmentEvent('appointment_followup_created', followUp); } catch(e){}
+            alert('✅ Follow-up appointment scheduled');
+            viewTodayAppointments();
         }
 
         function printAnalytics() {
