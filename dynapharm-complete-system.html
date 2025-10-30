@@ -110,6 +110,10 @@
         .order-tab-content.active { display: block; }
         .crm-subtab { padding: 20px; display: none; }
         .crm-subtab.active { display: block; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-card { background: white; border-radius: 10px; padding: 20px; width: 90%; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-card h3 { margin-bottom: 10px; }
+        .modal-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
         .form-section {
             margin-bottom: 20px;
             padding: 20px;
@@ -1120,6 +1124,55 @@
             font-weight: bold;
         }
     </style>
+    <script>
+        // Debounce utility for search/filter inputs
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // Export a section to PDF via print
+        function exportSectionToPDF(sectionId) {
+            try {
+                const section = document.getElementById(sectionId);
+                if (!section) return alert('Section not found');
+                const win = window.open('', '_blank', 'width=1024,height=768');
+                if (!win) return alert('Popup blocked. Allow popups to export.');
+                const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+                    .map(el => el.outerHTML).join('\n');
+                win.document.write(`<!DOCTYPE html><html><head><title>Export</title>${styles}</head><body>`);
+                win.document.write(section.outerHTML);
+                win.document.write('</body></html>');
+                win.document.close();
+                win.focus();
+                setTimeout(() => { win.print(); win.close(); }, 250);
+            } catch (e) {
+                console.error('Export error', e);
+                alert('Failed to export.');
+            }
+        }
+
+        // Global alerts: updates banner using available data
+        function updateGlobalAlerts(opts = {}) {
+            const container = document.getElementById('globalAlerts');
+            if (!container) return;
+            const alerts = [];
+            // Pending approvals from GM
+            const pendingCount = (opts.pendingApprovalsCount != null) ? opts.pendingApprovalsCount : (window.gmPendingApprovalsCount || 0);
+            if (pendingCount > 0) alerts.push(`<div class="alert"><strong>Pending Approvals:</strong> ${pendingCount} item(s) awaiting GM action.</div>`);
+            // Pending orders (if computed elsewhere)
+            const pendingOrders = window.pendingOrdersCount || 0;
+            if (pendingOrders > 0) alerts.push(`<div class="alert"><strong>Pending Orders:</strong> ${pendingOrders} order(s) require attention.</div>`);
+            // Data errors
+            if (window.lastDataError) alerts.push(`<div class="alert"><strong>Data Error:</strong> ${window.lastDataError}</div>`);
+            container.innerHTML = alerts.join('');
+            container.style.display = alerts.length ? 'block' : 'none';
+        }
+        window.updateGlobalAlerts = updateGlobalAlerts;
+    </script>
     <script>
         // Minimal global error surface to catch early syntax/runtime issues
         window.addEventListener('error', function(e) {
@@ -3679,6 +3732,7 @@
                     <button class="btn btn-primary" onclick="refreshGMData()">🔄 Refresh Data</button>
                     <button class="btn" onclick="exportSectionToPDF('gmContent')">🖨️ Export PDF</button>
                     <a class="btn" href="gm-portal-integration.html" target="_blank" rel="noopener" style="margin-left: 10px;">📊 Open GM Business Portal</a>
+                    <button class="btn btn-success" onclick="openScheduleModal('gm')" style="margin-left: 10px;">⏱️ Schedule Report</button>
                 </div>
                 
                 <!-- KPI Dashboard -->
@@ -3709,6 +3763,19 @@
                 <div class="form-section" style="margin-top: 30px;">
                     <h3>⏳ Pending Approvals</h3>
                     <div id="pendingApprovalsList"></div>
+                    <script>
+                        // update global alert banner with count, if available after GM load
+                        (function(){
+                            try {
+                                const list = document.getElementById('pendingApprovalsList');
+                                const count = (list && list.children) ? list.children.length : 0;
+                                window.gmPendingApprovalsCount = count;
+                                if (typeof window.updateGlobalAlerts === 'function') {
+                                    window.updateGlobalAlerts({ pendingApprovalsCount: count });
+                                }
+                            } catch(_){}
+                        })();
+                    </script>
                 </div>
                 
                 <!-- Special Sales Management -->
@@ -3746,6 +3813,7 @@
                     <p>Monitor Revenue, CIF, BV, Margin, and Stock Management</p>
                     <button class="btn btn-primary" onclick="refreshDirectorData()">🔄 Refresh Data</button>
                     <button class="btn" onclick="exportSectionToPDF('directorContent')">🖨️ Export PDF</button>
+                    <button class="btn btn-success" onclick="openScheduleModal('director')" style="margin-left: 10px;">⏱️ Schedule Report</button>
                 </div>
                 
                 <!-- Executive KPIs -->
@@ -5618,6 +5686,125 @@
             } catch (e) {
                 return JSON.parse(defaultJsonString);
             }
+        }
+
+        // Unified storage adapter (IndexedDB-first with localStorage fallback)
+        const DYN_DB_NAME = 'DynapharmDB';
+        const DYN_DB_VERSION = 2; // v2 adds 'clients' store
+        const DYN_CLIENTS_STORE = 'clients';
+
+        let dynDb = null;
+
+        function openDynDb() {
+            if (dynDb) return Promise.resolve(dynDb);
+            return new Promise((resolve, reject) => {
+                let request;
+                try {
+                    request = indexedDB.open(DYN_DB_NAME, DYN_DB_VERSION);
+                } catch (e) {
+                    return reject(e);
+                }
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => { dynDb = request.result; resolve(dynDb); };
+                request.onupgradeneeded = (event) => {
+                    const dbu = event.target.result;
+                    // Ensure clients store exists
+                    if (!dbu.objectStoreNames.contains(DYN_CLIENTS_STORE)) {
+                        const store = dbu.createObjectStore(DYN_CLIENTS_STORE, { keyPath: 'referenceNumber' });
+                        try { store.createIndex('fullName', 'fullName', { unique: false }); } catch(_){}
+                        try { store.createIndex('phone', 'phone', { unique: false }); } catch(_){}
+                        try { store.createIndex('createdAt', 'createdAt', { unique: false }); } catch(_){}
+                    }
+                };
+            });
+        }
+
+        async function dbGetAll(storeName) {
+            try {
+                const dbu = await openDynDb();
+                return await new Promise((resolve, reject) => {
+                    const tx = dbu.transaction([storeName], 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function dbBulkPut(storeName, items) {
+            const dbu = await openDynDb();
+            await new Promise((resolve, reject) => {
+                const tx = dbu.transaction([storeName], 'readwrite');
+                const store = tx.objectStore(storeName);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                // Clear before bulk put to mirror current behavior
+                const clearReq = store.clear();
+                clearReq.onsuccess = () => {
+                    (items || []).forEach((item) => { try { store.put(item); } catch(_){} });
+                };
+                clearReq.onerror = () => reject(clearReq.error);
+            });
+        }
+
+        async function dbAdd(storeName, item) {
+            const dbu = await openDynDb();
+            await new Promise((resolve, reject) => {
+                const tx = dbu.transaction([storeName], 'readwrite');
+                const store = tx.objectStore(storeName);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                try { store.put(item); } catch (e) { reject(e); }
+            });
+        }
+
+        // Adapter: Clients
+        async function loadClientsAdapter() {
+            // Try DB first
+            const fromDb = await dbGetAll(DYN_CLIENTS_STORE);
+            if (Array.isArray(fromDb)) return fromDb;
+            // Fallback to localStorage
+            return safeParseFromStorage('dyna_clients', '[]');
+        }
+
+        async function saveAllClientsAdapter(list) {
+            try {
+                if (Array.isArray(list)) {
+                    await dbBulkPut(DYN_CLIENTS_STORE, list);
+                }
+            } catch(_) {}
+            try { localStorage.setItem('dyna_clients', JSON.stringify(list || [])); } catch(_) {}
+        }
+
+        async function addClientAdapter(client) {
+            const now = new Date().toISOString();
+            const record = { createdAt: now, ...client };
+            try { await dbAdd(DYN_CLIENTS_STORE, record); } catch(_) {}
+            try {
+                const ls = safeParseFromStorage('dyna_clients', '[]');
+                ls.push(record);
+                localStorage.setItem('dyna_clients', JSON.stringify(ls));
+            } catch(_) {}
+            return { success: true };
+        }
+
+        // One-time migration from localStorage to IndexedDB for clients
+        async function migrateClientsToIndexedDBIfNeeded() {
+            try {
+                const flagKey = 'migrated_clients_to_idb_v2';
+                if (localStorage.getItem(flagKey) === 'true') return;
+                const lsClients = safeParseFromStorage('dyna_clients', '[]');
+                const dbClients = await dbGetAll(DYN_CLIENTS_STORE);
+                if ((dbClients || []).length === 0 && (lsClients || []).length > 0) {
+                    await dbBulkPut(DYN_CLIENTS_STORE, lsClients);
+                    localStorage.setItem(flagKey, 'true');
+                } else {
+                    localStorage.setItem(flagKey, 'true');
+                }
+            } catch(_) {}
         }
 
         // Load persisted appointments/visits on startup (if present)
