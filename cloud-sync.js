@@ -5,6 +5,7 @@ class CloudStorage {
     constructor() {
         this.repo = 'mosesmukisa1-a11y/dynapharm-namibia-health';
         this.githubDataPath = 'cloud-data/data.json';
+        this.githubApiBase = 'https://api.github.com';
     }
 
     async loadFromCloud() {
@@ -100,6 +101,66 @@ class CloudStorage {
         console.log('✅ Backup file ready for upload to GitHub');
         alert('Backup file downloaded! Please commit it to GitHub in cloud-data/data.json');
     }
+
+    _aggregateData() {
+        return {
+            clients: JSON.parse(localStorage.getItem('dyna_clients') || '[]'),
+            users: JSON.parse(localStorage.getItem('dyna_users') || '[]'),
+            branches: JSON.parse(localStorage.getItem('dyna_branches') || '[]'),
+            reports: JSON.parse(localStorage.getItem('dyna_reports') || '[]'),
+            barcodeStock: JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]'),
+            purchaseOrders: JSON.parse(localStorage.getItem('dyna_purchase_orders') || '[]'),
+            walkInSales: JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]'),
+            cashDrawer: JSON.parse(localStorage.getItem('dyna_cash_drawer') || '{}'),
+            onlineOrders: JSON.parse(localStorage.getItem('dyna_online_orders') || '[]'),
+            productPhotos: JSON.parse(localStorage.getItem('dyna_product_photos') || '{}'),
+            branchStock: JSON.parse(localStorage.getItem('dyna_branch_stock') || '{}'),
+            scanAdjustments: JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]'),
+            lastSync: new Date().toISOString()
+        };
+    }
+
+    async _getExistingFileSha(token) {
+        const url = `${this.githubApiBase}/repos/${this.repo}/contents/${this.githubDataPath}`;
+        const res = await fetch(url, {
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`Failed to get existing file: ${res.status}`);
+        const json = await res.json();
+        return json.sha || null;
+    }
+
+    async saveToGitHub(token, commitMessage = 'Cloud sync: update data.json') {
+        if (!token) throw new Error('GitHub token is required');
+        const data = this._aggregateData();
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+        const sha = await this._getExistingFileSha(token);
+        const url = `${this.githubApiBase}/repos/${this.repo}/contents/${this.githubDataPath}`;
+        const body = {
+            message: commitMessage,
+            content,
+            sha: sha || undefined
+        };
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`GitHub save failed: ${res.status} ${errText}`);
+        }
+        console.log('✅ Data saved to GitHub cloud-data/data.json');
+        return true;
+    }
 }
 
 // Initialize cloud storage
@@ -108,7 +169,34 @@ const cloudStorage = new CloudStorage();
 // Auto-sync on page load
 window.addEventListener('load', () => {
     cloudStorage.syncToLocal();
+    try {
+        if (!document.getElementById('cloud-save-btn')) {
+            const btn = document.createElement('button');
+            btn.id = 'cloud-save-btn';
+            btn.textContent = '💾 Save to Cloud';
+            btn.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#1769aa;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)';
+            btn.addEventListener('click', async () => {
+                const token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
+                if (!token) return;
+                btn.disabled = true; btn.textContent = 'Saving...';
+                try {
+                    await cloudStorage.saveToGitHub(token, 'Cloud sync: save from app');
+                    alert('Saved to GitHub cloud-data/data.json');
+                } catch (e) {
+                    alert('Save failed: ' + e.message);
+                } finally {
+                    btn.disabled = false; btn.textContent = '💾 Save to Cloud';
+                }
+            });
+            document.body.appendChild(btn);
+        }
+    } catch(_) { /* ignore */ }
 });
 
 // Add to window for manual access
 window.cloudStorage = cloudStorage;
+window.cloudSaveToGitHub = async function() {
+    const token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
+    if (!token) return;
+    await cloudStorage.saveToGitHub(token, 'Cloud sync: manual save');
+};
