@@ -4,6 +4,7 @@
 let stockRequests = [];
 let stockTransfers = [];
 let warehouseStock = {};
+let auditLog = [];
 let warehouses = [
     { id: 'warehouse-windhoek', name: 'Warehouse Windhoek', manager: '', location: 'Windhoek' },
     { id: 'warehouse-ondangwa', name: 'Warehouse Ondangwa', manager: '', location: 'Ondangwa' }
@@ -29,12 +30,41 @@ function saveStockData() {
         localStorage.setItem('dyna_stock_requests', JSON.stringify(stockRequests));
         localStorage.setItem('dyna_stock_transfers', JSON.stringify(stockTransfers));
         localStorage.setItem('dyna_warehouse_stock', JSON.stringify(warehouseStock));
+        localStorage.setItem('dyna_stock_audit', JSON.stringify(auditLog));
     } catch (error) {
         console.error('Error saving stock data:', error);
     }
 }
 
 loadStockData();
+
+// Load audit log
+try {
+    const storedAudit = localStorage.getItem('dyna_stock_audit');
+    if (storedAudit) auditLog = JSON.parse(storedAudit);
+} catch (_) {}
+
+function logAudit(action, details) {
+    const entry = {
+        id: 'AUD' + Date.now(),
+        action,
+        details,
+        timestamp: new Date().toISOString()
+    };
+    auditLog.push(entry);
+    if (auditLog.length > 5000) auditLog.shift();
+}
+
+export function getAuditLogs(filters = {}) {
+    try {
+        let result = [...auditLog];
+        if (filters.action) result = result.filter(a => a.action === filters.action);
+        if (filters.since) result = result.filter(a => new Date(a.timestamp) >= new Date(filters.since));
+        return { success: true, data: result, total: result.length };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
 
 // Get all stock requests
 export function getStockRequests(filters = {}) {
@@ -118,6 +148,7 @@ export function createStockRequest(requestData) {
         };
         
         stockRequests.push(newRequest);
+        logAudit('request_created', { requestId: newRequest.id, requestNumber, branch: newRequest.requestingBranch, requestedBy: newRequest.requestedBy });
         saveStockData();
         
         return { success: true, data: newRequest };
@@ -165,7 +196,7 @@ export function approveStockRequest(requestId, approvalData) {
         // Update request status
         if (!approved) {
             request.status = 'rejected';
-        } else if (requiresGMApproval(request) && !request.gmApproval.status !== 'approved') {
+        } else if (requiresGMApproval(request) && request.gmApproval.status !== 'approved') {
             request.status = 'pending_gm';
         } else if (requiresWarehouseApproval(request) && request.branchManagerApproval.status === 'approved') {
             request.status = 'pending_warehouse';
@@ -174,6 +205,7 @@ export function approveStockRequest(requestId, approvalData) {
         }
         
         request.updatedAt = new Date().toISOString();
+        logAudit('request_approved', { requestId: request.id, approverRole, approvedBy, approved, status: request.status });
         saveStockData();
         
         return { success: true, data: request };
@@ -228,6 +260,7 @@ export function fulfillStockRequest(requestId, fulfillmentData) {
         request.transferId = transfer.id;
         request.updatedAt = new Date().toISOString();
         
+        logAudit('request_fulfilled', { requestId: request.id, transferId: transfer.id, fromWarehouse: transfer.fromWarehouse, toBranch: transfer.toBranch });
         saveStockData();
         
         return { success: true, data: { request, transfer } };
@@ -257,7 +290,36 @@ function createStockTransfer(request, fulfillmentData) {
         receivedBy: null
     };
     
+    logAudit('transfer_created', { transferId: transfer.id, requestId: request.id, fromWarehouse: transfer.fromWarehouse, toBranch: transfer.toBranch });
     return transfer;
+}
+
+// Update transfer status helper
+export function updateTransferStatus(transferId, nextStatus, meta = {}) {
+    try {
+        const transfer = stockTransfers.find(t => t.id === transferId);
+        if (!transfer) return { success: false, error: 'Transfer not found' };
+        const now = new Date().toISOString();
+        if (nextStatus === 'dispatched') {
+            transfer.status = 'dispatched';
+            transfer.dispatchedAt = now;
+            transfer.dispatchedBy = meta.user || transfer.dispatchedBy;
+        } else if (nextStatus === 'delivered') {
+            transfer.status = 'delivered';
+            transfer.deliveredAt = now;
+        } else if (nextStatus === 'received') {
+            transfer.status = 'received';
+            transfer.receivedAt = now;
+            transfer.receivedBy = meta.user || transfer.receivedBy;
+        } else if (nextStatus === 'cancelled') {
+            transfer.status = 'cancelled';
+        }
+        logAudit('transfer_status_updated', { transferId, status: transfer.status });
+        saveStockData();
+        return { success: true, data: transfer };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // Get stock transfer by ID
@@ -336,6 +398,7 @@ export function updateWarehouseStock(warehouseId, productId, quantity, movementT
             recordedBy: 'system'
         });
         
+        logAudit('warehouse_stock_updated', { warehouseId, productId, movementType, quantity });
         saveStockData();
         
         return { success: true, data: stock };
@@ -398,7 +461,9 @@ if (typeof module !== 'undefined' && module.exports) {
         getStockTransfers,
         getWarehouseStock,
         updateWarehouseStock,
-        getStockStatistics
+        getStockStatistics,
+        getAuditLogs,
+        updateTransferStatus
     };
 }
 
