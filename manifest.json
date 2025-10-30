@@ -33,26 +33,26 @@
       "name": "Client Registration",
       "short_name": "Clients",
       "description": "Register new clients",
-      "url": "/#client",
+      "url": "./#client",
       "icons": []
     },
     {
       "name": "Prescriptions",
       "short_name": "Prescribe",
       "description": "Create prescriptions",
-      "url": "/#dispenser",
+      "url": "./#dispenser",
       "icons": []
     },
     {
       "name": "Reports",
       "short_name": "Reports",
       "description": "View reports",
-      "url": "/#reports",
+      "url": "./#reports",
       "icons": []
     }
   ],
   "share_target": {
-    "action": "/",
+    "action": "./",
     "method": "GET",
     "params": {
       "title": "title",

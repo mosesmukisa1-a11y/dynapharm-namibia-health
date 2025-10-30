@@ -226,17 +226,32 @@
         let alerts = [];
 
         async function loadBranches() {
-            try {
-                // Try backend API first
-                const apiResp = await fetch('/api/branches').then(r => r.json());
-                branches = Array.isArray(apiResp) ? apiResp : (apiResp.branches || []);
-            } catch (e) {
-                // Fallback to localStorage setup in main app
+            const isStaticHost = (location.hostname.endsWith('github.io') || location.protocol === 'file:');
+            if (isStaticHost) {
                 try {
                     const fromLS = JSON.parse(localStorage.getItem('dyna_branches') || '[]');
                     branches = Array.isArray(fromLS) ? fromLS : [];
                 } catch(err) {
                     branches = [];
+                }
+            } else {
+                try {
+                    // Try backend API first when running on a server
+                    const resp = await fetch('/api/branches');
+                    if (resp.ok) {
+                        const apiResp = await resp.json();
+                        branches = Array.isArray(apiResp) ? apiResp : (apiResp.branches || []);
+                    }
+                } catch (_) {
+                    /* ignore and fallback below */
+                }
+                if (!Array.isArray(branches) || branches.length === 0) {
+                    try {
+                        const fromLS = JSON.parse(localStorage.getItem('dyna_branches') || '[]');
+                        branches = Array.isArray(fromLS) ? fromLS : [];
+                    } catch(err) {
+                        branches = [];
+                    }
                 }
             }
             const sel = document.getElementById('branchFilter');
