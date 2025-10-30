@@ -8,7 +8,7 @@
     <meta http-equiv="Expires" content="0">
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#c41e3a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dynapharm">
     <link rel="manifest" href="./manifest.json">
@@ -1105,8 +1105,8 @@
             font-weight: bold;
         }
     </style>
-    <!-- SheetJS library for Excel parsing -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS library for Excel parsing (fallback to jsdelivr) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.1/dist/xlsx.full.min.js"></script>
     <!-- Chart.js for interactive charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- D3.js for advanced visualizations -->
@@ -1466,19 +1466,19 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="openTab('client')">Distributor Portal</button>
-            <button class="tab-button" onclick="openTab('frontdesk')">Front Desk Portal</button>
-            <button class="tab-button" onclick="openTab('consultant')">Consultant Portal</button>
-            <button class="tab-button" onclick="openTab('dispenser')">Dispenser Portal</button>
-            <button class="tab-button" onclick="openTab('hr-portal')">HR Portal</button>
-            <button class="tab-button" onclick="openTab('finance')">Finance Portal</button>
-            <button class="tab-button" onclick="openTab('crm')">CRM Portal</button>
-            <button class="tab-button" onclick="openTab('gm')">GM Portal</button>
-            <button class="tab-button" onclick="openTab('director')">Director Portal</button>
-            <button class="tab-button" onclick="openTab('mis')">MIS Portal</button>
-            <button class="tab-button" onclick="openTab('advanced-reports')">📊 Advanced Reports</button>
-            <button class="tab-button" onclick="openTab('stock')">Stock Management</button>
-            <button class="tab-button" onclick="openTab('admin')">Admin Portal</button>
+            <button class="tab-button active" onclick="openTab('client', event)">Distributor Portal</button>
+            <button class="tab-button" onclick="openTab('frontdesk', event)">Front Desk Portal</button>
+            <button class="tab-button" onclick="openTab('consultant', event)">Consultant Portal</button>
+            <button class="tab-button" onclick="openTab('dispenser', event)">Dispenser Portal</button>
+            <button class="tab-button" onclick="openTab('hr-portal', event)">HR Portal</button>
+            <button class="tab-button" onclick="openTab('finance', event)">Finance Portal</button>
+            <button class="tab-button" onclick="openTab('crm', event)">CRM Portal</button>
+            <button class="tab-button" onclick="openTab('gm', event)">GM Portal</button>
+            <button class="tab-button" onclick="openTab('director', event)">Director Portal</button>
+            <button class="tab-button" onclick="openTab('mis', event)">MIS Portal</button>
+            <button class="tab-button" onclick="openTab('advanced-reports', event)">📊 Advanced Reports</button>
+            <button class="tab-button" onclick="openTab('stock', event)">Stock Management</button>
+            <button class="tab-button" onclick="openTab('admin', event)">Admin Portal</button>
         </div>
 
         <!-- Distributor Portal -->
@@ -6526,11 +6526,16 @@
             });
         }
 
-        function openTab(tabName) {
+        function openTab(tabName, event) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                const btn = document.querySelector(`[onclick="openTab('${tabName}', event)"]`) || document.querySelector(`[onclick="openTab('${tabName}')"]`);
+                if (btn) btn.classList.add('active');
+            }
             
             // Auto-login for stock portal if not already logged in
             if (tabName === 'stock' && !currentUser) {
@@ -6544,6 +6549,11 @@
             if (tabName === 'mis' && currentUser && currentUser.role === 'mis') {
                 initializeMISPortal();
             }
+        }
+
+        // Ensure openTab is accessible from inline onclick handlers
+        if (typeof window !== 'undefined') {
+            window.openTab = openTab;
         }
 
         // MIS Portal Functions
@@ -17034,10 +17044,19 @@
                     <p><strong>Batch:</strong> ${b.batchNumber || 'N/A'} • <strong>Expiry:</strong> ${b.expiryDate || 'N/A'} ${b.daysLeft!==null ? `(in ${b.daysLeft} days)` : ''}</p>
                     <p><strong>Remaining:</strong> ${b.remainingQuantity || 0} • <strong>Location:</strong> ${b.location || 'N/A'}</p>
                     <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn btn-warning" onclick="toggleRecall('${(b.id||b.batchNumber||'').toString().replace(/'/g, '\\'')}', ${b.recalled===true})">${b.recalled===true?'Undo Recall':'Recall Batch'}</button>
+                        <button class="btn btn-warning recall-btn" data-batch-id="${encodeURIComponent((b.id||b.batchNumber||'').toString())}" data-recalled="${b.recalled===true?'true':'false'}">${b.recalled===true?'Undo Recall':'Recall Batch'}</button>
                     </div>
                 </div>
             `).join('');
+            // Attach click handlers for recall buttons (delegated per render)
+            container.querySelectorAll('.recall-btn').forEach(btn => {
+                btn.addEventListener('click', (ev) => {
+                    const target = ev.currentTarget;
+                    const batchId = decodeURIComponent(target.getAttribute('data-batch-id') || '');
+                    const isRecalled = (target.getAttribute('data-recalled') || 'false') === 'true';
+                    toggleRecall(batchId, isRecalled);
+                });
+            });
         }
         function toggleRecall(batchId, currentlyRecalled) {
             const batches = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
