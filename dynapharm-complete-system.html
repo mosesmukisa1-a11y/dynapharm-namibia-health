@@ -1491,7 +1491,7 @@
             <button class="tab-button" onclick="openTab('dispenser', event)">Dispenser Portal</button>
             <button class="tab-button" onclick="openTab('hr-portal', event)">HR Portal</button>
             <button class="tab-button" onclick="openTab('finance', event)">Finance Portal</button>
-            <button class="tab-button" onclick="openTab('crm', event)">CRM Portal</button>
+            
             <button class="tab-button" onclick="openTab('gm', event)">GM Portal</button>
             <button class="tab-button" onclick="openTab('director', event)">Director Portal</button>
             <button class="tab-button" onclick="openTab('mis', event)">MIS Portal</button>
@@ -2162,6 +2162,7 @@
                 <button class="tab-button" onclick="showOrderTab('shipped')">🚚 Shipped</button>
                 <button class="tab-button" onclick="showOrderTab('delivered')">✅ Delivered</button>
                 <button class="tab-button" onclick="showOrderTab('all')">📋 All Orders</button>
+                <button class="tab-button" onclick="showOrderTab('crm')">👥 CRM</button>
             </div>
             
             <!-- Pending Orders Tab -->
@@ -2173,6 +2174,44 @@
                         <button class="btn btn-success" onclick="refreshPendingOrders()">🔄 Refresh</button>
                     </div>
                     <div id="pendingOrdersList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Front Desk CRM Tab -->
+            <div id="frontdeskCRM" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>👥 CRM - Lead Management</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="required">Lead Name</label>
+                            <input type="text" id="crmLeadName" placeholder="Full Name">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="crmLeadPhone" placeholder="0812345678">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="crmLeadEmail" placeholder="email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Interest</label>
+                            <input type="text" id="crmLeadInterest" placeholder="Product/package of interest">
+                        </div>
+                        <div class="form-group">
+                            <label>Next Follow-up</label>
+                            <input type="date" id="crmLeadFollowUp">
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="addCRMLead()">➕ Add Lead</button>
+                        <button class="btn btn-info" onclick="refreshCRMLeads()">🔄 Refresh</button>
+                        <button class="btn" onclick="openMISFromCRM()">📊 View in MIS</button>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>📋 Leads</h3>
+                    <div id="crmLeadsList" style="max-height: 500px; overflow-y: auto;"></div>
                 </div>
             </div>
             
@@ -7449,7 +7488,23 @@
                     el.textContent = msg;
                     document.body.appendChild(el);
                     setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 300ms'; setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 320); }, 2500);
-                })(`📣 Appointment request sent to Front Desk and Consultant for ${currentBranch}.`);
+                })(`📣 Appointment request sent to Front Desk and Consultant for ${currentBranch}. Ref: ${referenceNumber}`);
+                
+                // Send emails: to client and consultants at branch
+                const emailSubject = `Dynapharm Appointment Request — Ref ${referenceNumber}`;
+                const emailBody = `Dear ${fullName},\n\nYour Full Body Check Up request has been received.\n\nReference: ${referenceNumber}\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nWe will contact you to confirm your time.\n\nDynapharm Namibia`;
+                try {
+                    if (client.email) {
+                        await apiRequest('/email', 'POST', { to: client.email, subject: emailSubject, body: emailBody });
+                    }
+                } catch (e) { console.warn('Email to client failed', e); }
+                try {
+                    const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(currentBranch) || u.branch === currentBranch));
+                    for (const c of branchConsultants) {
+                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName} (NB: ${nbNumber})\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nPlease prepare to proceed with consultation.`;
+                        await apiRequest('/email', 'POST', { to: c.email || 'consultant@dynapharm.com.na', subject: emailSubject, body: cBody });
+                    }
+                } catch (e) { console.warn('Emails to consultants failed', e); }
             } catch (e) { console.warn('Appointment creation/notification skipped:', e); }
             
             if (confirm('Print form?')) {
