@@ -22218,6 +22218,38 @@ This sale appears in the Dispenser Portal sales reports.
             }
         }
 
+        // Resize and generate responsive variants
+        async function createImageVariantsFromFile(file, { maxDimension = 1200, quality = 0.85 } = {}) {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            const img = await new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = reject;
+                image.src = dataUrl;
+            });
+            const makeVariant = (targetMax) => {
+                const scale = Math.min(1, targetMax / Math.max(img.width, img.height));
+                const w = Math.round(img.width * scale);
+                const h = Math.round(img.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                // Prefer WebP when supported
+                const type = 'image/webp';
+                return canvas.toDataURL(type, quality);
+            };
+            const full = makeVariant(maxDimension);
+            const w600 = makeVariant(600);
+            const w300 = makeVariant(300);
+            return { full, w600, w300, width: Math.min(img.width, maxDimension), height: Math.min(img.height, maxDimension) };
+        }
+
         function uploadProductPhoto() {
             const productName = document.getElementById('photoProductSelect')?.value || '';
             const fileInput = document.getElementById('productPhotoInput');
@@ -22238,36 +22270,28 @@ This sale appears in the Dispenser Portal sales reports.
             
             let loadedCount = 0;
             const totalFiles = files.length;
-            
-            files.forEach((file, index) => {
-                if (file.size > 5 * 1024 * 1024) {
-                    status.textContent = `File "${file.name}" is too large. Max 5MB.`;
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = () => {
-                    // Add photo to array (maintain max 4)
-                    if (photoMap[productName].length < 4) {
-                        photoMap[productName].push(reader.result);
-                    }
-                    loadedCount++;
-                    
-                    if (loadedCount === totalFiles) {
-                        // Ensure we don't exceed 4 photos
-                        photoMap[productName] = photoMap[productName].slice(0, 4);
-                        localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
-                        status.textContent = `${loadedCount} photo(s) uploaded successfully! (Total: ${photoMap[productName].length}/4)`;
-                        loadProductPhotos();
-                        // Refresh shop products in real time to show new photos
-                        if (typeof loadShopProducts === 'function') {
-                            loadShopProducts();
+            (async () => {
+                for (const file of files) {
+                    try {
+                        const variants = await createImageVariantsFromFile(file, { maxDimension: 1200, quality: 0.85 });
+                        if (photoMap[productName].length < 4) {
+                            photoMap[productName].push(variants);
                         }
-                        clearPhotoForm();
+                        loadedCount++;
+                    } catch (e) {
+                        console.warn('Image processing failed for', file.name, e);
                     }
-                };
-                reader.readAsDataURL(file);
-            });
+                }
+                // Ensure we don't exceed 4 photos
+                photoMap[productName] = photoMap[productName].slice(0, 4);
+                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                status.textContent = `${loadedCount} photo(s) uploaded and optimized! (Total: ${photoMap[productName].length}/4)`;
+                loadProductPhotos();
+                if (typeof loadShopProducts === 'function') {
+                    loadShopProducts();
+                }
+                clearPhotoForm();
+            })();
         }
 
         function clearPhotoForm() {
