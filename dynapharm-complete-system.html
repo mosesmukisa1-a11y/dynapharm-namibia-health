@@ -1172,6 +1172,109 @@
             container.style.display = alerts.length ? 'block' : 'none';
         }
         window.updateGlobalAlerts = updateGlobalAlerts;
+
+        // Lightweight role-based access control
+        const ROLE_TABS = {
+            gm: ['gm','director','admin'],
+            director: ['director','admin'],
+            finance: ['finance','director','admin'],
+            'hr-portal': ['hr_manager','hr_admin','admin'],
+            stock: ['stock_manager','director','admin']
+        };
+
+        function setCurrentUserRole(role){ try{ localStorage.setItem('currentUserRole', role); applyRoleGuards(); }catch(_){} }
+        function getCurrentUserRole(){ try{ return localStorage.getItem('currentUserRole') || 'guest'; }catch(_){ return 'guest'; } }
+        function applyRoleGuards(){
+            const role = getCurrentUserRole().toLowerCase();
+            const tabButtons = document.querySelectorAll('.tabs .tab-button');
+            tabButtons.forEach(btn => {
+                const onclick = btn.getAttribute('onclick') || '';
+                const match = onclick.match(/openTab\('([^']+)'/);
+                const tabId = match ? match[1] : null;
+                if (!tabId) return;
+                const allowed = ROLE_TABS[tabId];
+                if (Array.isArray(allowed)) {
+                    btn.style.display = allowed.includes(role) ? '' : 'none';
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', applyRoleGuards);
+
+        // Schedule report helpers
+        function openScheduleModal(portal){
+            document.getElementById('schedulePortal').value = portal;
+            document.getElementById('scheduleModal').style.display = 'flex';
+        }
+        function closeScheduleModal(){ document.getElementById('scheduleModal').style.display = 'none'; }
+        function saveReportSchedule(){
+            const portal = document.getElementById('schedulePortal').value;
+            const frequency = document.getElementById('scheduleFrequency').value;
+            const recipients = (document.getElementById('scheduleRecipients').value||'').trim();
+            const schedules = JSON.parse(localStorage.getItem('report_schedules')||'{}');
+            schedules[portal] = { frequency, recipients, savedAt: new Date().toISOString() };
+            localStorage.setItem('report_schedules', JSON.stringify(schedules));
+            alert('Report schedule saved.');
+            closeScheduleModal();
+        }
+        function composeReportEmail(portal){
+            const recipients = (JSON.parse(localStorage.getItem('report_schedules')||'{}')[portal]?.recipients)||'';
+            const subject = encodeURIComponent(`[Dynapharm] ${portal.toUpperCase()} Report`);
+            const summary = gatherPortalSummary(portal);
+            const body = encodeURIComponent(summary + '\n\nExport PDF from the portal if needed.');
+            const href = `mailto:${encodeURIComponent(recipients)}?subject=${subject}&body=${body}`;
+            window.location.href = href;
+        }
+        function gatherPortalSummary(portal){
+            try{
+                if (portal==='gm'){
+                    const rev = document.getElementById('gmTotalRevenue')?.textContent||'';
+                    const cif = document.getElementById('gmCIFDeposits')?.textContent||'';
+                    const bv = document.getElementById('gmTotalBV')?.textContent||'';
+                    const margin = document.getElementById('gmGrossMargin')?.textContent||'';
+                    return `GM Summary\nRevenue: ${rev}\nCIF: ${cif}\nBV: ${bv}\nMargin: ${margin}`;
+                }
+                if (portal==='director'){
+                    const rev = document.getElementById('directorRevenue')?.textContent||'';
+                    const cif = document.getElementById('directorCIF')?.textContent||'';
+                    const bv = document.getElementById('directorBV')?.textContent||'';
+                    const margin = document.getElementById('directorMargin')?.textContent||'';
+                    const rem = document.getElementById('directorRemittance')?.textContent||'';
+                    return `Director Summary\nRevenue: ${rev}\nCIF: ${cif}\nBV: ${bv}\nMargin: ${margin}\nRemittance: ${rem}`;
+                }
+            } catch(_){}
+            return 'Summary unavailable.';
+        }
+        async function notifyScheduledReport(portal){
+            try {
+                await fetch('/api/notifications.js', { method:'POST', headers:{ 'Content-Type':'application/json','x-role': getCurrentUserRole() }, body: JSON.stringify({ type:'report', title:`${portal.toUpperCase()} report sent`, message:new Date().toLocaleString() }) });
+            } catch(_){}
+        }
+        function sendReportNow(){
+            const portal = document.getElementById('schedulePortal').value;
+            composeReportEmail(portal);
+            notifyScheduledReport(portal);
+        }
+        // naive client-side scheduler (active while page is open)
+        setInterval(() => {
+            try{
+                const schedules = JSON.parse(localStorage.getItem('report_schedules')||'{}');
+                const now = new Date();
+                Object.entries(schedules).forEach(([portal, cfg]) => {
+                    if (!cfg || !cfg.frequency) return;
+                    const lastKey = `last_sent_${portal}`;
+                    const last = localStorage.getItem(lastKey);
+                    const shouldSend =
+                        (cfg.frequency==='daily' && (!last || now - new Date(last) > 24*3600*1000)) ||
+                        (cfg.frequency==='weekly' && (!last || now - new Date(last) > 7*24*3600*1000)) ||
+                        (cfg.frequency==='monthly' && (!last || now - new Date(last) > 30*24*3600*1000));
+                    if (shouldSend) {
+                        composeReportEmail(portal);
+                        notifyScheduledReport(portal);
+                        localStorage.setItem(lastKey, new Date().toISOString());
+                    }
+                });
+            } catch(_){}
+        }, 60000);
     </script>
     <script>
         // Minimal global error surface to catch early syntax/runtime issues
@@ -1524,6 +1627,36 @@
             </div>
         </div>
         <div id="globalAlerts" class="global-alerts"></div>
+
+        <!-- Schedule Report Modal -->
+        <div id="scheduleModal" class="modal-overlay" onclick="if(event.target.id==='scheduleModal') closeScheduleModal()">
+            <div class="modal-card">
+                <h3>Schedule Report</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Portal</label>
+                        <input id="schedulePortal" type="text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Frequency</label>
+                        <select id="scheduleFrequency">
+                            <option value="daily">Daily</option>
+                            <option value="weekly" selected>Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Recipients (comma-separated emails)</label>
+                        <input id="scheduleRecipients" type="email" placeholder="gm@example.com, director@example.com" multiple>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn" onclick="sendReportNow()">📨 Send Now</button>
+                    <button class="btn btn-success" onclick="saveReportSchedule()">💾 Save Schedule</button>
+                    <button class="btn btn-danger" onclick="closeScheduleModal()">Close</button>
+                </div>
+            </div>
+        </div>
 
         <div class="tabs">
             <button class="tab-button active" onclick="openTab('client', event)">Distributor / Guest</button>
