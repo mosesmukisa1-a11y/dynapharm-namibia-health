@@ -7809,7 +7809,29 @@
             
             console.log('=== LOGIN SUCCESS ===');
             console.log('Displaying content for portal:', currentPortal);
-            
+
+            // Enforce/initialize branch selection for consultant/dispenser
+            try {
+                if (currentPortal === 'consultant' || currentPortal === 'dispenser') {
+                    const hasMultipleBranches = Array.isArray(user.branches) && user.branches.length > 1;
+                    if (!currentBranch || currentBranch === '') {
+                        if (hasMultipleBranches) {
+                            alert('Please select a branch first using the selector at the top.');
+                            const sel = document.getElementById('branchSelect');
+                            if (sel) sel.focus();
+                            return; // Stop login flow until branch is chosen
+                        } else if (user.branch) {
+                            // Auto-assign single branch users
+                            currentBranch = user.branch;
+                            const sel = document.getElementById('branchSelect');
+                            if (sel) sel.value = currentBranch;
+                            const checkSel = document.getElementById('checkupBranchSelect');
+                            if (checkSel) checkSel.value = currentBranch;
+                        }
+                    }
+                }
+            } catch (e) { /* no-op */ }
+
             // Login successful
             currentUser = user;
             closeModal('loginModal');
@@ -21152,6 +21174,15 @@
         let pendingCartItem = null;
         
         function addToShopCart(productName, cp, dp, bv) {
+            // Require branch selection before adding to cart
+            try {
+                if (!currentBranch || currentBranch === '') {
+                    alert('Please select your nearest branch first (top of page) to receive your order.');
+                    const sel = document.getElementById('branchSelect');
+                    if (sel) sel.focus();
+                    return;
+                }
+            } catch (e) { /* no-op */ }
             // Store the product info
             pendingCartItem = { productName, cp, dp, bv };
             
@@ -21588,6 +21619,12 @@
                         opt.textContent = b.name || b.id || '';
                         select.appendChild(opt);
                     });
+                    // Preselect from currentBranch if available
+                    try {
+                        if (currentBranch) {
+                            select.value = currentBranch;
+                        }
+                    } catch (_) {}
                 } else {
                     // Fallback static list if branches not loaded
                     ['TOWNSHOP','KHOMASDAL','KATIMA','OUTAPI','ONDANGWA','OKONGO','OKAHAO','NKURENKURU','SWAKOPMUND','HOCHLAND PARK','RUNDU','GOBABIS','WALVISBAY','EENHANA','OTJIWARONGO']
