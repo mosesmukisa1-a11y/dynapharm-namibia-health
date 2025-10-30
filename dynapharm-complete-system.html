@@ -21457,7 +21457,8 @@
                 'processing': 'processingOrders',
                 'shipped': 'shippedOrders',
                 'delivered': 'deliveredOrders',
-                'all': 'allOrders'
+                'all': 'allOrders',
+                'crm': 'frontdeskCRM'
             };
             
             const tabElement = document.getElementById(tabMap[tabName]);
@@ -21475,6 +21476,8 @@
                 refreshDeliveredOrders();
             } else if (tabName === 'all') {
                 refreshAllOrders();
+            } else if (tabName === 'crm') {
+                refreshCRMLeads();
             }
         }
         
