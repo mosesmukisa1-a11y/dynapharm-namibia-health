@@ -59,6 +59,7 @@ export default function handler(req, res) {
         
         // Save to file
         saveAttendanceToFile();
+        writeAudit('attendance_created', { id: newAttendance.id, userId: newAttendance.userId, branch: newAttendance.branch, date: newAttendance.date });
         
         res.status(201).json(newAttendance);
     } else if (req.method === 'PUT') {
@@ -67,7 +68,20 @@ export default function handler(req, res) {
         if (attendanceIndex !== -1) {
             global.attendance[attendanceIndex] = { ...global.attendance[attendanceIndex], ...updateData };
             saveAttendanceToFile();
+            writeAudit('attendance_updated', { id, update: Object.keys(updateData) });
             res.status(200).json(global.attendance[attendanceIndex]);
+        } else {
+            res.status(404).json({ error: 'Attendance record not found' });
+        }
+    } else if (req.method === 'DELETE') {
+        const { id } = req.query;
+        if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
+        const idx = global.attendance.findIndex(a => a.id === id);
+        if (idx !== -1) {
+            const removed = global.attendance.splice(idx, 1)[0];
+            saveAttendanceToFile();
+            writeAudit('attendance_deleted', { id: removed.id });
+            res.status(200).json({ success: true, deleted: removed.id });
         } else {
             res.status(404).json({ error: 'Attendance record not found' });
         }
@@ -115,4 +129,13 @@ function generateSampleAttendanceData() {
     }
     
     return attendance;
+}
+
+function writeAudit(event, details){
+    try {
+        const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
+        const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
+        list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
+        fs.writeFileSync(fp, JSON.stringify(list, null, 2));
+    } catch(e){}
 }

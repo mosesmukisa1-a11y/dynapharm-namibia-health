@@ -38,21 +38,81 @@ export default function handler(req, res) {
         
         res.status(200).json(filtered);
     } else if (req.method === 'POST') {
+        const body = req.body || {};
+        // Basic policy validation
+        const days = calcDays(body.startDate, body.endDate, body.halfDay);
+        const policy = getEmployeePolicy(body.userId);
+        if (!policy) { res.status(400).json({ error: 'Unknown employee for entitlement check' }); return; }
+        const used = getUsedLeaveDays(body.userId, body.type);
+        const allowed = getAllowedDays(policy, body.type);
+        if (allowed != null && used + days > allowed) {
+            res.status(400).json({ error: `Insufficient ${body.type} leave. Used ${used}, requested ${days}, allowed ${allowed}` });
+            return;
+        }
         const newLeave = {
             id: `LEAVE-${Date.now()}`,
-            ...req.body,
-            createdAt: new Date().toISOString()
+            userId: body.userId,
+            fullName: body.fullName,
+            branch: body.branch,
+            type: body.type,
+            startDate: body.startDate,
+            endDate: body.endDate,
+            halfDay: !!body.halfDay,
+            days,
+            status: 'pending',
+            reason: body.reason || '',
+            submittedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            managerApproval: { status:'pending', approvedBy:null, approvedAt:null, notes:'' },
+            hrApproval: { status:'pending', approvedBy:null, approvedAt:null, notes:'' }
         };
         global.leaveRequests.push(newLeave);
         saveLeaveToFile();
+        writeAudit('leave_submitted', { id: newLeave.id, userId: newLeave.userId, type: newLeave.type, days });
+        notify({ type:'leave_submitted', title:'Leave Submitted', message:`${newLeave.fullName} requested ${newLeave.days} day(s) ${newLeave.type}`, refId:newLeave.id });
         res.status(201).json(newLeave);
     } else if (req.method === 'PUT') {
-        const { id, ...updateData } = req.body;
+        const { id, action, notes, ...updateData } = req.body;
         const index = global.leaveRequests.findIndex(l => l.id === id);
         if (index !== -1) {
-            global.leaveRequests[index] = { ...global.leaveRequests[index], ...updateData };
+            const current = global.leaveRequests[index];
+            if (action === 'managerApprove') {
+                current.managerApproval = { status:'approved', approvedBy: (updateData.approvedBy||'Manager'), approvedAt:new Date().toISOString(), notes: notes||'' };
+                current.status = 'manager_approved';
+                writeAudit('leave_manager_approved', { id, approvedBy: current.managerApproval.approvedBy });
+                notify({ type:'leave_manager_approved', title:'Leave Manager Approved', message:`${current.fullName} ${current.type} approved by manager`, refId:id });
+            } else if (action === 'managerReject') {
+                current.managerApproval = { status:'rejected', approvedBy: (updateData.approvedBy||'Manager'), approvedAt:new Date().toISOString(), notes: notes||'' };
+                current.status = 'rejected';
+                writeAudit('leave_manager_rejected', { id, approvedBy: current.managerApproval.approvedBy });
+                notify({ type:'leave_manager_rejected', title:'Leave Rejected', message:`${current.fullName} ${current.type} rejected by manager`, refId:id });
+            } else if (action === 'hrApprove') {
+                current.hrApproval = { status:'approved', approvedBy: (updateData.approvedBy||'HR'), approvedAt:new Date().toISOString(), notes: notes||'' };
+                current.status = 'approved';
+                writeAudit('leave_hr_approved', { id, approvedBy: current.hrApproval.approvedBy });
+                notify({ type:'leave_hr_approved', title:'Leave HR Approved', message:`${current.fullName} ${current.type} approved by HR`, refId:id });
+            } else if (action === 'hrReject') {
+                current.hrApproval = { status:'rejected', approvedBy: (updateData.approvedBy||'HR'), approvedAt:new Date().toISOString(), notes: notes||'' };
+                current.status = 'rejected';
+                writeAudit('leave_hr_rejected', { id, approvedBy: current.hrApproval.approvedBy });
+                notify({ type:'leave_hr_rejected', title:'Leave HR Rejected', message:`${current.fullName} ${current.type} rejected by HR`, refId:id });
+            } else {
+                Object.assign(current, updateData);
+            }
+            global.leaveRequests[index] = current;
             saveLeaveToFile();
             res.status(200).json(global.leaveRequests[index]);
+        } else {
+            res.status(404).json({ error: 'Leave request not found' });
+        }
+    } else if (req.method === 'DELETE') {
+        const { id } = req.query;
+        if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
+        const idx = global.leaveRequests.findIndex(l => l.id === id);
+        if (idx !== -1) {
+            const removed = global.leaveRequests.splice(idx, 1)[0];
+            saveLeaveToFile();
+            res.status(200).json({ success: true, deleted: removed.id });
         } else {
             res.status(404).json({ error: 'Leave request not found' });
         }
@@ -117,4 +177,44 @@ function generateSampleLeaveData() {
             createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
         }
     ];
+}
+
+function calcDays(start, end, halfDay) {
+    if (!start || !end) return 0;
+    const ms = (new Date(end) - new Date(start));
+    const days = Math.floor(ms/(1000*60*60*24)) + 1;
+    return Math.max(0, days) - (halfDay ? 0.5 : 0);
+}
+function getEmployeePolicy(userId){
+    try {
+        const fp = path.join(process.cwd(),'cloud-data','employees_data.json');
+        if (!fs.existsSync(fp)) return null;
+        const list = JSON.parse(fs.readFileSync(fp,'utf8'));
+        return list.find(e => e.userId === userId) || null;
+    } catch(e){ return null; }
+}
+function getAllowedDays(policy, type){
+    const ent = policy && policy.leaveEntitlements || {};
+    if (type === 'Annual') return ent.annual || 24;
+    if (type === 'Sick') return ent.sick || 10;
+    return null; // other types unlimited or handled externally
+}
+function getUsedLeaveDays(userId, type){
+    return (global.leaveRequests||[]).filter(l => l.userId===userId && l.type===type && (l.status==='approved' || l.status==='active' || l.status==='manager_approved')).reduce((s,l)=> s + (Number(l.days)||0), 0);
+}
+function writeAudit(event, details){
+    try {
+        const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
+        const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
+        list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
+        fs.writeFileSync(fp, JSON.stringify(list, null, 2));
+    } catch(e){}
+}
+function notify(n){
+    try {
+        const fp = path.join(process.cwd(),'cloud-data','notifications_data.json');
+        const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
+        list.push({ id:`NTF-${Date.now()}`, ...n, createdAt:new Date().toISOString(), read:false });
+        fs.writeFileSync(fp, JSON.stringify(list, null, 2));
+    } catch(e){}
 }
