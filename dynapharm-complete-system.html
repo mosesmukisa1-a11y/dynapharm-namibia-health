@@ -2212,6 +2212,100 @@
                     <h3>📋 Leads</h3>
                     <div id="crmLeadsList" style="max-height: 500px; overflow-y: auto;"></div>
                 </div>
+
+                <!-- Advanced CRM Sub-tabs -->
+                <div class="form-section">
+                    <div class="tabs" style="margin-bottom: 16px;">
+                        <button class="tab-button active" onclick="showFrontdeskCRMTab('comm')">💬 Communication</button>
+                        <button class="tab-button" onclick="showFrontdeskCRMTab('segments')">📊 Segmentation</button>
+                        <button class="tab-button" onclick="showFrontdeskCRMTab('workflows')">⚙️ Workflows</button>
+                        <button class="tab-button" onclick="showFrontdeskCRMTab('loyalty')">🎁 Loyalty</button>
+                    </div>
+
+                    <!-- Communication -->
+                    <div id="fdcrm-comm" class="fdcrm-subtab" style="display:block;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Select Client</label>
+                                <input type="text" id="fdcrmCommClient" placeholder="Name or NB (optional)">
+                            </div>
+                            <div class="form-group">
+                                <label>Channel</label>
+                                <select id="fdcrmCommChannel">
+                                    <option value="call">Call</option>
+                                    <option value="sms">SMS</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="email">Email</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <input type="text" id="fdcrmCommNote" placeholder="Summary...">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-success" onclick="fdcrmAddInteraction()">➕ Add Interaction</button>
+                            <button class="btn btn-info" onclick="fdcrmRefreshInteractions()">🔄 Refresh</button>
+                        </div>
+                        <div id="fdcrmCommList" style="max-height: 380px; overflow-y:auto; margin-top:12px;"></div>
+                    </div>
+
+                    <!-- Segmentation -->
+                    <div id="fdcrm-segments" class="fdcrm-subtab" style="display:none;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Segment Name</label>
+                                <input type="text" id="fdcrmSegName" placeholder="e.g., High BV Clients">
+                            </div>
+                            <div class="form-group">
+                                <label>Rule</label>
+                                <select id="fdcrmSegRule">
+                                    <option value="bv_1000">BV ≥ 1000 (lifetime)</option>
+                                    <option value="purchases_3m">≥ 3 purchases (last 3 months)</option>
+                                    <option value="no_purchase_60d">No purchase in 60 days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-success" onclick="fdcrmCreateSegment()">➕ Create Segment</button>
+                            <button class="btn btn-info" onclick="fdcrmRefreshSegments()">🔄 Refresh</button>
+                        </div>
+                        <div id="fdcrmSegList" style="max-height:380px; overflow-y:auto; margin-top:12px;"></div>
+                    </div>
+
+                    <!-- Workflows -->
+                    <div id="fdcrm-workflows" class="fdcrm-subtab" style="display:none;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Trigger</label>
+                                <select id="fdcrmWfTrigger">
+                                    <option value="lead_created">When lead is created</option>
+                                    <option value="segment_join">When client joins segment</option>
+                                    <option value="no_purchase_30d">No purchase in 30 days</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Action</label>
+                                <select id="fdcrmWfAction">
+                                    <option value="send_sms">Send SMS</option>
+                                    <option value="send_email">Send Email</option>
+                                    <option value="create_task">Create Follow-up Task</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-success" onclick="fdcrmCreateWorkflow()">➕ Create Workflow</button>
+                            <button class="btn btn-info" onclick="fdcrmRefreshWorkflows()">🔄 Refresh</button>
+                        </div>
+                        <div id="fdcrmWfList" style="max-height:380px; overflow-y:auto; margin-top:12px;"></div>
+                    </div>
+
+                    <!-- Loyalty -->
+                    <div id="fdcrm-loyalty" class="fdcrm-subtab" style="display:none;">
+                        <div style="margin-bottom:10px;">Top clients by BV or purchases (approx.)</div>
+                        <div id="fdcrmLoyaltyList" style="max-height:380px; overflow-y:auto;"></div>
+                    </div>
+                </div>
             </div>
             
             <!-- Processing Orders Tab -->
@@ -21703,6 +21797,150 @@
         function openMISFromCRM() {
             window.open('mis-portal.html', '_blank');
         }
+
+        // ==========================
+        // Front Desk CRM Advanced Tabs
+        // ==========================
+        let fdcrmInteractions = []; let fdcrmSegments = []; let fdcrmWorkflows = [];
+        (function fdcrmLoad(){
+            try { fdcrmInteractions = JSON.parse(localStorage.getItem('dyna_crm_interactions') || '[]'); } catch(e) { fdcrmInteractions = []; }
+            try { fdcrmSegments = JSON.parse(localStorage.getItem('dyna_crm_segments') || '[]'); } catch(e) { fdcrmSegments = []; }
+            try { fdcrmWorkflows = JSON.parse(localStorage.getItem('dyna_crm_workflows') || '[]'); } catch(e) { fdcrmWorkflows = []; }
+        })();
+
+        function showFrontdeskCRMTab(name) {
+            const map = { comm: 'fdcrm-comm', segments: 'fdcrm-segments', workflows: 'fdcrm-workflows', loyalty: 'fdcrm-loyalty' };
+            Object.values(map).forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            document.querySelectorAll('#frontdeskCRM .tabs .tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            const target = document.getElementById(map[name]); if (target) target.style.display = 'block';
+            if (name === 'comm') fdcrmRefreshInteractions();
+            if (name === 'segments') fdcrmRefreshSegments();
+            if (name === 'workflows') fdcrmRefreshWorkflows();
+            if (name === 'loyalty') fdcrmRefreshLoyalty();
+        }
+
+        function fdcrmPersist() {
+            try { localStorage.setItem('dyna_crm_interactions', JSON.stringify(fdcrmInteractions)); } catch(e) {}
+            try { localStorage.setItem('dyna_crm_segments', JSON.stringify(fdcrmSegments)); } catch(e) {}
+            try { localStorage.setItem('dyna_crm_workflows', JSON.stringify(fdcrmWorkflows)); } catch(e) {}
+        }
+
+        // Communication
+        function fdcrmAddInteraction() {
+            const client = document.getElementById('fdcrmCommClient')?.value?.trim() || '';
+            const channel = document.getElementById('fdcrmCommChannel')?.value || 'call';
+            const note = document.getElementById('fdcrmCommNote')?.value?.trim() || '';
+            if (!client && !note) { alert('Add a client or a note.'); return; }
+            fdcrmInteractions.push({ id: 'CM-' + Date.now(), client, channel, note, createdAt: new Date().toISOString(), by: (currentUser && currentUser.fullName) || 'Front Desk' });
+            fdcrmPersist(); fdcrmRefreshInteractions();
+        }
+        function fdcrmRefreshInteractions() {
+            const el = document.getElementById('fdcrmCommList'); if (!el) return;
+            const list = fdcrmInteractions.slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
+            if (list.length === 0) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No interactions yet.</p>'; return; }
+            el.innerHTML = list.map(i => `
+                <div style="border:1px solid #ddd;border-left:4px solid #c41e3a;border-radius:6px;padding:10px;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <strong>${i.client || 'Unknown'}</strong>
+                        <span style="font-size:0.85rem;color:#666;">${new Date(i.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div style="font-size:0.9rem;color:#333;">${i.channel.toUpperCase()} - ${i.note || ''}</div>
+                </div>`).join('');
+        }
+
+        // Segmentation
+        function fdcrmCreateSegment() {
+            const name = document.getElementById('fdcrmSegName')?.value?.trim();
+            const rule = document.getElementById('fdcrmSegRule')?.value;
+            if (!name) { alert('Enter segment name'); return; }
+            fdcrmSegments.push({ id: 'SEG-' + Date.now(), name, rule, createdAt: new Date().toISOString() });
+            fdcrmPersist(); fdcrmRefreshSegments();
+        }
+        function fdcrmRefreshSegments() {
+            const el = document.getElementById('fdcrmSegList'); if (!el) return;
+            if (fdcrmSegments.length === 0) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No segments defined.</p>'; return; }
+            el.innerHTML = fdcrmSegments.map(s => `
+                <div style="border:1px solid #ddd;border-left:4px solid #27ae60;border-radius:6px;padding:10px;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong>${s.name}</strong>
+                        <span style="font-size:0.8rem;color:#666;">${s.rule}</span>
+                    </div>
+                    <div style="margin-top:6px;display:flex;gap:8px;">
+                        <button class="btn btn-info" onclick="fdcrmPreviewSegment('${s.id}')">👁️ Preview Members</button>
+                    </div>
+                </div>`).join('');
+        }
+        function fdcrmPreviewSegment(segId) {
+            const s = fdcrmSegments.find(x=>x.id===segId); if (!s) return;
+            const members = fdcrmComputeSegmentMembers(s.rule);
+            alert(`Segment: ${s.name}\nMembers: ${members.slice(0,10).join(', ')}${members.length>10?' ...':''}\nTotal: ${members.length}`);
+        }
+        function fdcrmComputeSegmentMembers(rule) {
+            const names = new Set();
+            try {
+                const sales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+                const now = new Date();
+                if (rule === 'bv_1000') {
+                    sales.forEach(s=>{ if ((s.totalBV||0) >= 1000) names.add(s.customerName||'Unknown'); });
+                } else if (rule === 'purchases_3m') {
+                    const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth()-3);
+                    const counts = {};
+                    sales.forEach(s=>{ const ts = new Date(s.timestamp||s.date||0); if (ts>=cutoff) { const n=(s.customerName||'Unknown'); counts[n]=(counts[n]||0)+1; }});
+                    Object.keys(counts).forEach(n=>{ if (counts[n] >= 3) names.add(n); });
+                } else if (rule === 'no_purchase_60d') {
+                    const cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-60);
+                    const last = {};
+                    sales.forEach(s=>{ const n=(s.customerName||'Unknown'); const ts = new Date(s.timestamp||s.date||0); if (!last[n] || ts>last[n]) last[n]=ts; });
+                    Object.keys(last).forEach(n=>{ if (last[n] < cutoff) names.add(n); });
+                }
+            } catch(e) {}
+            return Array.from(names);
+        }
+
+        // Workflows (simple registry)
+        function fdcrmCreateWorkflow() {
+            const trigger = document.getElementById('fdcrmWfTrigger')?.value;
+            const action = document.getElementById('fdcrmWfAction')?.value;
+            fdcrmWorkflows.push({ id: 'WF-' + Date.now(), trigger, action, createdAt: new Date().toISOString() });
+            fdcrmPersist(); fdcrmRefreshWorkflows();
+            alert('Workflow created');
+        }
+        function fdcrmRefreshWorkflows() {
+            const el = document.getElementById('fdcrmWfList'); if (!el) return;
+            if (fdcrmWorkflows.length === 0) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No workflows defined.</p>'; return; }
+            el.innerHTML = fdcrmWorkflows.map(w => `
+                <div style="border:1px solid #ddd;border-left:4px solid #9b59b6;border-radius:6px;padding:10px;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong>${w.trigger}</strong>
+                        <span style="font-size:0.8rem;color:#666;">${w.action}</span>
+                    </div>
+                </div>`).join('');
+        }
+        // Hook into existing lead created event to demo workflow execution
+        const _fdAddCRMLead = addCRMLead;
+        addCRMLead = function() {
+            _fdAddCRMLead();
+            try {
+                const actions = fdcrmWorkflows.filter(w=>w.trigger==='lead_created').map(w=>w.action);
+                if (actions.includes('send_sms')) console.log('[CRM WF] Sending SMS for new lead');
+                if (actions.includes('send_email')) console.log('[CRM WF] Sending Email for new lead');
+                if (actions.includes('create_task')) console.log('[CRM WF] Creating Follow-up Task for new lead');
+            } catch(e) {}
+        }
+
+        // Loyalty (approx using sales and BV)
+        function fdcrmRefreshLoyalty() {
+            const el = document.getElementById('fdcrmLoyaltyList'); if (!el) return;
+            try {
+                const sales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+                const totals = {};
+                sales.forEach(s=>{ const n=s.customerName||'Unknown'; totals[n]=(totals[n]||0)+(s.totalBV||0); });
+                const top = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,20);
+                if (top.length===0) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No loyalty data yet.</p>'; return; }
+                el.innerHTML = top.map(([name,bv])=>`<div style="display:flex;justify-content:space-between;border:1px solid #eee;padding:8px;border-radius:6px;margin-bottom:6px;"><span>${name}</span><strong style="color:#c41e3a;">BV ${Number(bv).toFixed(0)}</strong></div>`).join('');
+            } catch(e) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No loyalty data.</p>'; }
+        }
         
         function createSaleFromOrder(order) {
             try {
@@ -22218,19 +22456,23 @@ This sale appears in the Dispenser Portal sales reports.
         // --- Document Management System (localStorage-backed) ---
         function ensureDocumentsTab() {
             try {
-                const tabsBar = document.querySelector('.tabs');
-                const existingBtn = document.querySelector('[onclick="openTab(\'documents\')"]');
-                if (tabsBar && !existingBtn) {
+                // Move Documents into Front Desk as a sub-tab
+                const frontdeskTabs = document.querySelector('#frontdesk .tabs');
+                if (frontdeskTabs && !frontdeskTabs.querySelector('[onclick="showOrderTab(\'documents\')"]')) {
                     const btn = document.createElement('button');
-                    btn.className = 'tab-button'; btn.textContent = 'Documents';
-                    btn.setAttribute('onclick', "openTab('documents')");
-                    tabsBar.insertBefore(btn, tabsBar.lastElementChild);
+                    btn.className = 'tab-button';
+                    btn.textContent = '📁 Documents';
+                    btn.setAttribute('onclick', "showOrderTab('documents')");
+                    frontdeskTabs.appendChild(btn);
                 }
-                const container = document.querySelector('#documents');
-                if (!container) {
-                    const main = document.createElement('div');
-                    main.id = 'documents'; main.className = 'tab-content';
-                    main.innerHTML = `
+
+                // Ensure the Front Desk Documents container exists
+                if (!document.getElementById('frontdeskDocuments')) {
+                    const container = document.createElement('div');
+                    container.id = 'frontdeskDocuments';
+                    container.className = 'order-tab-content';
+                    container.style.display = 'none';
+                    container.innerHTML = `
                         <div class="portal-header"><h2>📁 Document Library</h2><p>Store and manage reports, prescriptions, invoices</p></div>
                         <div class="search-box">
                             <input id="docSearch" placeholder="Search documents by title, type, client, branch" oninput="renderDocumentLibrary()">
@@ -22251,9 +22493,12 @@ This sale appears in the Dispenser Portal sales reports.
                         </div>
                         <div id="documentList"></div>
                     `;
-                    const tabsContentRoot = document.querySelector('.container') || document.body;
-                    tabsContentRoot.appendChild(main);
+
+                    // Insert after existing Front Desk tabs content blocks
+                    const anchor = document.querySelector('#frontdesk');
+                    if (anchor) anchor.appendChild(container);
                 }
+
                 populateBranchFilterOptions();
                 renderDocumentLibrary();
             } catch (e) { console.warn('Documents tab init failed', e); }

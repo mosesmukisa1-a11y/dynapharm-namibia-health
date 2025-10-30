@@ -152,6 +152,39 @@
 
         <section class="split-6-6" style="margin-bottom: 14px;">
             <div class="card col-6">
+                <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Pending Stock Requests <button class="btn" data-help="roles">Help</button></h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Request #</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>Age</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingRequests"></tbody>
+                </table>
+            </div>
+            <div class="card col-6">
+                <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Active Transfers <button class="btn" data-help="transfers">Help</button></h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Request #</th>
+                            <th>From → To</th>
+                            <th>Status</th>
+                            <th>Age</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="activeTransfers"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="split-6-6" style="margin-bottom: 14px;">
+            <div class="card col-6">
                 <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Daily Stock Movements by Branch <button class="btn" data-help="dashboard">Help</button></h3>
                 <table class="table">
                     <thead>
@@ -168,6 +201,15 @@
             <div class="card col-6">
                 <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Alerts & Notifications <button class="btn" data-help="dashboard">Help</button></h3>
                 <div id="alertsList" class="list"></div>
+            </div>
+        </section>
+
+        <section class="card" style="margin-bottom: 14px;">
+            <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Quick Actions <button class="btn" data-help="requests">Help</button></h3>
+            <div class="row">
+                <button class="btn primary" id="qaNewRequest">➕ New Stock Request</button>
+                <button class="btn" id="qaImportBarcode">📥 Import Barcode Stock</button>
+                <button class="btn" id="qaViewAudit">🧾 View Audit Log</button>
             </div>
         </section>
 
@@ -205,6 +247,9 @@
 
     <div class="footer">Dynapharm Namibia • Stock Management • v1</div>
 
+    <!-- Toasts -->
+    <div id="toastContainer" style="position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:60;"></div>
+
     <!-- Help Modal -->
     <div id="helpModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:50;">
         <div style="width:min(920px,94vw); max-height:84vh; overflow:auto; background: var(--card); border:1px solid #1e2a44; border-radius:12px;">
@@ -219,7 +264,7 @@
     </div>
 
     <script type="module">
-        import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics } from './api/stock-requests.js';
+        import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics, approveStockRequest, updateTransferStatus } from './api/stock-requests.js';
         import { getBarcodeStockStatistics } from './api/barcode-stock.js';
         import { getProducts } from './api/products.js';
 
@@ -583,14 +628,27 @@
             printWin.print();
         }
 
+        // Debounce helper
+        function debounce(fn, wait){ let t; return function(...args){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,args), wait); }; }
+
         document.getElementById('refreshBtn').addEventListener('click', () => refreshData());
         document.getElementById('branchFilter').addEventListener('change', () => refreshData());
         document.getElementById('warehouseFilter').addEventListener('change', () => refreshData());
         document.getElementById('productFilter').addEventListener('change', () => refreshData());
         document.getElementById('dateRange').addEventListener('change', () => refreshData());
-        document.getElementById('searchBox').addEventListener('input', () => refreshData());
+        document.getElementById('searchBox').addEventListener('input', debounce(() => refreshData(), 250));
         document.getElementById('exportBtn').addEventListener('click', exportCSV);
         document.getElementById('printBtn').addEventListener('click', printDashboard);
+
+        function showToast(message, type = 'info'){
+            const wrap = document.getElementById('toastContainer');
+            const div = document.createElement('div');
+            const color = type==='success'? '#0e7d5c' : type==='error'? '#5b1111' : '#223154';
+            div.style.cssText = `background:#0f1830;border:1px solid ${color};border-radius:8px;padding:10px 12px;min-width:220px;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.3);`;
+            div.textContent = message;
+            wrap.appendChild(div);
+            setTimeout(()=>{ div.style.opacity='0'; div.style.transition='opacity .3s'; setTimeout(()=>wrap.removeChild(div), 300); }, 2200);
+        }
 
         // --- Help wiring ---
         let workflowsMarkdown = '';
@@ -680,6 +738,90 @@
         Array.from(document.querySelectorAll('[data-help]')).forEach(btn => {
             btn.addEventListener('click', () => openHelp(btn.getAttribute('data-help')));
         });
+
+        function formatAge(ts){ const secs = Math.floor((Date.now() - new Date(ts).getTime())/1000); if (secs<60) return secs+'s'; const mins=Math.floor(secs/60); if(mins<60) return mins+'m'; const hrs=Math.floor(mins/60); if(hrs<48) return hrs+'h'; const days=Math.floor(hrs/24); return days+'d'; }
+
+        function makeStatusPill(status){ const map={ pending:'warn', pending_gm:'warn', pending_warehouse:'warn', approved:'good', fulfilled:'good', rejected:'bad', dispatched:'warn', delivered:'warn', received:'good' }; const cls=map[status]||''; return `<span class="pill ${cls}">${(status||'').toUpperCase()}</span>`; }
+
+        function renderPendingRequestsTable() {
+            const tbody = document.getElementById('pendingRequests');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const { data: all = [] } = getStockRequests({ status: 'all' }) || { data: [] };
+            const pending = all.filter(r => ['pending','pending_gm','pending_warehouse'].includes(r.status)).slice(0, 12);
+            pending.forEach(r => {
+                const tr = document.createElement('tr');
+                const overdue = (Date.now() - new Date(r.createdAt).getTime()) > 48*3600*1000;
+                tr.innerHTML = `
+                    <td>${r.requestNumber}</td>
+                    <td>${r.requestingBranch}</td>
+                    <td>${makeStatusPill(r.status)}</td>
+                    <td>${overdue?`<span class="pill warn">${formatAge(r.createdAt)}</span>`:formatAge(r.createdAt)}</td>
+                    <td style="text-align:right;">
+                        <button class="btn" data-approve="${r.id}">Approve</button>
+                        <button class="btn" data-reject="${r.id}">Reject</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            tbody.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-approve');
+                const who = (window.parent && window.parent.currentUser) ? window.parent.currentUser.fullName : 'Approver';
+                const role = (window.parent && window.parent.currentUser) ? window.parent.currentUser.role : 'manager';
+                approveStockRequest(id, { approverRole: role, approvedBy: who, approved: true, notes: '' });
+                showToast('Request approved','success');
+                refreshData();
+            }));
+            tbody.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-reject');
+                const who = (window.parent && window.parent.currentUser) ? window.parent.currentUser.fullName : 'Approver';
+                const role = (window.parent && window.parent.currentUser) ? window.parent.currentUser.role : 'manager';
+                if (confirm('Reject this request?')) {
+                    approveStockRequest(id, { approverRole: role, approvedBy: who, approved: false, notes: '' });
+                    showToast('Request rejected','info');
+                    refreshData();
+                }
+            }));
+        }
+
+        function renderActiveTransfersTable() {
+            const tbody = document.getElementById('activeTransfers');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const { data: transfers = [] } = getStockTransfers({ status: 'all' }) || { data: [] };
+            const active = transfers.filter(t => ['pending','dispatched','delivered'].includes(t.status)).slice(0, 12);
+            active.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${t.requestNumber}</td>
+                    <td>${t.fromWarehouse||'—'} → ${t.toBranch||'—'}</td>
+                    <td>${makeStatusPill(t.status)}</td>
+                    <td>${formatAge(t.createdAt)}</td>
+                    <td style="text-align:right;">
+                        ${t.status==='pending'?'<button class="btn" data-tstatus="dispatched" data-id="'+t.id+'">Dispatch</button>':''}
+                        ${t.status==='dispatched'?'<button class="btn" data-tstatus="delivered" data-id="'+t.id+'">Mark Delivered</button>':''}
+                        ${t.status==='delivered'?'<button class="btn" data-tstatus="received" data-id="'+t.id+'">Mark Received</button>':''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            tbody.querySelectorAll('[data-tstatus]').forEach(btn => btn.addEventListener('click', () => {
+                const status = btn.getAttribute('data-tstatus');
+                const id = btn.getAttribute('data-id');
+                const user = (window.parent && window.parent.currentUser) ? window.parent.currentUser.fullName : 'User';
+                updateTransferStatus(id, status, { user });
+                showToast('Transfer updated: ' + status, 'success');
+                refreshData();
+            }));
+        }
+
+        // Quick actions (lightweight wired)
+        const qaNewRequest = document.getElementById('qaNewRequest');
+        if (qaNewRequest) qaNewRequest.addEventListener('click', () => openHelp('requests'));
+        const qaImportBarcode = document.getElementById('qaImportBarcode');
+        if (qaImportBarcode) qaImportBarcode.addEventListener('click', () => openHelp('warehouse'));
+        const qaViewAudit = document.getElementById('qaViewAudit');
+        if (qaViewAudit) qaViewAudit.addEventListener('click', () => openHelp('roles'));
 
 
         (async function init(){
