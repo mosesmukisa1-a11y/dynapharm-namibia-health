@@ -4017,6 +4017,11 @@
                         <div style="font-size: 1.8rem; font-weight: bold;" id="variance">N$ 0.00</div>
                         <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;" id="varianceStatus">Status: OK</div>
                     </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <h4>Branch Stock (Items)</h4>
+                        <div style="font-size: 1.8rem; font-weight: bold;" id="financeBranchStockQty">0</div>
+                        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Low: <span id="financeBranchLowStock">0</span></div>
+                    </div>
                 </div>
                 
                 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
@@ -4267,6 +4272,7 @@
                     <strong>📊 Summary:</strong>
                     <span id="misTotalCount" style="margin-left: 10px;">Total Records: 0</span>
                     <span id="misBranchSummary" style="margin-left: 20px;">Branch Breakdown: Loading...</span>
+                    <span id="misStockSummary" style="margin-left: 20px;">Stock: Loading...</span>
                 </div>
             </div>
 
@@ -6769,6 +6775,7 @@
         function updateMISSummary(reportsToDisplay) {
             const totalCount = document.getElementById('misTotalCount');
             const branchSummary = document.getElementById('misBranchSummary');
+            const stockSummary = document.getElementById('misStockSummary');
             
             if (totalCount) {
                 totalCount.textContent = `Total Records: ${reportsToDisplay.length}`;
@@ -6782,6 +6789,23 @@
                 });
                 const parts = Object.entries(byBranch).map(([k, v]) => `${k}: ${v}`);
                 branchSummary.textContent = parts.length ? `By Branch: ${parts.join(' | ')}` : `Showing ${reportsToDisplay.length} receipt(s)`;
+            }
+
+            // Stock summary (company-wide quick view)
+            if (stockSummary) {
+                try {
+                    const inv = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}');
+                    const totals = Object.keys(inv).reduce((acc, k) => {
+                        const q = parseFloat(inv[k]?.currentStock || 0);
+                        const ro = inv[k]?.reorderLevel ?? 5;
+                        acc.qty += q;
+                        if (q <= ro) acc.low += 1;
+                        return acc;
+                    }, { qty: 0, low: 0 });
+                    stockSummary.textContent = `Stock: Qty ${totals.qty} | Low ${totals.low}`;
+                } catch (e) {
+                    stockSummary.textContent = 'Stock: N/A';
+                }
             }
 
             renderMISBranchDailySummary(reportsToDisplay);
@@ -18445,6 +18469,19 @@
                 document.getElementById('dailyBankBonuses').textContent = `N$ ${getAllBankBonusesForDate(today).toFixed(2)}`;
                 document.getElementById('variance').textContent = 'N$ 0.00';
                 document.getElementById('varianceStatus').textContent = 'Status: All Branches';
+                // Company-wide stock summary from dynapharm_inventory
+                const inv = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}');
+                const totals = Object.keys(inv).reduce((acc, k) => {
+                    const q = parseFloat(inv[k]?.currentStock || 0);
+                    const ro = inv[k]?.reorderLevel ?? 5;
+                    acc.qty += q;
+                    if (q <= ro) acc.low += 1;
+                    return acc;
+                }, { qty: 0, low: 0 });
+                const qtyEl = document.getElementById('financeBranchStockQty');
+                const lowEl = document.getElementById('financeBranchLowStock');
+                if (qtyEl) qtyEl.textContent = `${totals.qty}`;
+                if (lowEl) lowEl.textContent = `${totals.low}`;
                 return;
             }
             
@@ -18488,6 +18525,22 @@
                 varianceEl.style.color = '#e74c3c';
                 statusEl.textContent = 'Status: 🚨 Significant Variance';
             }
+
+            // Branch stock summary from dynapharm_inventory
+            try {
+                const inv = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}');
+                const totals = Object.keys(inv).reduce((acc, k) => {
+                    const q = parseFloat(inv[k]?.currentStock || 0);
+                    const ro = inv[k]?.reorderLevel ?? 5;
+                    acc.qty += q;
+                    if (q <= ro) acc.low += 1;
+                    return acc;
+                }, { qty: 0, low: 0 });
+                const qtyEl = document.getElementById('financeBranchStockQty');
+                const lowEl = document.getElementById('financeBranchLowStock');
+                if (qtyEl) qtyEl.textContent = `${totals.qty}`;
+                if (lowEl) lowEl.textContent = `${totals.low}`;
+            } catch (e) {}
         }
         
         // Get sales breakdown for branch
