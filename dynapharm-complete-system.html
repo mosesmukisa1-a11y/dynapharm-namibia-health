@@ -15178,6 +15178,39 @@
             }
         }
 
+        function openClientReg(type) {
+            try {
+                var visitTypeEl = document.getElementById('visitType');
+                if (visitTypeEl) visitTypeEl.value = type || '';
+            } catch(_){ }
+            var modal = document.getElementById('clientRegModal');
+            if (modal) modal.style.display = 'block';
+        }
+
+        // Unified print helper for consistent printing across portals
+        function openPrintWindow(title, bodyHTML, options) {
+            var opts = options || {};
+            var pageSize = opts.pageSize || 'A4';
+            var pageMargin = opts.pageMargin || '10mm';
+            var fontSize = opts.fontSize || '10pt';
+            var extraStyles = opts.extraStyles || '';
+            var w = window.open('', '_blank');
+            if (!w) { try { alert('Please allow popups to print.'); } catch(_){} return; }
+            w.document.write(
+                '<!DOCTYPE html>'+
+                '<html><head><meta charset="UTF-8">'+
+                '<title>'+(title||'Print')+'</title>'+
+                '<style>@page{size:'+pageSize+';margin:'+pageMargin+';}'+
+                'html,body{font-family:Arial,sans-serif;font-size:'+fontSize+';}'+
+                '@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact;margin:0;}}'+
+                '.no-print{display:none !important;}'+
+                extraStyles+
+                '</style></head><body>'+ (bodyHTML||'') +'</body></html>'
+            );
+            w.document.close();
+            setTimeout(function(){ try { w.print(); } catch(_){} }, 300);
+        }
+
         // Walk-in Sales Functions
         let walkInCart = [];
         const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
@@ -20936,8 +20969,13 @@
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
-                // Filter out invalid entries
-                productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
+                // Filter out invalid entries (allow objects for new variant format)
+                productPhotos = productPhotos.filter(photo => {
+                    if (!photo) return false;
+                    if (typeof photo === 'string') return photo.trim().length > 0;
+                    if (typeof photo === 'object') return !!(photo.full || photo.src || photo.w600 || photo.w300);
+                    return false;
+                });
                 if (productPhotos.length === 0) {
                     productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
                 }
@@ -20989,26 +21027,28 @@
         
         function onShopCustomerTypeChange() {
             const customerType = document.getElementById('shopCustomerType')?.value;
-            
-            // If there's a previous selection and the cart has items, warn the user
-            if (previousCustomerType && customerType && previousCustomerType !== customerType && shopCart.length > 0) {
-                if (!confirm('Changing customer type will clear your current cart. Do you want to continue?')) {
-                    // Revert to previous selection
-                    document.getElementById('shopCustomerType').value = previousCustomerType;
-                    return;
-                }
-                shopCart = [];
-                updateShopCart();
-            }
-            
-            if (customerType) {
-                shopCustomerTypeSelected = true;
-                previousCustomerType = customerType;
-                filterShopProducts();
-            } else {
+            if (!customerType) {
                 shopCustomerTypeSelected = false;
                 filterShopProducts();
+                return;
             }
+
+            // If changing type with items in cart, reprice without clearing
+            if (previousCustomerType && customerType !== previousCustomerType && Array.isArray(shopCart) && shopCart.length > 0) {
+                shopCart = shopCart.map(item => {
+                    const newPrice = customerType === 'distributor' ? (item.dp || item.price || 0) : (item.cp || item.price || 0);
+                    return {
+                        ...item,
+                        price: newPrice,
+                        customerType: customerType
+                    };
+                });
+                updateShopCart();
+            }
+
+            shopCustomerTypeSelected = true;
+            previousCustomerType = customerType;
+            filterShopProducts();
         }
         
         function filterShopProducts() {
@@ -21041,8 +21081,13 @@
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
-                // Filter out invalid entries
-                productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
+                // Filter out invalid entries (allow objects for new variant format)
+                productPhotos = productPhotos.filter(photo => {
+                    if (!photo) return false;
+                    if (typeof photo === 'string') return photo.trim().length > 0;
+                    if (typeof photo === 'object') return !!(photo.full || photo.src || photo.w600 || photo.w300);
+                    return false;
+                });
                 if (productPhotos.length === 0) {
                     productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
                 }
@@ -21200,6 +21245,8 @@
             const cartSection = document.getElementById('shopCartSection');
             const cartTotal = document.getElementById('shopCartTotal');
             const cartCustomerType = document.getElementById('shopCartCustomerType');
+            const cartBadge = document.getElementById('shopCartBadge');
+            const cartCount = document.getElementById('shopCartCount');
             
             if (!cartItems || !cartSection || !cartTotal) return;
             
@@ -21208,6 +21255,7 @@
                 shopCustomerTypeSelected = false;
                 previousCustomerType = '';
                 try { filterShopProducts(); } catch (e) { /* ignore */ }
+                if (cartBadge) cartBadge.style.display = 'none';
                 return;
             }
             
@@ -21237,6 +21285,13 @@
             
             const total = shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             cartTotal.textContent = `N$ ${total.toFixed(2)}`;
+
+            // Update floating badge count
+            try {
+                const countVal = shopCart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                if (cartCount) cartCount.textContent = String(countVal);
+                if (cartBadge) cartBadge.style.display = countVal > 0 ? 'inline-block' : 'none';
+            } catch (_) {}
         }
         
         function removeFromShopCart(index) {
@@ -21252,6 +21307,13 @@
                 updateShopCart();
             }
         }
+
+        function scrollToShopCart() {
+            const el = document.getElementById('shopCartSection');
+            if (!el) return;
+            el.style.display = 'block';
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         
         function checkoutShopOrder() {
             if (shopCart.length === 0) {
@@ -21266,6 +21328,16 @@
         function showCheckoutModal() {
             const modal = document.getElementById('checkoutModal') || createCheckoutModal();
             modal.style.display = 'block';
+            // Lock checkout customer type to cart's customer type for pricing consistency
+            try {
+                const cartType = (shopCart && shopCart[0] && shopCart[0].customerType) || '';
+                const typeSelect = document.getElementById('checkoutCustomerType');
+                if (typeSelect && cartType) {
+                    typeSelect.value = cartType;
+                    typeSelect.disabled = true;
+                    onCheckoutCustomerTypeChange();
+                }
+            } catch (e) { /* ignore */ }
             // Apply default referral for customers
             try { applyDefaultReferral(); } catch (e) { /* ignore */ }
             // Initialize payment method display
@@ -21390,8 +21462,15 @@
 
             const paymentMethod = document.getElementById('checkoutPaymentMethod').value;
             const walletMethods = ['ewallet', 'easywallet', 'bluewallet', 'mobimoney', 'paytocell'];
-            
-	            const order = {
+
+            // Calculate totals using dual pricing and include BV similar to walk-in sell workflow
+            const subtotal = (shopCart || []).reduce((sum, item) => {
+                const unit = (customerType === 'distributor') ? (item.dp || item.price || 0) : (item.cp || item.price || 0);
+                return sum + unit * (item.quantity || 0);
+            }, 0);
+            const totalBV = (shopCart || []).reduce((sum, item) => sum + (item.bv || 0) * (item.quantity || 0), 0);
+
+            	    const order = {
                 id: 'ORD' + Date.now(),
                 receiptNo: 'WEB' + Date.now(),
                 source: 'online',
@@ -21411,7 +21490,9 @@
                 } : null,
                 items: shopCart,
                 status: 'pending',
-                total: shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                subtotal: subtotal,
+                totalBV: totalBV,
+                total: subtotal
             };
 	            
 	            // Submit to backend API with graceful fallback to localStorage
@@ -21444,6 +21525,7 @@
 	                        localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
 	                    } catch (e) { /* ignore storage errors */ }
 	                }
+                try { recordDepartmentEvent && recordDepartmentEvent('online_order_placed', order); } catch (_) {}
 	                alert('Order placed successfully! Order ID: ' + order.id);
 	                closeModal('checkoutModal');
 	                clearShopCart();
@@ -22273,7 +22355,8 @@ This sale appears in the Dispenser Portal sales reports.
             (async () => {
                 for (const file of files) {
                     try {
-                        const variants = await createImageVariantsFromFile(file, { maxDimension: 1200, quality: 0.85 });
+                        const { maxDimension, quality } = getPhotoOptimizationSettings();
+                        const variants = await createImageVariantsFromFile(file, { maxDimension, quality });
                         if (photoMap[productName].length < 4) {
                             photoMap[productName].push(variants);
                         }
@@ -22293,6 +22376,99 @@ This sale appears in the Dispenser Portal sales reports.
                 clearPhotoForm();
             })();
         }
+
+        // UI controls for photo optimization
+        function ensurePhotoUploadControls() {
+            const fileInput = document.getElementById('productPhotoInput');
+            if (!fileInput) return;
+            const existing = document.getElementById('photoOptimizeControls');
+            if (existing) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'photoOptimizeControls';
+            wrap.style.cssText = 'margin-top:8px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;';
+            wrap.innerHTML = `
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <span style="min-width:90px; color:#2c3e50;">Quality</span>
+                    <input id="photoQualityInput" type="range" min="50" max="95" value="85" step="5" style="width:160px;">
+                    <span id="photoQualityLabel" style="color:#666; width:42px;">85%</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <span style="min-width:90px; color:#2c3e50;">Max size</span>
+                    <select id="photoMaxDimensionInput" style="padding:6px;">
+                        <option value="800">800px</option>
+                        <option value="1000">1000px</option>
+                        <option value="1200" selected>1200px</option>
+                        <option value="1600">1600px</option>
+                    </select>
+                </label>
+                <button id="runPhotoMigrationBtn" class="btn btn-secondary">Optimize existing photos</button>
+            `;
+            fileInput.parentElement?.appendChild(wrap);
+            const range = document.getElementById('photoQualityInput');
+            const label = document.getElementById('photoQualityLabel');
+            range?.addEventListener('input', () => { if (label) label.textContent = `${range.value}%`; });
+            document.getElementById('runPhotoMigrationBtn')?.addEventListener('click', () => migrateLegacyPhotosToVariants(true));
+        }
+
+        function getPhotoOptimizationSettings() {
+            const qEl = document.getElementById('photoQualityInput');
+            const dEl = document.getElementById('photoMaxDimensionInput');
+            const quality = qEl ? Math.min(0.95, Math.max(0.5, Number(qEl.value || 85) / 100)) : 0.85;
+            const maxDimension = dEl ? Number(dEl.value || 1200) : 1200;
+            return { quality, maxDimension };
+        }
+
+        // One-time migration: convert data-URL strings to variant objects
+        async function migrateLegacyPhotosToVariants(force = false) {
+            try {
+                if (!force && localStorage.getItem('dyna_photo_migrated') === '1') return;
+                const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+                const names = Object.keys(photoMap);
+                if (names.length === 0) { localStorage.setItem('dyna_photo_migrated', '1'); return; }
+                const { quality, maxDimension } = getPhotoOptimizationSettings();
+                for (const name of names) {
+                    let list = photoMap[name];
+                    if (!list) continue;
+                    if (typeof list === 'string') list = [list];
+                    if (!Array.isArray(list)) list = [list];
+                    const converted = [];
+                    for (const p of list) {
+                        if (typeof p === 'object' && p && (p.full || p.w600 || p.w300)) { converted.push(p); continue; }
+                        if (typeof p === 'string' && p.startsWith('data:image')) {
+                            // Safe to downscale data URLs
+                            try {
+                                const res = await fetch(p);
+                                const blob = await res.blob();
+                                const variants = await createImageVariantsFromFile(blob, { maxDimension, quality });
+                                converted.push(variants);
+                            } catch (_) {
+                                converted.push(p); // fallback keep
+                            }
+                        } else {
+                            // Remote URLs may taint canvas; keep as-is
+                            converted.push(p);
+                        }
+                        if (converted.length >= 4) break;
+                    }
+                    photoMap[name] = converted.slice(0, 4);
+                }
+                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                localStorage.setItem('dyna_photo_migrated', '1');
+                try { loadProductPhotos(); } catch (_) {}
+                try { if (typeof loadShopProducts === 'function') loadShopProducts(); } catch (_) {}
+                const status = document.getElementById('photoUploadStatus');
+                if (status) status.textContent = 'Existing photos optimized.';
+            } catch (_) {}
+        }
+
+        // Initialize controls and run migration once on load
+        (function initPhotoOptimizerUI() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => { ensurePhotoUploadControls(); migrateLegacyPhotosToVariants(false); });
+            } else {
+                ensurePhotoUploadControls(); migrateLegacyPhotosToVariants(false);
+            }
+        })();
 
         function clearPhotoForm() {
             const select = document.getElementById('photoProductSelect');
