@@ -21602,6 +21602,108 @@
                 alert(`Order ${orderId} status updated to ${newStatus}${newStatus === 'delivered' ? ' - Sales record created' : ''}`);
             }
         }
+
+        // ==========================
+        // Front Desk CRM Workflow
+        // ==========================
+        let crmLeads = [];
+        (function loadCRMData(){
+            try { crmLeads = JSON.parse(localStorage.getItem('dyna_crm_leads') || '[]'); } catch (e) { crmLeads = []; }
+        })();
+
+        function persistCRM() {
+            try { localStorage.setItem('dyna_crm_leads', JSON.stringify(crmLeads)); } catch (e) {}
+        }
+
+        function addCRMLead() {
+            const name = document.getElementById('crmLeadName')?.value?.trim();
+            const phone = document.getElementById('crmLeadPhone')?.value?.trim();
+            const email = document.getElementById('crmLeadEmail')?.value?.trim();
+            const interest = document.getElementById('crmLeadInterest')?.value?.trim();
+            const followUp = document.getElementById('crmLeadFollowUp')?.value || '';
+            if (!name) { alert('Please enter lead name'); return; }
+            const lead = {
+                id: 'LEAD-' + Date.now(),
+                name, phone, email, interest,
+                status: 'new',
+                createdAt: new Date().toISOString(),
+                nextFollowUp: followUp || null,
+                assignedTo: (currentUser && currentUser.fullName) || 'Front Desk',
+                branch: (currentUser && currentUser.branch) || currentBranch || ''
+            };
+            crmLeads.push(lead);
+            persistCRM();
+            try { recordDepartmentEvent('crm_lead_created', lead); } catch (e) {}
+            refreshCRMLeads();
+            alert('Lead added');
+        }
+
+        function updateCRMLeadStatus(leadId, newStatus) {
+            const lead = crmLeads.find(l => l.id === leadId);
+            if (!lead) return;
+            lead.status = newStatus;
+            lead.updatedAt = new Date().toISOString();
+            persistCRM();
+            try { recordDepartmentEvent('crm_lead_status', { id: leadId, status: newStatus }); } catch (e) {}
+            refreshCRMLeads();
+        }
+
+        function convertLeadToOrder(leadId) {
+            const lead = crmLeads.find(l => l.id === leadId);
+            if (!lead) return;
+            // Create a minimal pending order draft for Front Desk
+            const order = {
+                id: 'WEB' + Date.now(),
+                date: new Date().toISOString().split('T')[0],
+                status: 'pending',
+                customerName: lead.name,
+                customerPhone: lead.phone || '',
+                customerEmail: lead.email || '',
+                customerAddress: '',
+                paymentMethod: 'cash',
+                customerType: 'customer',
+                items: [],
+                total: 0,
+                source: 'crm',
+                branch: (currentUser && currentUser.branch) || currentBranch || ''
+            };
+            onlineOrders.push(order);
+            try { localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders)); } catch (e) {}
+            updateCRMLeadStatus(leadId, 'converted');
+            try { recordDepartmentEvent('crm_lead_converted', { leadId, orderId: order.id }); } catch (e) {}
+            alert('Lead converted to pending order #' + order.id);
+        }
+
+        function refreshCRMLeads() {
+            const container = document.getElementById('crmLeadsList');
+            if (!container) return;
+            const list = (Array.isArray(crmLeads) ? crmLeads : []).slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:#7f8c8d;">No leads yet.</p>';
+                return;
+            }
+            container.innerHTML = list.map(lead => `
+                <div style="background:white; border:2px solid #ddd; border-left-color:${lead.status==='converted'?'#27ae60':(lead.status==='followup'?'#f39c12':'#3498db')}; border-radius:8px; padding:12px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <strong>${lead.name}</strong>
+                            <div style="color:#666; font-size:0.9rem;">${lead.phone||''} ${lead.email? ' | '+lead.email: ''}</div>
+                            ${lead.interest ? `<div style="color:#666; font-size:0.9rem;">Interest: ${lead.interest}</div>` : ''}
+                            ${lead.nextFollowUp ? `<div style=\"color:#f39c12; font-size:0.85rem;\">Next follow-up: ${lead.nextFollowUp}</div>` : ''}
+                        </div>
+                        <span class="pill" style="background:${lead.status==='converted'?'#27ae60':'#3498db'}; color:white; padding:4px 10px; border-radius:20px; font-size:0.8rem;">${lead.status.toUpperCase()}</span>
+                    </div>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-info" onclick="updateCRMLeadStatus('${lead.id}','followup')">📅 Mark Follow-up</button>
+                        <button class="btn btn-success" onclick="convertLeadToOrder('${lead.id}')">🛒 Convert to Order</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openMISFromCRM() {
+            window.open('mis-portal.html', '_blank');
+        }
         
         function createSaleFromOrder(order) {
             try {
