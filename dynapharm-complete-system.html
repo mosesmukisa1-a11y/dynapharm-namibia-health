@@ -1544,6 +1544,14 @@
                 <h2>🏥 Full Body Check Up</h2>
             <div class="reference-number" id="clientRefNumber" style="display: none;"></div>
             
+            <div class="form-section" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:12px;">
+                <label style="font-weight:700; margin-right:10px;">Select Branch for Service:</label>
+                <select id="checkupBranchSelect" style="padding:10px; border:2px solid #ddd; border-radius:6px;">
+                    <option value="">Select Branch</option>
+                </select>
+                <span style="margin-left:10px; color:#666; font-size:0.9rem;">This will notify the selected branch Front Desk and Consultant.</span>
+            </div>
+            
             <!-- Network sync test buttons -->
             <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                 <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
@@ -5993,6 +6001,16 @@
             document.getElementById('branchSelect').addEventListener('change', e => {
                 currentBranch = e.target.value;
             });
+            const checkupSelect = document.getElementById('checkupBranchSelect');
+            if (checkupSelect) {
+                checkupSelect.addEventListener('change', e => {
+                    currentBranch = e.target.value;
+                    const globalSelect = document.getElementById('branchSelect');
+                    if (globalSelect && globalSelect.value !== currentBranch) {
+                        globalSelect.value = currentBranch;
+                    }
+                });
+            }
             
             // Add event listener for full name field to update signature
             document.querySelector('input[name="fullName"]').addEventListener('input', function() {
@@ -6564,7 +6582,7 @@
 
         function loadBranches() {
             console.log('Loading branches:', branches);
-            const selects = [document.getElementById('branchSelect'), document.getElementById('userBranchSelect')];
+            const selects = [document.getElementById('branchSelect'), document.getElementById('userBranchSelect'), document.getElementById('checkupBranchSelect')];
             selects.forEach(select => {
                 if(select) {
                     select.innerHTML = '<option value="">Select Branch</option>';
@@ -7364,6 +7382,29 @@
             refEl.style.display = 'block';
             
             alert(`Client saved!\n\nReference: ${referenceNumber}\nReferred by: ${client.referralName}\n\nSave this reference number for future visits.`);
+
+            // Create appointment entry and notify Front Desk & Consultant
+            try {
+                const appointment = {
+                    id: 'APT' + Date.now(),
+                    date: formData.get('date') || new Date().toISOString().split('T')[0],
+                    time: '09:00',
+                    clientName: fullName,
+                    branch: currentBranch,
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                };
+                appointments.push(appointment);
+                try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+                // Lightweight toast
+                (function(msg){
+                    const el = document.createElement('div');
+                    el.style.cssText = 'position:fixed;top:20px;right:20px;background:#111827;color:#fff;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;';
+                    el.textContent = msg;
+                    document.body.appendChild(el);
+                    setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 300ms'; setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 320); }, 2500);
+                })(`📣 Appointment request sent to Front Desk and Consultant for ${currentBranch}.`);
+            } catch (e) { console.warn('Appointment creation/notification skipped:', e); }
             
             if (confirm('Print form?')) {
                 window.print();
