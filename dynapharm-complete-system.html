@@ -21023,6 +21023,41 @@ This sale appears in the Dispenser Portal sales reports.
             link.click();
         }
 
+        // Simple order lookup via backend
+        async function promptAndLookupOrder() {
+            const id = (prompt('Enter Order ID (e.g., ORD172...):') || '').trim();
+            if (!id) return;
+            try {
+                let res = await fetch(`/api/orders?id=${encodeURIComponent(id)}`);
+                if (!res.ok) res = await fetch(`http://localhost:8001/api/orders?id=${encodeURIComponent(id)}`);
+                const data = await res.json();
+                if (data && !data.error && data.id) {
+                    alert(`Order ${data.id}\nStatus: ${data.status}\nName: ${data.customerName}\nTotal: N$ ${(+(data.total||0)).toFixed(2)}\nItems: ${Array.isArray(data.items)?data.items.length:0}`);
+                } else {
+                    alert('Order not found');
+                }
+            } catch (e) {
+                alert('Lookup failed. Please try again later.');
+            }
+        }
+
+        // Floating button to trigger order lookup
+        (function(){
+            try {
+                const btn = document.createElement('button');
+                btn.textContent = 'Find Order';
+                btn.style.position = 'fixed';
+                btn.style.right = '14px';
+                btn.style.bottom = '14px';
+                btn.style.zIndex = '9999';
+                btn.className = 'btn';
+                btn.onclick = promptAndLookupOrder;
+                document.addEventListener('DOMContentLoaded', function(){
+                    document.body.appendChild(btn);
+                });
+            } catch (e) { /* ignore */ }
+        })();
+
         // ==========================
         // Admin - Product Photos
         // ==========================
