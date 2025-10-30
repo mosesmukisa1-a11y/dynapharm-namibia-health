@@ -1467,7 +1467,6 @@
             <button class="tab-button" onclick="openTab('gm', event)">GM Portal</button>
             <button class="tab-button" onclick="openTab('director', event)">Director Portal</button>
             <button class="tab-button" onclick="openTab('mis', event)">MIS Portal</button>
-            <button class="tab-button" onclick="openTab('advanced-reports', event)">📊 Advanced Reports</button>
             <button class="tab-button" onclick="openTab('stock', event)">Stock Management</button>
             <button class="tab-button" onclick="openTab('admin', event)">Admin Portal</button>
         </div>
@@ -4188,8 +4187,13 @@
                         <option>NB4</option>
                     </select>
                     <button class="btn btn-primary" id="bonusUploadBtn" onclick="uploadBonusCsv()" disabled>Upload Monthly Bonus</button>
+                    <button class="btn" id="approveBonusUploadBtn" onclick="approveBonusUpload()">✅ Approve Upload</button>
+                    <button class="btn" id="rejectBonusUploadBtn" onclick="rejectBonusUpload()">⛔ Reject</button>
                     <button class="btn btn-ghost" onclick="clearBonusUpload()">Clear</button>
                     <button class="btn btn-secondary" onclick="downloadBonusTemplate()">Download Template</button>
+                    <button class="btn" onclick="exportBankBatch()">🏦 Export Bank Batch</button>
+                    <button class="btn" onclick="exportCashSheet()">💵 Export Cash Sheet</button>
+                    <button class="btn" onclick="showFinanceReconciliation()">🧾 Reconciliation</button>
                 </div>
                 
                 <div class="totals" id="bonusUploadTotals" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;"></div>
@@ -4213,6 +4217,32 @@
                 
                 <div style="padding: 16px 0; color: #6b7c93; font-size: 13px;">
                     Monthly bonus upload saved to <span style="background: #eef2f7; padding: 6px 10px; border-radius: 999px; font-size: 12px; color: #334e68;">/api/bonus</span>. This is the source of truth for bonus payments. Distributors not in this CSV for the selected month cannot be paid.
+                </div>
+            </div>
+
+            <!-- Reconciliation Section -->
+            <div class="form-section" id="financeReconciliation" style="display: none;">
+                <h3>🧾 Monthly Reconciliation</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <input id="reconMonth" type="month" style="padding: 10px 12px; border: 2px solid #e3e7ee; border-radius: 8px; background: #fff;" />
+                    <button class="btn btn-info" onclick="loadReconciliation()">🔄 Refresh</button>
+                </div>
+                <div id="reconSummary" style="margin-bottom: 10px; color: #334e68;"></div>
+                <div class="scroll-x" style="max-height: 420px; overflow: auto; border: 1px solid #e3e7ee; border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 900px;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 10px; background: #f2f5f9;">DRN</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Name</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Uploaded NAD</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Paid NAD</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Method</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Status</th>
+                                <th style="padding: 10px; background: #f2f5f9;">Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reconBody"></tbody>
+                    </table>
                 </div>
             </div>
 
@@ -19788,11 +19818,20 @@
             }
             
             const month = monthInput.value; // Format: YYYY-MM
+            // Compute integrity hash (SHA-256) client-side
+            async function sha256Hex(str){
+                const enc = new TextEncoder();
+                const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+                const arr = Array.from(new Uint8Array(buf));
+                return arr.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            const integrityHash = (window.crypto?.subtle) ? await sha256Hex(JSON.stringify(bonusUploadData)) : null;
             const payload = {
                 action: 'upload',
                 month: month,
                 items: bonusUploadData,
-                uploadedBy: 'finance'
+                uploadedBy: 'finance',
+                integrityHash
             };
             
             // Save locally as backup
@@ -19818,6 +19857,117 @@
                 message = `⚠️ API not reachable. Data saved locally. Please try again when online.\n\nMonth: ${month}\nRecords: ${bonusUploadData.length}`;
             }
             alert(message);
+        }
+
+        // Approve/Reject monthly upload
+        async function approveBonusUpload() {
+            const month = document.getElementById('bonusUploadMonth')?.value;
+            if (!month) { alert('Select month first'); return; }
+            try {
+                const base = getApiBase();
+                const res = await fetch(`${base}/bonus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') },
+                    body: JSON.stringify({ action: 'approve-upload', month })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to approve');
+                alert('✅ Upload approved');
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+        async function rejectBonusUpload() {
+            const month = document.getElementById('bonusUploadMonth')?.value;
+            if (!month) { alert('Select month first'); return; }
+            const reason = prompt('Reason for rejection?') || '';
+            try {
+                const base = getApiBase();
+                const res = await fetch(`${base}/bonus`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') },
+                    body: JSON.stringify({ action: 'reject-upload', month, reason })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to reject');
+                alert('⛔ Upload rejected');
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+
+        // Batch exports
+        async function exportBankBatch() {
+            const month = document.getElementById('bonusUploadMonth')?.value;
+            if (!month) { alert('Select month first'); return; }
+            const base = getApiBase();
+            const url = `${base}/bonus?action=export-bank-csv&month=${encodeURIComponent(month)}`;
+            try {
+                const res = await fetch(url, { headers: { 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') } });
+                if (!res.ok) { const e = await res.text(); throw new Error(e || 'Export failed'); }
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = `bank_batch_${month}.csv`; a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+        async function exportCashSheet() {
+            const month = document.getElementById('bonusUploadMonth')?.value;
+            if (!month) { alert('Select month first'); return; }
+            const base = getApiBase();
+            const url = `${base}/bonus?action=export-cash-csv&month=${encodeURIComponent(month)}`;
+            try {
+                const res = await fetch(url, { headers: { 'x-user-role': (currentUser?.role || ''), 'x-user-name': (currentUser?.username || '') } });
+                if (!res.ok) { const e = await res.text(); throw new Error(e || 'Export failed'); }
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = `cash_sheet_${month}.csv`; a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) { alert(`❌ ${e.message}`); }
+        }
+
+        // Reconciliation view
+        function showFinanceReconciliation() {
+            const section = document.getElementById('financeReconciliation');
+            if (!section) return;
+            const monthInput = document.getElementById('reconMonth');
+            const bonusMonth = document.getElementById('bonusUploadMonth')?.value;
+            if (monthInput && !monthInput.value) {
+                const today = new Date();
+                monthInput.value = bonusMonth || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            }
+            section.style.display = 'block';
+            loadReconciliation();
+        }
+        async function loadReconciliation() {
+            const month = document.getElementById('reconMonth')?.value;
+            if (!month) { alert('Select month'); return; }
+            try {
+                const base = getApiBase();
+                const res = await fetch(`${base}/bonus?action=variances&month=${encodeURIComponent(month)}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to load reconciliation');
+                const body = document.getElementById('reconBody');
+                const summary = document.getElementById('reconSummary');
+                if (body) body.innerHTML = '';
+                let totalUpload = 0, totalPaid = 0, outliers = 0;
+                data.items.forEach(r => {
+                    totalUpload += (r.uploadedAmount || 0);
+                    totalPaid += (r.paidAmount || 0);
+                    const tr = document.createElement('tr');
+                    const variance = (r.variance || 0);
+                    if (Math.abs(variance) > 0.01) outliers++;
+                    tr.innerHTML = `
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.drn}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.name || ''}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${(r.uploadedAmount||0).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${(r.paidAmount||0).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.method || ''}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7;">${r.status}</td>
+                        <td style="padding:10px;border-bottom:1px solid #eef2f7; color:${Math.abs(variance)>0.01?'#c41e3a':'#2e7d32'};">${variance.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    `;
+                    body?.appendChild(tr);
+                });
+                if (summary) {
+                    summary.innerHTML = `Uploaded: N$ ${totalUpload.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Paid: N$ ${totalPaid.toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Variance: N$ ${(totalPaid-totalUpload).toLocaleString('en-NA',{minimumFractionDigits:2, maximumFractionDigits:2})} · Duplicates: ${data.duplicateKeys?.length || 0} · Outliers: ${outliers}`;
+                }
+            } catch (e) { alert(`❌ ${e.message}`); }
         }
         
         // Clear bonus upload
@@ -23176,33 +23326,6 @@ This sale appears in the Dispenser Portal sales reports.
         document.addEventListener('DOMContentLoaded', () => {
             ensureDocumentsTab();
             try { ensureDocReminderTimer(); } catch(_) {}
-            // If Advanced Reports tab exists, ensure a basic canvas exists
-            const advancedTabButton = document.querySelector('[onclick="openTab(\'advanced-reports\')"]');
-            if (advancedTabButton && !document.getElementById('advanced-reports')) {
-                const section = document.createElement('div');
-                section.id = 'advanced-reports'; section.className = 'tab-content';
-                section.innerHTML = `
-                    <div class="portal-header"><h2>📊 Advanced Reports</h2><p>Drag-and-drop fields to build custom reports</p></div>
-                    <div class="report-builder-container">
-                        <div class="report-data-sources" id="reportDataSources">
-                            <div class="data-source-item" draggable="true">Clients</div>
-                            <div class="data-source-item" draggable="true">Prescriptions</div>
-                            <div class="data-source-item" draggable="true">Sales</div>
-                            <div class="data-source-item" draggable="true">Attendance</div>
-                            <div class="data-source-item" draggable="true">Stock</div>
-                        </div>
-                        <div class="report-canvas" id="reportCanvas">
-                            <div class="drop-zone">Drop data sources here</div>
-                        </div>
-                        <div class="report-properties" id="reportProperties">
-                            <div><strong>Properties</strong></div>
-                            <div class="conditional-format-rule">No rules yet</div>
-                        </div>
-                    </div>
-                `;
-                const tabsContentRoot = document.querySelector('.container') || document.body;
-                tabsContentRoot.appendChild(section);
-            }
             // --- Stock Workflows Help wiring ---
             (function initStockHelp(){
                 const helpGlobal = document.getElementById('stockHelpBtnGlobal');
@@ -23283,4 +23406,30 @@ This sale appears in the Dispenser Portal sales reports.
         });
     </script>
 </body>
+<script>
+    (function(){
+        try{
+            const raw = localStorage.getItem('currentUser');
+            const user = raw ? JSON.parse(raw) : null;
+            const allowed = user && ['hr_manager','hr_admin','admin'].includes(user.role);
+            if(!allowed) return;
+            const btn = document.createElement('a');
+            btn.href = './hr-portal.html';
+            btn.textContent = 'Open HR Portal';
+            btn.style.position = 'fixed';
+            btn.style.right = '16px';
+            btn.style.bottom = '16px';
+            btn.style.background = '#2563eb';
+            btn.style.color = '#fff';
+            btn.style.padding = '10px 14px';
+            btn.style.borderRadius = '10px';
+            btn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+            btn.style.textDecoration = 'none';
+            btn.style.fontWeight = '700';
+            btn.style.zIndex = '9999';
+            btn.setAttribute('aria-label','Open HR Portal');
+            document.body.appendChild(btn);
+        } catch(e){}
+    })();
+</script>
 </html>
