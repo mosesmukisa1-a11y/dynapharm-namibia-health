@@ -51,6 +51,8 @@ async function commitAll() {
     const ts = new Date().toISOString();
     await run(`git commit -m "auto: save changes ${ts}"`);
     console.log(`[auto-commit] committed at ${ts}`);
+    // Attempt to push to remote to trigger CI/deploy (non-fatal on failure)
+    await run('git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1 && git push || echo "[auto-commit] push skipped (no upstream or push failed)"');
   } finally {
     pending = false;
   }
