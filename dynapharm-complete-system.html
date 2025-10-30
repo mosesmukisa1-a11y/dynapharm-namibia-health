@@ -7559,6 +7559,7 @@
                     time: '09:00',
                     clientName: fullName,
                     branch: currentBranch,
+                    serviceType: 'Full Body Check-Up',
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 };
@@ -8436,6 +8437,7 @@
                 clientName: clientName,
                 consultant: currentUser.fullName,
                 notes: notes,
+                serviceType: 'Full Body Check-Up',
                 status: 'scheduled',
                 createdAt: new Date().toISOString()
             });
@@ -8464,6 +8466,7 @@
                 clientName: clientName,
                 consultant: currentUser.fullName,
                 notes: notes,
+                serviceType: 'Full Body Check-Up',
                 status: 'scheduled',
                 createdAt: new Date().toISOString()
             });
@@ -8507,9 +8510,12 @@
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
                                     <strong style="font-size: 1.1rem;">⏰ ${apt.time}</strong> - <strong>${apt.clientName}</strong>
+                                    <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px;">Service: ${apt.serviceType || 'Full Body Check-Up'} | Status: <span style="background:${apt.status==='scheduled'?'#e3f2fd':apt.status==='checked_in'?'#fff3e0':apt.status==='in_progress'?'#e8f5e9':'#ecf0f1'}; padding:2px 6px; border-radius:4px;">${apt.status || 'scheduled'}</span></div>
                                     ${apt.notes ? `<p style="font-size: 0.85rem; color: #666; margin-top: 5px;">📝 ${apt.notes}</p>` : ''}
                                 </div>
                                 <div>
+                                    ${apt.status === 'scheduled' ? `<button class="btn btn-sm" onclick="checkInAppointment('${apt.id}')" style="margin-right: 5px; background:#3498db;color:white;">🧾 Check-in</button>` : ''}
+                                    ${apt.status === 'checked_in' ? `<button class="btn btn-sm" onclick="startFullBodyCheckup('${apt.id}')" style="margin-right: 5px; background:#f39c12;color:white;">▶ Start</button>` : ''}
                                     <button class="btn btn-sm btn-success" onclick="markAppointmentComplete('${apt.id}')" style="margin-right: 5px;">✅ Complete</button>
                                     <button class="btn btn-sm btn-danger" onclick="cancelAppointment('${apt.id}')">❌ Cancel</button>
                                 </div>
@@ -8525,7 +8531,33 @@
             if (index !== -1) {
                 appointments[index].status = 'completed';
                 appointments[index].completedAt = new Date().toISOString();
+                try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+                try { recordDepartmentEvent('appointment_completed', appointments[index]); } catch(e){}
                 alert('✅ Appointment marked as complete');
+                viewTodayAppointments();
+            }
+        }
+
+        function checkInAppointment(aptId) {
+            const index = appointments.findIndex(apt => apt.id === aptId);
+            if (index !== -1) {
+                appointments[index].status = 'checked_in';
+                appointments[index].checkInAt = new Date().toISOString();
+                appointments[index].serviceType = appointments[index].serviceType || 'Full Body Check-Up';
+                try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+                try { recordDepartmentEvent('appointment_checkin', appointments[index]); } catch(e){}
+                viewTodayAppointments();
+            }
+        }
+
+        function startFullBodyCheckup(aptId) {
+            const index = appointments.findIndex(apt => apt.id === aptId);
+            if (index !== -1) {
+                appointments[index].status = 'in_progress';
+                appointments[index].startedAt = new Date().toISOString();
+                appointments[index].serviceType = appointments[index].serviceType || 'Full Body Check-Up';
+                try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+                try { recordDepartmentEvent('appointment_started', appointments[index]); } catch(e){}
                 viewTodayAppointments();
             }
         }
