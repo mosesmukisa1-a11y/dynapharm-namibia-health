@@ -22279,7 +22279,8 @@
                 'delivered': 'deliveredOrders',
                 'all': 'allOrders',
                 'crm': 'frontdeskCRM',
-                'documents': 'frontdeskDocuments'
+                'documents': 'frontdeskDocuments',
+                'notifications': 'frontdeskNotifications'
             };
             
             const tabElement = document.getElementById(tabMap[tabName]);
@@ -22303,6 +22304,8 @@
                 try { populateBranchFilterOptions(); } catch(_) {}
                 try { renderDocumentLibrary(); } catch(_) {}
                 try { ensureDocReminderTimer(); } catch(_) {}
+            } else if (tabName === 'notifications') {
+                try { renderNotifications(); } catch(_) {}
             }
         }
         
@@ -23571,6 +23574,62 @@ This sale appears in the Dispenser Portal sales reports.
                 localStorage.setItem('dyna_notifications', JSON.stringify(queue));
             } catch(e) {}
             console.log('[Notification]', message);
+        }
+
+        // --- Notifications Inbox (Front Desk) ---
+        function getNotifications(){
+            try { return JSON.parse(localStorage.getItem('dyna_notifications') || '[]'); } catch(e) { return []; }
+        }
+        function saveNotifications(list){
+            try { localStorage.setItem('dyna_notifications', JSON.stringify(list || [])); } catch(e) {}
+        }
+        function renderNotifications(){
+            const el = document.getElementById('notificationsList'); if (!el) return;
+            const notes = getNotifications().slice().sort((a,b)=> new Date(b.at) - new Date(a.at));
+            if (notes.length === 0) { el.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:12px;">No notifications.</p>'; return; }
+            el.innerHTML = notes.map(n => {
+                const time = new Date(n.at).toLocaleString();
+                const read = n.readAt ? true : false;
+                const doc = (getDocuments().find(d=>d.id===n.docId) || null);
+                const title = doc ? doc.title : (n.docId || 'Unknown');
+                return `
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #eee;border-left:4px solid ${read?'#bdc3c7':'#c41e3a'};border-radius:6px;padding:10px;margin-bottom:8px;background:${read?'#fafafa':'#fff'};">
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong>${title}</strong>
+                            <span style="font-size:0.85rem;color:#666;">${time}</span>
+                        </div>
+                        <div style="color:#333;font-size:0.95rem;margin-top:4px;">${n.message}</div>
+                        ${doc?`<div style=\"font-size:0.85rem;color:#7f8c8d;margin-top:4px;\">Status: ${doc.status||'-'} • Assigned: ${doc.assignedTo||'-'}</div>`:''}
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${!read?`<button class=\"btn\" onclick=\"markNotificationRead('${n.id}')\">Mark Read</button>`:''}
+                        ${doc?`<button class=\"btn\" onclick=\"openDocFromNotification('${doc.id}')\">Open</button>`:''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function markNotificationRead(id){
+            const list = getNotifications();
+            const idx = list.findIndex(n=>n.id===id); if (idx<0) return;
+            list[idx].readAt = new Date().toISOString();
+            saveNotifications(list);
+            renderNotifications();
+        }
+        function markAllNotificationsRead(){
+            const list = getNotifications().map(n => ({ ...n, readAt: n.readAt || new Date().toISOString() }));
+            saveNotifications(list);
+            renderNotifications();
+        }
+        function clearAllNotifications(){
+            if (!confirm('Clear all notifications?')) return;
+            saveNotifications([]);
+            renderNotifications();
+        }
+        function openDocFromNotification(docId){
+            try { openTab('frontdesk'); } catch(_) {}
+            try { showOrderTab('documents'); } catch(_) {}
+            // Optionally scroll to the document it if needed
         }
 
         function canChangeDocumentStatus(role, from, to){
