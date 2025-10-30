@@ -66,6 +66,9 @@ class CloudStorage {
             if (cloudData.scanAdjustments) {
                 localStorage.setItem('dyna_scan_adjustments', JSON.stringify(cloudData.scanAdjustments));
             }
+            if (cloudData.appointments) {
+                localStorage.setItem('dyna_consult_appointments', JSON.stringify(cloudData.appointments));
+            }
             
             console.log('✅ Synced cloud data to local storage');
         }
@@ -85,6 +88,7 @@ class CloudStorage {
             productPhotos: JSON.parse(localStorage.getItem('dyna_product_photos') || '{}'),
             branchStock: JSON.parse(localStorage.getItem('dyna_branch_stock') || '{}'),
             scanAdjustments: JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]'),
+            appointments: JSON.parse(localStorage.getItem('dyna_consult_appointments') || '[]'),
             lastSync: new Date().toISOString()
         };
         
@@ -116,6 +120,7 @@ class CloudStorage {
             productPhotos: JSON.parse(localStorage.getItem('dyna_product_photos') || '{}'),
             branchStock: JSON.parse(localStorage.getItem('dyna_branch_stock') || '{}'),
             scanAdjustments: JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]'),
+            appointments: JSON.parse(localStorage.getItem('dyna_consult_appointments') || '[]'),
             lastSync: new Date().toISOString()
         };
     }

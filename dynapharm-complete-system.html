@@ -1479,6 +1479,10 @@
                     <option value="">-- Select Branch --</option>
             </select>
             </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="/distributor-guest.html" target="_blank" style="background:#ffffff;border:2px solid #c41e3a;color:#c41e3a;padding:6px 10px;border-radius:6px;text-decoration:none;font-weight:700;">Distributor/Guest Booking</a>
+                <a href="/appointments-admin.html" target="_blank" style="background:#ffffff;border:2px solid #1f2937;color:#1f2937;padding:6px 10px;border-radius:6px;text-decoration:none;font-weight:700;">Appointments Admin</a>
+            </div>
         </div>
 
         <div class="tabs">
@@ -3562,6 +3566,11 @@
                     <button class="btn btn-success" onclick="showSpecialSalesModal()">➕ Create Campaign</button>
                     <div id="specialSalesList" style="margin-top: 20px;"></div>
                 </div>
+
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>📦 Branch Inventory Breakdown</h3>
+                    <div id="gmInventoryBreakdown" class="scroll-x" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
+                </div>
             </div>
         </div>
 
@@ -3620,6 +3629,11 @@
                 <div class="form-section" style="margin-top: 30px;">
                     <h3>📦 Stock Depletion Overview</h3>
                     <div id="stockDepletionDashboard"></div>
+                </div>
+
+                <div class="form-section" style="margin-top: 30px;">
+                    <h3>📦 Branch Inventory Breakdown</h3>
+                    <div id="directorInventoryBreakdown" class="scroll-x" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
                 </div>
             </div>
         </div>
@@ -4044,6 +4058,11 @@
                 <div id="financeCashRequests" class="scroll-x" style="max-height: 500px; overflow-y: auto;">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">No cash requests yet.</p>
                 </div>
+            </div>
+
+            <div class="form-section">
+                <h3>📦 Branch Inventory Breakdown</h3>
+                <div id="financeInventoryBreakdown" class="scroll-x" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white;"></div>
             </div>
 
             <!-- Expense Management -->
@@ -6809,12 +6828,22 @@
             }
 
             renderMISBranchDailySummary(reportsToDisplay);
+
+            // Render inventory breakdown table (uses consolidated inventory for now)
+            try {
+                const branchId = document.getElementById('misBranchSelect')?.value || 'all';
+                renderInventoryBreakdown('misInventoryBreakdown', branchId);
+            } catch (e) {}
         }
 
         function refreshMISData() {
             refreshAllData().then(() => {
                 displayMISReports();
                 alert('MIS data refreshed successfully!');
+                try {
+                    const branchId = document.getElementById('misBranchSelect')?.value || 'all';
+                    renderInventoryBreakdown('misInventoryBreakdown', branchId);
+                } catch (e) {}
             });
         }
 
@@ -6848,6 +6877,47 @@
             });
             
             return csv;
+        }
+
+        // Generic renderer for inventory breakdown tables using dynapharm_inventory
+        function renderInventoryBreakdown(targetId, branchId = 'all') {
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            let inv = {};
+            try { inv = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}'); } catch (e) { inv = {}; }
+            const entries = Object.keys(inv).map(name => ({
+                name,
+                qty: parseFloat(inv[name]?.currentStock || 0),
+                reorder: inv[name]?.reorderLevel ?? 5
+            }));
+            if (entries.length === 0) {
+                el.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:20px;">No inventory records found.</p>';
+                return;
+            }
+            const rows = entries.map(e => {
+                const low = e.qty <= e.reorder;
+                return `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd;">${e.name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:right; font-weight:700; color:${low ? '#e74c3c' : '#27ae60'};">${e.qty}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:right;">${e.reorder}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${low ? '⚠️ Low' : '✅ OK'}</td>
+                    </tr>`;
+            }).join('');
+            el.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; background:white;">
+                        <thead>
+                            <tr style="background:#c41e3a; color:white;">
+                                <th style="padding:12px; text-align:left; border:1px solid #ddd;">Product</th>
+                                <th style="padding:12px; text-align:right; border:1px solid #ddd;">Qty</th>
+                                <th style="padding:12px; text-align:right; border:1px solid #ddd;">Reorder</th>
+                                <th style="padding:12px; text-align:left; border:1px solid #ddd;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
         }
 
         function printMISReport() {
@@ -17060,6 +17130,143 @@
             else if (tabName === 'valuation') displayStockValuation();
         }
 
+        // Inventory movements (aggregate view across sources)
+        function filterInventoryMovements() {
+            displayInventoryMovements();
+        }
+
+        function displayInventoryMovements() {
+            const container = document.getElementById('inventoryMovementsList');
+            if (!container) return;
+
+            const loc = document.getElementById('inventoryLocationFilter')?.value || 'all';
+            const type = document.getElementById('inventoryMovementFilter')?.value || 'all';
+            const term = (document.getElementById('inventoryProductSearch')?.value || '').toLowerCase();
+            const from = document.getElementById('inventoryDateFrom')?.value || '';
+            const to = document.getElementById('inventoryDateTo')?.value || '';
+
+            const inRange = (dateStr) => {
+                if (!from && !to) return true;
+                const d = new Date(dateStr || Date.now());
+                if (from && d < new Date(from)) return false;
+                if (to) {
+                    const end = new Date(to);
+                    end.setHours(23,59,59,999);
+                    if (d > end) return false;
+                }
+                return true;
+            };
+
+            // Gather movements from various sources
+            const imports = JSON.parse(localStorage.getItem('dyna_country_imports') || '[]').map(r => ({
+                movementType: 'import',
+                location: 'country',
+                product: r.description || r.product || 'Unknown',
+                quantity: Number(r.quantity || r.ctns || 0),
+                reference: r.batchNumber || r.batch || r.reference || '',
+                date: r.createdAt || r.date || new Date().toISOString(),
+                user: r.createdBy || (currentUser?.fullName || 'system')
+            }));
+
+            const transfers = JSON.parse(localStorage.getItem('dyna_transfers') || '[]').map(t => ({
+                movementType: 'transfer',
+                location: (t.to || '').toLowerCase(),
+                product: t.product || 'Unknown',
+                quantity: Number(t.quantity || 0),
+                reference: t.id || '',
+                date: t.createdAt || t.date || new Date().toISOString(),
+                user: t.createdBy || (currentUser?.fullName || 'system')
+            }));
+
+            const distributions = JSON.parse(localStorage.getItem('dyna_distributions') || '[]').map(d => ({
+                movementType: 'distribution',
+                location: (d.branch || '').toLowerCase(),
+                product: d.product || 'Unknown',
+                quantity: Number(d.quantity || 0),
+                reference: d.dispatchNumber || d.id || '',
+                date: d.date || d.createdAt || new Date().toISOString(),
+                user: d.createdBy || (currentUser?.fullName || 'system')
+            }));
+
+            const adjustments = JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]').map(a => ({
+                movementType: 'adjustment',
+                location: 'barcode',
+                product: a.code || 'Unknown',
+                quantity: a.action === 'remove' ? -Math.abs(Number(a.quantity||0)) : Math.abs(Number(a.quantity||0)),
+                reference: a.id || '',
+                date: a.timestamp || new Date().toISOString(),
+                user: a.user || (currentUser?.fullName || 'system')
+            }));
+
+            let rows = [...imports, ...transfers, ...distributions, ...adjustments];
+
+            // Apply filters
+            rows = rows.filter(r => (type === 'all' || r.movementType === type));
+            rows = rows.filter(r => (loc === 'all' || r.location === loc));
+            rows = rows.filter(r => (term === '' || (r.product || '').toLowerCase().includes(term)));
+            rows = rows.filter(r => inRange(r.date));
+
+            if (rows.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding: 20px; color:#666;">No inventory movements match your filters.</p>';
+                return;
+            }
+
+            // Sort by date desc
+            rows.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            container.innerHTML = rows.map(r => `
+                <div class="client-card" style="border-left:4px solid ${r.movementType==='import'?'#27ae60':(r.movementType==='transfer'?'#2980b9':(r.movementType==='distribution'?'#8e44ad':'#f39c12'))};">
+                    <div style="display:flex; justify-content:space-between; gap:12px;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${r.product}</div>
+                            <div style="font-size:.9rem; color:#666;">${r.movementType.toUpperCase()} • ${r.location || 'N/A'}</div>
+                            <div style="font-size:.85rem; color:#777;">Ref: ${r.reference || '-'}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700; color:${r.quantity<0?'#e74c3c':'#27ae60'};">${r.quantity<0?'-':''}${Math.abs(r.quantity)}</div>
+                            <div style="font-size:.85rem; color:#666;">${new Date(r.date).toLocaleString()}</div>
+                            <div style="font-size:.8rem; color:#999;">${r.user || ''}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportInventoryMovements() {
+            const loc = document.getElementById('inventoryLocationFilter')?.value || 'all';
+            const type = document.getElementById('inventoryMovementFilter')?.value || 'all';
+            const term = (document.getElementById('inventoryProductSearch')?.value || '').toLowerCase();
+            const from = document.getElementById('inventoryDateFrom')?.value || '';
+            const to = document.getElementById('inventoryDateTo')?.value || '';
+
+            const inRange = (dateStr) => {
+                if (!from && !to) return true;
+                const d = new Date(dateStr || Date.now());
+                if (from && d < new Date(from)) return false;
+                if (to) {
+                    const end = new Date(to); end.setHours(23,59,59,999);
+                    if (d > end) return false;
+                }
+                return true;
+            };
+
+            const sources = [];
+            sources.push(...JSON.parse(localStorage.getItem('dyna_country_imports') || '[]').map(r => ({ movementType:'import', location:'country', product:r.description||r.product||'Unknown', quantity:Number(r.quantity||r.ctns||0), reference:r.batchNumber||r.batch||r.reference||'', date:r.createdAt||r.date||new Date().toISOString(), user:r.createdBy||(currentUser?.fullName||'system') })));
+            sources.push(...JSON.parse(localStorage.getItem('dyna_transfers') || '[]').map(t => ({ movementType:'transfer', location:(t.to||'').toLowerCase(), product:t.product||'Unknown', quantity:Number(t.quantity||0), reference:t.id||'', date:t.createdAt||t.date||new Date().toISOString(), user:t.createdBy||(currentUser?.fullName||'system') })));
+            sources.push(...JSON.parse(localStorage.getItem('dyna_distributions') || '[]').map(d => ({ movementType:'distribution', location:(d.branch||'').toLowerCase(), product:d.product||'Unknown', quantity:Number(d.quantity||0), reference:d.dispatchNumber||d.id||'', date:d.date||d.createdAt||new Date().toISOString(), user:d.createdBy||(currentUser?.fullName||'system') })));
+            sources.push(...JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]').map(a => ({ movementType:'adjustment', location:'barcode', product:a.code||'Unknown', quantity:a.action==='remove' ? -Math.abs(Number(a.quantity||0)) : Math.abs(Number(a.quantity||0)), reference:a.id||'', date:a.timestamp||new Date().toISOString(), user:a.user||(currentUser?.fullName||'system') })));
+
+            let rows = sources.filter(r => (type==='all' || r.movementType===type));
+            rows = rows.filter(r => (loc==='all' || r.location===loc));
+            rows = rows.filter(r => (term==='' || (r.product||'').toLowerCase().includes(term)));
+            rows = rows.filter(r => inRange(r.date));
+
+            const csv = ['Type,Location,Product,Quantity,Reference,Date,User'];
+            rows.forEach(r => csv.push([r.movementType, r.location, r.product.replace(/,/g,' '), r.quantity, r.reference, r.date, (r.user||'').replace(/,/g,' ')].join(',')));
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'inventory_movements.csv'; a.click();
+        }
+
         // Barcode generation
         function renderDefaultBarcodePreview() {
             const container = document.getElementById('barcodePreview');
@@ -18482,6 +18689,7 @@
                 const lowEl = document.getElementById('financeBranchLowStock');
                 if (qtyEl) qtyEl.textContent = `${totals.qty}`;
                 if (lowEl) lowEl.textContent = `${totals.low}`;
+                try { renderInventoryBreakdown('financeInventoryBreakdown', 'all'); } catch (e) {}
                 return;
             }
             
@@ -18541,6 +18749,7 @@
                 if (qtyEl) qtyEl.textContent = `${totals.qty}`;
                 if (lowEl) lowEl.textContent = `${totals.low}`;
             } catch (e) {}
+            try { renderInventoryBreakdown('financeInventoryBreakdown', branch); } catch (e) {}
         }
         
         // Get sales breakdown for branch
@@ -20226,13 +20435,13 @@
                 
                 const uniqueId = `product-carousel-${product.description.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}-${Math.random()}`;
                 
-                return `
+                    return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
+                        <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0; perspective: 800px; transform-style: preserve-3d;">
                             ${productPhotos.map((photo, idx) => `
                                 <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" 
-                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
+                                     data-index="${idx}" loading="lazy" decoding="async"
+                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden;">
                             `).join('')}
                             ${productPhotos.length > 1 ? `
                                 <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;">

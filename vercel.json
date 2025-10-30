@@ -4,6 +4,8 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "dynapharm-complete-system.html", "use": "@vercel/static" },
+    { "src": "appointments-admin.html", "use": "@vercel/static" },
+    { "src": "distributor-guest.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
     { "src": "api/health.js", "use": "@vercel/node" },
@@ -12,7 +14,9 @@
   ],
   "routes": [
     { "src": "/", "dest": "/dynapharm-complete-system.html" },
-    { "src": "/dynapharm-complete-system", "dest": "/dynapharm-complete-system.html" }
+    { "src": "/dynapharm-complete-system", "dest": "/dynapharm-complete-system.html" },
+    { "src": "/distributor/guest", "dest": "/distributor-guest.html" },
+    { "src": "/staff/appointments", "dest": "/appointments-admin.html" }
   ],
   "headers": [
     {
