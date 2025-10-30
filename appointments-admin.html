@@ -82,7 +82,7 @@
                 list[idx].status = 'completed';
                 list[idx].completedAt = new Date().toISOString();
                 save(list);
-                try{ if(window.cloudStorage){ /* optional future auto save */ } }catch(_){ }
+                try{ if(window.cloudAutoSaveAll){ window.cloudAutoSaveAll('Cloud sync: appointment completed'); } }catch(_){ }
                 alert('Marked as completed. Remember to Save to Cloud.');
                 const branch = document.getElementById('branch').value;
                 const target = document.getElementById('list');
@@ -103,6 +103,7 @@
             </div>
             <nav class="row" style="gap:8px;">
                 <a href="/dynapharm-complete-system.html" class="btn ghost">Back to Main</a>
+                <button onclick="window.cloudSetGitHubToken && window.cloudSetGitHubToken()" class="btn ghost">Set Token</button>
                 <button id="saveCloud" class="btn warn">Save to Cloud</button>
             </nav>
         </div>

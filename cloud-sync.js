@@ -6,6 +6,7 @@ class CloudStorage {
         this.repo = 'mosesmukisa1-a11y/dynapharm-namibia-health';
         this.githubDataPath = 'cloud-data/data.json';
         this.githubApiBase = 'https://api.github.com';
+        this.tokenStorageKey = 'dyna_github_token';
     }
 
     async loadFromCloud() {
@@ -166,6 +167,26 @@ class CloudStorage {
         console.log('✅ Data saved to GitHub cloud-data/data.json');
         return true;
     }
+
+    getStoredToken() {
+        try { return localStorage.getItem(this.tokenStorageKey) || ''; } catch(_) { return ''; }
+    }
+
+    setStoredToken(token) {
+        if (!token) return;
+        localStorage.setItem(this.tokenStorageKey, token);
+    }
+
+    async tryAutoSaveToGitHub(commitMessage = 'Cloud sync: auto-save') {
+        const token = this.getStoredToken();
+        if (!token) return false;
+        try {
+            await this.saveToGitHub(token, commitMessage);
+            return true;
+        } catch(_) {
+            return false;
+        }
+    }
 }
 
 // Initialize cloud storage
@@ -181,8 +202,12 @@ window.addEventListener('load', () => {
             btn.textContent = '💾 Save to Cloud';
             btn.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;background:#1769aa;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)';
             btn.addEventListener('click', async () => {
-                const token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
-                if (!token) return;
+                let token = cloudStorage.getStoredToken();
+                if (!token) {
+                    token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
+                    if (!token) return;
+                    cloudStorage.setStoredToken(token);
+                }
                 btn.disabled = true; btn.textContent = 'Saving...';
                 try {
                     await cloudStorage.saveToGitHub(token, 'Cloud sync: save from app');
@@ -201,7 +226,21 @@ window.addEventListener('load', () => {
 // Add to window for manual access
 window.cloudStorage = cloudStorage;
 window.cloudSaveToGitHub = async function() {
-    const token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
-    if (!token) return;
+    let token = cloudStorage.getStoredToken();
+    if (!token) {
+        token = prompt('Enter GitHub Personal Access Token (repo scope) to save data.json:');
+        if (!token) return;
+        cloudStorage.setStoredToken(token);
+    }
     await cloudStorage.saveToGitHub(token, 'Cloud sync: manual save');
+};
+window.cloudSetGitHubToken = function() {
+    const token = prompt('Enter GitHub Personal Access Token (repo scope) to store for auto-save:');
+    if (!token) return false;
+    cloudStorage.setStoredToken(token);
+    alert('Token saved locally for auto-save.');
+    return true;
+};
+window.cloudAutoSaveAll = async function(commitMessage = 'Cloud sync: auto-save') {
+    return await cloudStorage.tryAutoSaveToGitHub(commitMessage);
 };

@@ -102,6 +102,7 @@
                     };
                     appts.push(appt);
                     saveAppointments(appts);
+                    try { if (window.cloudAutoSaveAll) { window.cloudAutoSaveAll('Cloud sync: new consultation request'); } } catch(_){}
                     successBox.classList.remove('hidden');
                     renderList();
                     form.reset();
