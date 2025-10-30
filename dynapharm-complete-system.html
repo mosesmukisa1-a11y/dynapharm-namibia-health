@@ -1503,7 +1503,6 @@
             <div class="tabs" style="margin-bottom: 20px;">
                 <button class="tab-button active" onclick="showDistributorTab('shop')">🛒 Shop</button>
                 <button class="tab-button" onclick="showDistributorTab('checkup')">🏥 Full Body Check Up</button>
-                <button class="tab-button" onclick="showDistributorTab('registration')">📋 Client Registration</button>
             </div>
             
             <!-- Shop Tab -->
@@ -2138,30 +2137,6 @@
             </form>
             </div>
             
-            <!-- Registration Tab (Old Client Registration Form) -->
-            <div id="distributor-registration-tab" class="distributor-subtab" style="display: none;">
-                <h2>📋 Client Registration</h2>
-                <div class="reference-number" id="clientRefNumber2" style="display: none;"></div>
-                
-                <!-- Network sync test buttons -->
-                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                    <h4 style="color: #c41e3a; margin-bottom: 10px;">🌐 Network Synchronization Test</h4>
-                    <button class="btn btn-info" onclick="refreshAllData()" style="margin: 5px;">🔄 Refresh Data</button>
-                    <button class="btn btn-success" onclick="testNetworkSync()" style="margin: 5px;">🌐 Test Network Sync</button>
-                    <button class="btn btn-warning" onclick="checkConnectionStatus()" style="margin: 5px;">📡 Check Connection</button>
-                </div>
-                
-                <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 30px;">
-                    <h3 style="color: #856404; margin-bottom: 10px;">ℹ️ Registration Information</h3>
-                    <p style="color: #856404; line-height: 1.6;">
-                        This is the traditional client registration form. For the Full Body Check Up, please use the "Full Body Check Up" tab above.
-                    </p>
-                </div>
-                
-                <p style="text-align: center; padding: 40px; color: #7f8c8d; font-size: 1.1rem;">
-                    📋 The Full Body Check Up form above contains all necessary registration information including health history, lifestyle, and other assessments.
-                </p>
-            </div>
         </div>
 
         <!-- Front Desk Portal -->
@@ -2447,6 +2422,9 @@
                     <button class="dispenserTab" id="prescriptionTab" onclick="showDispenserTab('prescription')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         💊 Prescriptions
                     </button>
+                    <button class="dispenserTab" id="stockTab" onclick="showDispenserTab('stock')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        📦 Stock
+                    </button>
                     <button class="dispenserTab" id="bankingTab" onclick="showDispenserTab('banking')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         🏦 Banking
                     </button>
@@ -2458,6 +2436,22 @@
                     </button>
                 </div>
                 
+                <!-- Branch Stock Section (Hidden by default) -->
+                <div id="dispenserStockSection" style="display: none;">
+                    <div class="form-section">
+                        <h3 style="color:#2c3e50; margin-bottom: 10px;">📦 Branch Inventory</h3>
+                        <div class="search-box">
+                            <input type="text" id="branchInventorySearch" placeholder="Search products..." onkeyup="searchBranchInventory()">
+                            <button class="btn btn-success" onclick="displayBranchInventory()">🔄 Refresh</button>
+                            <button class="btn btn-info" onclick="showAllBranchInventory()">📋 Show All</button>
+                            <button class="btn" onclick="openStockDashboard()">📊 Stock Dashboard</button>
+                            <button class="btn" onclick="openMISFromStock()">🧾 MIS</button>
+                            <button class="btn" onclick="openFinanceFromStock()">💼 Finance</button>
+                        </div>
+                        <div id="branchInventoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                    </div>
+                </div>
+
                 <!-- Walk-in Section (Default visible) -->
                 <div id="dispenserWalkInSection">
                 
@@ -2681,7 +2675,10 @@
                 <div class="portal-header">
                     <h2>📦 Stock & Inventory Management Portal</h2>
                     <p>Manage country stock, warehouse inventory, and branch distribution</p>
-                    <button class="btn btn-primary" onclick="refreshAllData()" style="margin-top: 10px;">🔄 Refresh Data</button>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="refreshAllData()">🔄 Refresh Data</button>
+                        <button class="btn" id="stockHelpBtnGlobal">❓ Help</button>
+                    </div>
                 </div>
                 
                 <!-- Stock Management Tabs -->
@@ -2701,18 +2698,29 @@
                 <!-- Dashboard Tab (embedded portal) -->
                 <div id="dashboardTab" class="stock-tab-content" style="display: none;">
                     <div class="form-section">
-                        <h3>📊 Real-time Stock Dashboard</h3>
+                        <h3>📊 Real-time Stock Dashboard <button class="btn" data-stock-help="dashboard" style="margin-left:8px;">Help</button></h3>
                         <p style="margin-bottom: 10px; color: #666;">Live movements across branches and warehouses, daily summaries, alerts and suspicious activity.</p>
                         <div style="height: 720px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #0b1020;">
                             <iframe src="stock-management-portal.html" style="width:100%; height:100%; border:0;" title="Stock Management Dashboard"></iframe>
                         </div>
                     </div>
                 </div>
+
+                <!-- Stock Help Modal -->
+                <div id="stockHelpModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:5000;">
+                    <div style="width:min(960px,94vw); max-height:84vh; overflow:auto; background:#fff; color:#111; border:1px solid #ccc; border-radius:10px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #eee;">
+                            <div id="stockHelpTitle" style="font-weight:700;">Stock Workflows</div>
+                            <button id="stockHelpClose" class="btn">Close</button>
+                        </div>
+                        <div id="stockHelpBody" style="padding:14px 16px; font-size:14px; line-height:1.55;"></div>
+                    </div>
+                </div>
                 
                 <!-- Country Stock Tab -->
                 <div id="countryStockTab" class="stock-tab-content" style="display: block;">
                     <div class="form-section">
-                        <h3>📥 Receive Country Stock</h3>
+                        <h3>📥 Receive Country Stock <button class="btn" data-stock-help="country" style="margin-left:8px;">Help</button></h3>
                         <p style="margin-bottom: 20px; color: #666;">Import stock with batch tracking and FIFO/FEFO enforcement</p>
                         
                         <!-- Bulk Import Form -->
@@ -11011,14 +11019,14 @@
 
         function showDispenserTab(tab) {
             // Hide all sections
-            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserStaffSection'];
+            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserStaffSection'];
             sections.forEach(sec => {
                 const el = document.getElementById(sec);
                 if (el) el.style.display = 'none';
             });
             
             // Reset all tab buttons
-            const tabs = ['walkInTab', 'prescriptionTab', 'bankingTab', 'paymentsTab', 'staffTab'];
+            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'staffTab'];
             tabs.forEach(tabBtn => {
                 const el = document.getElementById(tabBtn);
                 if (el) {
@@ -11044,6 +11052,12 @@
                     activeTab = 'prescriptionTab';
                     gradient = 'linear-gradient(135deg, #27ae60, #229954)';
                 displayPrescriptions();
+                    break;
+                case 'stock':
+                    activeSection = 'dispenserStockSection';
+                    activeTab = 'stockTab';
+                    gradient = 'linear-gradient(135deg, #34495e, #2c3e50)';
+                    displayBranchInventory();
                     break;
                 case 'banking':
                     activeSection = 'dispenserBankingSection';
@@ -11085,6 +11099,7 @@
             displayCashDrawerStatus();
             refreshWalkInSalesList();
             refreshUnifiedSales(); // Add unified sales dashboard
+            displayBranchInventory();
         }
         
         // Banking Functions
@@ -11161,6 +11176,86 @@
                 <h4>Banking History</h4>
                 <p style="text-align: center; color: #666; padding: 20px;">No banking records found.</p>
             `;
+        }
+
+        // Branch Inventory (Dispenser Stock Tab)
+        function getBranchId() {
+            try {
+                return (window.currentUser && window.currentUser.branch) || document.getElementById('branchSelect')?.value || 'unknown';
+            } catch (e) { return 'unknown'; }
+        }
+
+        function displayBranchInventory() {
+            const listEl = document.getElementById('branchInventoryList');
+            if (!listEl) return;
+
+            // Load consolidated simple inventory used by Dispenser
+            let simpleInventory = {};
+            try {
+                simpleInventory = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}');
+            } catch (e) { simpleInventory = {}; }
+
+            const search = (document.getElementById('branchInventorySearch')?.value || '').toLowerCase();
+
+            const entries = Object.keys(simpleInventory).map(name => ({
+                name,
+                currentStock: simpleInventory[name]?.currentStock || 0,
+                reorderLevel: simpleInventory[name]?.reorderLevel ?? 5
+            })).filter(e => !search || e.name.toLowerCase().includes(search));
+
+            if (entries.length === 0) {
+                listEl.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:20px;">No inventory records found.</p>';
+                return;
+            }
+
+            const rows = entries.map(e => {
+                const low = e.currentStock <= e.reorderLevel;
+                return `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd;">${e.name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:right; font-weight:700; color:${low ? '#e74c3c' : '#27ae60'};">${e.currentStock}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:right;">${e.reorderLevel}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${low ? '⚠️ Low' : '✅ OK'}</td>
+                    </tr>`;
+            }).join('');
+
+            listEl.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; background:white;">
+                        <thead>
+                            <tr style="background:#c41e3a; color:white;">
+                                <th style="padding:12px; text-align:left; border:1px solid #ddd;">Product</th>
+                                <th style="padding:12px; text-align:right; border:1px solid #ddd;">Qty</th>
+                                <th style="padding:12px; text-align:right; border:1px solid #ddd;">Reorder</th>
+                                <th style="padding:12px; text-align:left; border:1px solid #ddd;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function searchBranchInventory() { displayBranchInventory(); }
+        function showAllBranchInventory() {
+            const el = document.getElementById('branchInventorySearch');
+            if (el) { el.value = ''; }
+            displayBranchInventory();
+        }
+
+        // Cross-portal workflow shortcuts from Stock tab
+        function openStockDashboard() {
+            // Open embedded stock dashboard portal in a new window for full-screen view
+            window.open('stock-management-portal.html', '_blank');
+            try { recordDepartmentEvent('open_stock_dashboard', { branch: getBranchId() }); } catch (e) {}
+        }
+        function openMISFromStock() {
+            window.open('mis-portal.html', '_blank');
+            try { recordDepartmentEvent('handover_to_mis', { branch: getBranchId() }); } catch (e) {}
+        }
+        function openFinanceFromStock() {
+            // Finance is a tab in the same app; if available, switch tab, else open report data
+            if (typeof openTab === 'function') { try { openTab('finance'); } catch (e) {} }
+            try { recordDepartmentEvent('handover_to_finance', { branch: getBranchId() }); } catch (e) {}
         }
         
         // Payment Functions
@@ -20511,7 +20606,7 @@
             const paymentMethod = document.getElementById('checkoutPaymentMethod').value;
             const walletMethods = ['ewallet', 'easywallet', 'bluewallet', 'mobimoney', 'paytocell'];
             
-            const order = {
+	            const order = {
                 id: 'ORD' + Date.now(),
                 receiptNo: 'WEB' + Date.now(),
                 source: 'online',
@@ -20533,13 +20628,41 @@
                 status: 'pending',
                 total: shopCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
             };
-            
-            onlineOrders.push(order);
-            localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
-            
-            alert('Order placed successfully! Order ID: ' + order.id);
-            closeModal('checkoutModal');
-            clearShopCart();
+	            
+	            // Submit to backend API with graceful fallback to localStorage
+	            (async () => {
+	                const payload = JSON.stringify(order);
+	                const headers = { 'Content-Type': 'application/json' };
+	                const endpoints = [
+	                    '/api/orders',
+	                    'http://localhost:8001/api/orders'
+	                ];
+	                let submitted = false;
+	                for (let i = 0; i < endpoints.length; i++) {
+	                    try {
+	                        const res = await fetch(endpoints[i], { method: 'POST', headers, body: payload });
+	                        if (res.ok) {
+	                            const data = await res.json();
+	                            if (data && data.success && data.order) {
+	                                submitted = true;
+	                                // Use server order id if provided
+	                                order.id = data.order.id || order.id;
+	                                break;
+	                            }
+	                        }
+	                    } catch (e) { /* try next endpoint */ }
+	                }
+	                if (!submitted) {
+	                    // Fallback to local storage
+	                    try {
+	                        onlineOrders.push(order);
+	                        localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
+	                    } catch (e) { /* ignore storage errors */ }
+	                }
+	                alert('Order placed successfully! Order ID: ' + order.id);
+	                closeModal('checkoutModal');
+	                clearShopCart();
+	            })();
         }
         
         // ==========================
@@ -21387,6 +21510,83 @@ This sale appears in the Dispenser Portal sales reports.
                 const tabsContentRoot = document.querySelector('.container') || document.body;
                 tabsContentRoot.appendChild(section);
             }
+            // --- Stock Workflows Help wiring ---
+            (function initStockHelp(){
+                const helpGlobal = document.getElementById('stockHelpBtnGlobal');
+                const helpModal = document.getElementById('stockHelpModal');
+                const helpClose = document.getElementById('stockHelpClose');
+                const helpBody = document.getElementById('stockHelpBody');
+                const helpTitle = document.getElementById('stockHelpTitle');
+                if (!helpModal || !helpBody) return;
+
+                let workflowsMd = '';
+                async function loadMd(){
+                    if (workflowsMd) return workflowsMd;
+                    try {
+                        const resp = await fetch('STOCK_WORKFLOWS.md', { cache: 'no-store' });
+                        if (resp.ok) workflowsMd = await resp.text();
+                    } catch(e) {}
+                    return workflowsMd;
+                }
+
+                function mdToHtml(md){
+                    let html = md
+                        .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+                        .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+                        .replace(/^\-\s+\*\*(.*?)\*\*:(.*)$/gm, '<li><strong>$1</strong>:$2</li>')
+                        .replace(/^\-\s+(.*)$/gm, '<li>$1</li>');
+                    html = html.replace(/(?:^(?:<li>.*<\/li>)\n?)+/gms, m => `<ul>${m}</ul>`);
+                    return html;
+                }
+
+                function extract(md, regexList){
+                    for (const rx of regexList){
+                        const m = md.match(rx);
+                        if (m){
+                            const start = m.index;
+                            const rest = md.slice(start);
+                            const next = rest.slice(m[0].length).search(/^###\s/m);
+                            return (next>=0? rest.slice(0, m[0].length+next): rest).trim();
+                        }
+                    }
+                    return '';
+                }
+
+                async function openHelp(section){
+                    const md = await loadMd();
+                    let title = 'Stock Workflows';
+                    let sectionMd = '';
+                    if (section === 'dashboard'){
+                        title = 'Dashboard & FEFO';
+                        const a = extract(md, [/^###\s+6\)\s+Dashboard[\s\S]*/m]);
+                        const b = extract(md, [/^###\s+4\)\s+Barcode\/Batch[\s\S]*/m]);
+                        sectionMd = [a,b].filter(Boolean).join('\n\n');
+                    } else if (section === 'country'){
+                        title = 'Country Stock Intake (Barcode/Batches)';
+                        sectionMd = extract(md, [/^###\s+4\)\s+Barcode\/Batch[\s\S]*/m]);
+                    } else if (section === 'warehouse'){
+                        title = 'Warehouse Stock Management';
+                        sectionMd = extract(md, [/^###\s+3\)\s+Warehouse[\s\S]*/m]);
+                    } else if (section === 'requests'){
+                        title = 'Stock Requests & Approvals';
+                        const a = extract(md, [/^###\s+1\)\s+Stock Requests[\s\S]*/m]);
+                        const b = extract(md, [/^###\s+2\)\s+Stock Transfers[\s\S]*/m]);
+                        sectionMd = [a,b].filter(Boolean).join('\n\n');
+                    } else {
+                        sectionMd = md.split('\n').slice(0,120).join('\n');
+                    }
+                    helpTitle.textContent = title;
+                    helpBody.innerHTML = mdToHtml(sectionMd);
+                    helpModal.style.display = 'flex';
+                }
+
+                if (helpGlobal) helpGlobal.addEventListener('click', () => openHelp('dashboard'));
+                if (helpClose) helpClose.addEventListener('click', () => { helpModal.style.display = 'none'; });
+                if (helpModal) helpModal.addEventListener('click', (e) => { if (e.target && e.target.id === 'stockHelpModal') helpModal.style.display = 'none'; });
+                document.querySelectorAll('[data-stock-help]').forEach(btn => {
+                    btn.addEventListener('click', () => openHelp(btn.getAttribute('data-stock-help')));
+                });
+            })();
         });
     </script>
 </body>

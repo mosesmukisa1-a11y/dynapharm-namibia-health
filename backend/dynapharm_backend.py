@@ -19,6 +19,7 @@ CLIENTS_FILE = os.path.join(DATA_DIR, "clients.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 BRANCHES_FILE = os.path.join(DATA_DIR, "branches.json")
 REPORTS_FILE = os.path.join(DATA_DIR, "reports.json")
+ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 
 # Create data directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -109,6 +110,15 @@ class DynapharmAPIHandler(BaseHTTPRequestHandler):
                 data = load_json_file(REPORTS_FILE)
                 # Filter out client data that might have been mixed in
                 data = [item for item in data if 'id' in item and item.get('id', '').startswith('RPT')]
+            elif path == '/api/orders':
+                # Optional query by id
+                query = parse_qs(urlparse(self.path).query)
+                orders = load_json_file(ORDERS_FILE, [])
+                if 'id' in query:
+                    oid = query['id'][0]
+                    data = next((o for o in orders if o.get('id') == oid), {"error": "Order not found"})
+                else:
+                    data = orders
             else:
                 data = {"error": "Endpoint not found"}
             
@@ -178,6 +188,27 @@ class DynapharmAPIHandler(BaseHTTPRequestHandler):
                 reports.append(data)
                 save_json_file(REPORTS_FILE, reports)
                 response = {"success": True, "message": "Report saved"}
+                
+            elif path == '/api/orders':
+                # Basic validation and idempotency by client-provided id
+                orders = load_json_file(ORDERS_FILE, [])
+                # If client passes id and it exists, return existing to avoid duplicates
+                incoming_id = (data.get('id') or '').strip()
+                if incoming_id:
+                    existing = next((o for o in orders if o.get('id') == incoming_id), None)
+                    if existing:
+                        response = {"success": True, "message": "Order already exists", "order": existing}
+                        self.wfile.write(json.dumps(response).encode('utf-8'))
+                        return
+                # Assign server id if missing
+                if not incoming_id:
+                    data['id'] = f"ORD{int(time.time()*1000)}"
+                # Timestamp and initial status
+                data.setdefault('date', datetime.utcnow().isoformat() + 'Z')
+                data.setdefault('status', 'pending')
+                orders.append(data)
+                save_json_file(ORDERS_FILE, orders)
+                response = {"success": True, "message": "Order saved", "order": data}
                 
             else:
                 response = {"error": "Endpoint not found"}
@@ -353,6 +384,8 @@ def start_backend_server(port=None):
     print("   GET  /api/reports   - Get all reports")
     print("   POST /api/reports   - Add new report")
     print("   PUT  /api/reports   - Update report")
+    print("   GET  /api/orders    - Get all orders or one by ?id=")
+    print("   POST /api/orders    - Create order (idempotent if same id)")
     print("   GET  /api/health    - Health check")
     print("\n🔄 Data is now synchronized across all devices!")
     print("⏹️  Press Ctrl+C to stop the server")

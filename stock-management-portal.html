@@ -130,6 +130,7 @@
                 <button id="refreshBtn" class="btn">Refresh</button>
                 <button id="printBtn" class="btn">Print</button>
                 <button id="exportBtn" class="btn">Export CSV</button>
+                <button id="helpBtnGlobal" class="btn">Help</button>
             </div>
         </div>
     </header>
@@ -144,14 +145,14 @@
 
         <section class="grid" style="margin-bottom: 14px;">
             <div class="card" style="grid-column: span 12;">
-                <h3>Real-time Stock Movements</h3>
+                <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Real-time Stock Movements <button class="btn" data-help="dashboard">Help</button></h3>
                 <div id="movementsList" class="list"></div>
             </div>
         </section>
 
         <section class="split-6-6" style="margin-bottom: 14px;">
             <div class="card col-6">
-                <h3>Daily Stock Movements by Branch</h3>
+                <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Daily Stock Movements by Branch <button class="btn" data-help="dashboard">Help</button></h3>
                 <table class="table">
                     <thead>
                         <tr>
@@ -165,13 +166,13 @@
                 </table>
             </div>
             <div class="card col-6">
-                <h3>Alerts & Notifications</h3>
+                <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Alerts & Notifications <button class="btn" data-help="dashboard">Help</button></h3>
                 <div id="alertsList" class="list"></div>
             </div>
         </section>
 
         <section class="card" style="margin-bottom: 14px;">
-            <h3>Workflow Status</h3>
+            <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Workflow Status <button class="btn" data-help="roles">Help</button></h3>
             <table class="table">
                 <thead>
                     <tr>
@@ -185,7 +186,7 @@
         </section>
 
         <section class="card" style="margin-bottom: 14px;">
-            <h3>Warehouse Stock Snapshot</h3>
+            <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Warehouse Stock Snapshot <button class="btn" data-help="warehouse">Help</button></h3>
             <table class="table">
                 <thead>
                     <tr>
@@ -203,6 +204,19 @@
     </main>
 
     <div class="footer">Dynapharm Namibia • Stock Management • v1</div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:50;">
+        <div style="width:min(920px,94vw); max-height:84vh; overflow:auto; background: var(--card); border:1px solid #1e2a44; border-radius:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #1e2a44;">
+                <div id="helpModalTitle" style="font-weight:700;">Workflow Help</div>
+                <div>
+                    <button id="helpCloseBtn" class="btn">Close</button>
+                </div>
+            </div>
+            <div id="helpModalBody" style="padding:12px 14px; font-size:14px; line-height:1.5;"></div>
+        </div>
+    </div>
 
     <script type="module">
         import { getStockRequests, getStockTransfers, getWarehouseStock, updateWarehouseStock, getStockStatistics } from './api/stock-requests.js';
@@ -577,6 +591,96 @@
         document.getElementById('searchBox').addEventListener('input', () => refreshData());
         document.getElementById('exportBtn').addEventListener('click', exportCSV);
         document.getElementById('printBtn').addEventListener('click', printDashboard);
+
+        // --- Help wiring ---
+        let workflowsMarkdown = '';
+        async function loadWorkflowsMd() {
+            if (workflowsMarkdown) return workflowsMarkdown;
+            try {
+                const resp = await fetch('./STOCK_WORKFLOWS.md', { cache: 'no-store' });
+                if (resp.ok) {
+                    workflowsMarkdown = await resp.text();
+                }
+            } catch(e) { /* ignore */ }
+            return workflowsMarkdown;
+        }
+
+        function mdToBasicHtml(md) {
+            let html = md
+                .replace(/^###\s+(.*)$/gm, '<h3>$1<\/h3>')
+                .replace(/^##\s+(.*)$/gm, '<h2>$1<\/h2>')
+                .replace(/^\-\s+\*\*(.*?)\*\*:(.*)$/gm, '<li><strong>$1<\/strong>:$2<\/li>')
+                .replace(/^\-\s+(.*)$/gm, '<li>$1<\/li>');
+            html = html.replace(/(?:^(?:<li>.*<\/li>)\n?)+/gms, m => `<ul>${m}<\/ul>`);
+            return html;
+        }
+
+        function extractSection(md, markerRegexArray) {
+            for (const rx of markerRegexArray) {
+                const m = md.match(rx);
+                if (m) {
+                    const start = m.index;
+                    const rest = md.slice(start);
+                    const next = rest.slice(m[0].length).search(/^###\s/m);
+                    const section = next >= 0 ? rest.slice(0, m[0].length + next) : rest;
+                    return section.trim();
+                }
+            }
+            return '';
+        }
+
+        function openHelp(sectionKey) {
+            (async () => {
+                const md = await loadWorkflowsMd();
+                let title = 'Workflow Help';
+                let sectionMd = '';
+                if (sectionKey === 'dashboard') {
+                    title = 'Dashboard Views & FEFO Dispatch';
+                    const part1 = extractSection(md, [/^###\s+6\)\s+Dashboard[\s\S]*/m]);
+                    const part2 = extractSection(md, [/^###\s+4\)\s+Barcode\/Batch[\s\S]*/m]);
+                    sectionMd = [part1, part2].filter(Boolean).join('\n\n');
+                } else if (sectionKey === 'warehouse') {
+                    title = 'Warehouse Stock Management';
+                    sectionMd = extractSection(md, [/^###\s+3\)\s+Warehouse[\s\S]*/m]);
+                } else if (sectionKey === 'roles') {
+                    title = 'Workflow Status & Roles';
+                    const part1 = extractSection(md, [/^###\s+7\)\s+Roles[\s\S]*/m]);
+                    const part2 = extractSection(md, [/^###\s+1\)\s+Stock Requests[\s\S]*/m, /^###\s+2\)\s+Stock Transfers[\s\S]*/m]);
+                    sectionMd = [part1, part2].filter(Boolean).join('\n\n');
+                } else if (sectionKey === 'requests') {
+                    title = 'Stock Requests';
+                    sectionMd = extractSection(md, [/^###\s+1\)\s+Stock Requests[\s\S]*/m]);
+                } else if (sectionKey === 'transfers') {
+                    title = 'Stock Transfers';
+                    sectionMd = extractSection(md, [/^###\s+2\)\s+Stock Transfers[\s\S]*/m]);
+                } else {
+                    sectionMd = md.split('\n').slice(0, 80).join('\n');
+                }
+
+                const body = document.getElementById('helpModalBody');
+                const titleEl = document.getElementById('helpModalTitle');
+                titleEl.textContent = title;
+                body.innerHTML = mdToBasicHtml(sectionMd);
+                document.getElementById('helpModal').style.display = 'flex';
+            })();
+        }
+
+        const globalHelpBtn = document.getElementById('helpBtnGlobal');
+        if (globalHelpBtn) globalHelpBtn.addEventListener('click', () => openHelp('dashboard'));
+        const helpCloseBtn = document.getElementById('helpCloseBtn');
+        if (helpCloseBtn) helpCloseBtn.addEventListener('click', () => {
+            document.getElementById('helpModal').style.display = 'none';
+        });
+        const helpModal = document.getElementById('helpModal');
+        if (helpModal) helpModal.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'helpModal') {
+                document.getElementById('helpModal').style.display = 'none';
+            }
+        });
+        Array.from(document.querySelectorAll('[data-help]')).forEach(btn => {
+            btn.addEventListener('click', () => openHelp(btn.getAttribute('data-help')));
+        });
+
 
         (async function init(){
             await loadBranches();
