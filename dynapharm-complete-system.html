@@ -1598,10 +1598,7 @@
                             <label class="required">Full Name</label>
                             <input type="text" name="fullName" required autocomplete="name">
                         </div>
-                        <div class="form-group">
-                            <label class="required">Namibian ID Number</label>
-                            <input type="text" name="nbNumber" required placeholder="e.g., 12345678901" title="Enter your Namibian national identification number">
-                        </div>
+                        
                         <div class="form-group">
                             <label class="required">Date</label>
                             <input type="date" name="date" id="currentDate" required>
@@ -7378,7 +7375,7 @@
                         <div class="section-title">👤 PERSONAL INFORMATION</div>
                         <div class="info-grid">
                             <div class="info-item"><strong>Name:</strong> ${formData.get('fullName') || ''}</div>
-                            <div class="info-item"><strong>ID:</strong> ${formData.get('nbNumber') || ''}</div>
+                            
                             <div class="info-item"><strong>Gender:</strong> ${formData.get('gender') || ''}</div>
                             <div class="info-item"><strong>DOB:</strong> ${formData.get('dob') || ''}</div>
                             <div class="info-item"><strong>Age:</strong> ${formData.get('age') || ''}y</div>
@@ -7473,7 +7470,6 @@
             
             const formData = new FormData(this);
             const fullName = formData.get('fullName').trim();
-            const nbNumber = formData.get('nbNumber').trim();
             const membershipStatus = formData.get('membershipStatus');
             const referralName = formData.get('referralName')?.trim();
             const referralNbNumber = formData.get('referralNbNumber')?.trim();
@@ -7498,12 +7494,12 @@
             }
             
             const firstName = fullName.split(' ')[0].toUpperCase();
-            const referenceNumber = `CLT-${firstName}-NB${nbNumber}-${Date.now()}`;
+            const referenceNumber = `CLT-${firstName}-${Date.now()}`;
             
             const client = {
                 referenceNumber: referenceNumber,
                 fullName: fullName,
-                nbNumber: nbNumber,
+                
                 email: formData.get('email'),
                 phone: formData.get('phone'),
                 membershipStatus: membershipStatus,
@@ -7577,7 +7573,7 @@
                 try {
                     const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(currentBranch) || u.branch === currentBranch));
                     for (const c of branchConsultants) {
-                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName} (NB: ${nbNumber})\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nPlease prepare to proceed with consultation.`;
+                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName}\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nPlease prepare to proceed with consultation.`;
                         await apiRequest('/email', 'POST', { to: c.email || 'consultant@dynapharm.com.na', subject: emailSubject, body: cBody });
                     }
                 } catch (e) { console.warn('Emails to consultants failed', e); }
@@ -20955,11 +20951,16 @@
                     return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); content-visibility: auto; contain-intrinsic-size: 300px 260px;">
                         <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0; perspective: 800px; transform-style: preserve-3d;">
-                            ${productPhotos.map((photo, idx) => `
-                                <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200"
+                            ${productPhotos.map((photo, idx) => {
+                                const isObj = typeof photo === 'object' && photo !== null;
+                                const src = isObj ? (photo.full || photo.src || photo.w600 || photo.w300) : photo;
+                                const srcset = isObj ? `${photo.w300 || src} 300w, ${photo.w600 || src} 600w, ${photo.full || src} 1200w` : '';
+                                return `
+                                <img ${srcset ? `srcset="${srcset}"` : ''} src="${src}" alt="${product.description} - Image ${idx + 1}" 
+                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden;">
-                            `).join('')}
+                                `;
+                            }).join('')}
                             ${productPhotos.length > 1 ? `
                                 <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;">
                                     ${productPhotos.map((_, idx) => `<div class="carousel-dot" data-index="${idx}" style="width: 8px; height: 8px; border-radius: 50%; background: ${idx === 0 ? '#fff' : 'rgba(255,255,255,0.5)'}; cursor: pointer; transition: background 0.3s;"></div>`).join('')}
@@ -21055,11 +21056,16 @@
                 return `
                     <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); content-visibility: auto; contain-intrinsic-size: 300px 260px;">
                         <div class="product-carousel-container" id="${uniqueId}" data-photo-count="${productPhotos.length}" style="position: relative; width: 100%; height: 200px; border-radius: 5px; margin-bottom: 10px; overflow: hidden; cursor: pointer; background: #f0f0f0;">
-                            ${productPhotos.map((photo, idx) => `
-                                <img src="${photo}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200"
+                            ${productPhotos.map((photo, idx) => {
+                                const isObj = typeof photo === 'object' && photo !== null;
+                                const src = isObj ? (photo.full || photo.src || photo.w600 || photo.w300) : photo;
+                                const srcset = isObj ? `${photo.w300 || src} 300w, ${photo.w600 || src} 600w, ${photo.full || src} 1200w` : '';
+                                return `
+                                <img ${srcset ? `srcset=\"${srcset}\"` : ''} src="${src}" alt="${product.description} - Image ${idx + 1}" 
+                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
-                            `).join('')}
+                                `;
+                            }).join('')}
                             ${productPhotos.length > 1 ? `
                                 <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px;">
                                     ${productPhotos.map((_, idx) => `<div class="carousel-dot" data-index="${idx}" style="width: 8px; height: 8px; border-radius: 50%; background: ${idx === 0 ? '#fff' : 'rgba(255,255,255,0.5)'}; cursor: pointer; transition: background 0.3s;"></div>`).join('')}
