@@ -2141,6 +2141,7 @@
                 <button class="tab-button" onclick="showOrderTab('delivered')">✅ Delivered</button>
                 <button class="tab-button" onclick="showOrderTab('all')">📋 All Orders</button>
                 <button class="tab-button" onclick="showOrderTab('crm')">👥 CRM</button>
+                <button class="tab-button" onclick="showOrderTab('notifications')">🔔 Notifications</button>
             </div>
             
             <!-- Pending Orders Tab -->
@@ -2284,6 +2285,19 @@
                         <div style="margin-bottom:10px;">Top clients by BV or purchases (approx.)</div>
                         <div id="fdcrmLoyaltyList" style="max-height:380px; overflow-y:auto;"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Front Desk Notifications Tab -->
+            <div id="frontdeskNotifications" class="order-tab-content" style="display: none;">
+                <div class="form-section">
+                    <h3>🔔 Notifications</h3>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                        <button class="btn btn-info" onclick="renderNotifications()">🔄 Refresh</button>
+                        <button class="btn" onclick="markAllNotificationsRead()">✅ Mark All Read</button>
+                        <button class="btn btn-danger" onclick="clearAllNotifications()">🗑️ Clear All</button>
+                    </div>
+                    <div id="notificationsList" style="max-height: 420px; overflow-y:auto;"></div>
                 </div>
             </div>
             
@@ -9711,9 +9725,6 @@
             
             // Initialize body systems selector
             initializeBodySystems();
-            
-            // Start autosave
-            startAutosave();
             
             document.getElementById('reportModal').style.display = 'block';
         }
