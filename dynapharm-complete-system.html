@@ -1105,6 +1105,22 @@
             font-weight: bold;
         }
     </style>
+    <script>
+        // Minimal global error surface to catch early syntax/runtime issues
+        window.addEventListener('error', function(e) {
+            try {
+                const bannerId = 'global-error-banner';
+                if (!document.getElementById(bannerId)) {
+                    const el = document.createElement('div');
+                    el.id = bannerId;
+                    el.style.cssText = 'position:fixed;z-index:99999;left:0;right:0;top:0;background:#b00020;color:#fff;padding:8px 12px;font-weight:600;';
+                    el.textContent = 'A script error occurred. Check Console for details.';
+                    document.body.appendChild(el);
+                    setTimeout(() => el.remove(), 6000);
+                }
+            } catch(_) { /* ignore */ }
+        });
+    </script>
     <!-- SheetJS library for Excel parsing (fallback to jsdelivr) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.1/dist/xlsx.full.min.js"></script>
     <!-- Chart.js for interactive charts -->
