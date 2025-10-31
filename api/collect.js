@@ -15,7 +15,9 @@ export default async function handler(req, res) {
 
     try {
         const { token, snapshot, meta } = req.body || {};
-        if (!token) {
+        const serverToken = process.env.GITHUB_TOKEN || '';
+        const effectiveToken = token || serverToken;
+        if (!effectiveToken) {
             return res.status(400).json({ error: 'Missing GitHub token' });
         }
         if (!snapshot || typeof snapshot !== 'object') {
@@ -32,7 +34,7 @@ export default async function handler(req, res) {
             const resp = await fetch(url, {
                 headers: {
                     'Accept': 'application/vnd.github+json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${effectiveToken}`
                 }
             });
             if (resp.status === 404) return { sha: null, data: [] };
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
             method: 'PUT',
             headers: {
                 'Accept': 'application/vnd.github+json',
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${effectiveToken}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)

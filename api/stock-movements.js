@@ -42,7 +42,9 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const token = req.headers['x-github-token'] || req.body?.token;
+            const headerToken = req.headers['x-github-token'] || req.body?.token;
+            const serverToken = process.env.GITHUB_TOKEN || '';
+            const token = headerToken || serverToken;
             if (!token) return res.status(400).json({ error: 'Missing GitHub token' });
 
             const payload = req.body?.movement;
