@@ -24911,6 +24911,26 @@ async function reverseLastPrescriptionPayment(reportId){
                 closeModal('addEmployeeModal');
                 displayEmployees();
                 alert('Employee saved successfully!');
+                // Try to save to cloud via serverless API
+                (async () => {
+                    try {
+                        const payload = {
+                            fullName: formData.name,
+                            userId: formData.employeeId || ('STAFF-' + Date.now()),
+                            role: formData.position || 'staff',
+                            branch: (currentUser && currentUser.branch) || 'townshop',
+                            email: formData.email || '',
+                            phone: formData.phone || '',
+                            hireDate: formData.hireDate || new Date().toISOString().split('T')[0],
+                            employmentStatus: 'active'
+                        };
+                        await fetch('/api/employees', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'x-user-role': 'hr_manager' },
+                            body: JSON.stringify(payload)
+                        });
+                    } catch(_) { /* ignore */ }
+                })();
             }
             
             if (e.target.id === 'applyLeaveForm') {
