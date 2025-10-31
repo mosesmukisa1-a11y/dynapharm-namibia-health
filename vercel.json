@@ -8,7 +8,14 @@
     { "src": "distributor-guest.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
-    { "src": "api/**/*.js", "use": "@vercel/node" }
+    { "src": "api/health.js", "use": "@vercel/node" },
+    { "src": "api/clients.js", "use": "@vercel/node" },
+    { "src": "api/users.js", "use": "@vercel/node" },
+    { "src": "api/orders.js", "use": "@vercel/node" },
+    { "src": "api/branches.js", "use": "@vercel/node" },
+    { "src": "api/notifications.js", "use": "@vercel/node" },
+    { "src": "api/reports.js", "use": "@vercel/node" },
+    { "src": "api/attendance.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/", "dest": "/dynapharm-complete-system.html" },
