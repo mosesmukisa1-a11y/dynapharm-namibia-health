@@ -2076,24 +2076,12 @@
                                 <label for="dietNo">No</label>
                             </div>
                         </div>
-                        <div class="checkbox-group" id="dietOptions" style="display: none; margin-top: 10px;">
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="dietType" value="vegetarian" id="dt1">
-                                <label for="dt1">Vegetarian</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="dietType" value="vegan" id="dt2">
-                                <label for="dt2">Vegan</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="dietType" value="glutenFree" id="dt3">
-                                <label for="dt3">Gluten-free</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="dietType" value="keto" id="dt4">
-                                <label for="dt4">Keto</label>
-                            </div>
-                        </div>
+                        <select name="dietType" id="dietOptions" multiple size="4" style="width: 100%; display: none; margin-top: 10px;">
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="glutenFree">Gluten-free</option>
+                            <option value="keto">Keto</option>
+                        </select>
                         <input type="text" name="dietOther" placeholder="Other diet type..." style="margin-top: 10px;">
                     </div>
 
@@ -2198,24 +2186,12 @@
                         </div>
                         <div style="margin-top: 15px;">
                             <label>Do you have sleep problems?</label>
-                            <div class="checkbox-group">
-                                <div class="checkbox-item">
-                                    <input type="checkbox" name="sleepProblems" value="difficulty_falling" id="sp1">
-                                    <label for="sp1">Difficulty falling asleep</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" name="sleepProblems" value="waking_night" id="sp2">
-                                    <label for="sp2">Waking during the night</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" name="sleepProblems" value="waking_early" id="sp3">
-                                    <label for="sp3">Waking too early</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" name="sleepProblems" value="none" id="sp4">
-                                    <label for="sp4">None</label>
-                                </div>
-                            </div>
+                            <select name="sleepProblems" multiple size="4" style="width:100%;">
+                                <option value="difficulty_falling">Difficulty falling asleep</option>
+                                <option value="waking_night">Waking during the night</option>
+                                <option value="waking_early">Waking too early</option>
+                                <option value="none">None</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -2232,32 +2208,14 @@
 
                     <div class="form-group">
                         <label class="required">15. Mental Health</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="none" id="mhc0">
-                                <label for="mhc0">None</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="anxiety" id="mhc1">
-                                <label for="mhc1">Anxiety</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="depression" id="mhc2">
-                                <label for="mhc2">Depression</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="panic_attacks" id="mhc3">
-                                <label for="mhc3">Panic Attacks</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="mood_swings" id="mhc4">
-                                <label for="mhc4">Mood Swings</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mentalHealthConcerns" value="burnout" id="mhc5">
-                                <label for="mhc5">Burnout/Fatigue</label>
-                            </div>
-                        </div>
+                        <select name="mentalHealthConcerns" multiple size="6" style="width:100%;">
+                            <option value="none">None</option>
+                            <option value="anxiety">Anxiety</option>
+                            <option value="depression">Depression</option>
+                            <option value="panic_attacks">Panic Attacks</option>
+                            <option value="mood_swings">Mood Swings</option>
+                            <option value="burnout">Burnout/Fatigue</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -2315,24 +2273,12 @@
 
                     <div class="form-group">
                         <label>19. Men's Health (if applicable)</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mensHealth" value="na" id="mens0">
-                                <label for="mens0">N/A</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mensHealth" value="prostate" id="mens1">
-                                <label for="mens1">Prostate issues</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mensHealth" value="urinary" id="mens2">
-                                <label for="mens2">Urinary issues</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="mensHealth" value="libido" id="mens3">
-                                <label for="mens3">Libido/energy concerns</label>
-                            </div>
-                        </div>
+                        <select name="mensHealth" multiple size="4" style="width:100%;">
+                            <option value="na">N/A</option>
+                            <option value="prostate">Prostate issues</option>
+                            <option value="urinary">Urinary issues</option>
+                            <option value="libido">Libido/energy concerns</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -6863,31 +6809,34 @@
 
         // Handle membership status change
         function handleMembershipStatusChange() {
-            const memberRadio = document.querySelector('input[name="membershipStatus"][value="member"]');
-            const referredRadio = document.querySelector('input[name="membershipStatus"][value="referred"]');
+            const membershipSelect = document.getElementById('membershipStatusSelect');
             const referralDetails = document.getElementById('referralDetails');
             const memberDetails = document.getElementById('memberDetails');
             const referralNameInput = document.querySelector('input[name="referralName"]');
             const referralNbInput = document.querySelector('input[name="referralNbNumber"]');
-            
-            if (memberRadio && referredRadio) {
-                memberRadio.addEventListener('change', function() {
-                    if (this.checked) {
-                        referralDetails.style.display = 'none';
-                        memberDetails.style.display = 'block';
-                        referralNameInput.required = false;
-                        referralNbInput.required = false;
-                    }
-                });
-                
-                referredRadio.addEventListener('change', function() {
-                    if (this.checked) {
-                        referralDetails.style.display = 'block';
-                        memberDetails.style.display = 'none';
-                        referralNameInput.required = true;
-                        referralNbInput.required = true;
-                    }
-                });
+
+            function updateVisibility(value) {
+                if (value === 'member') {
+                    if (referralDetails) referralDetails.style.display = 'none';
+                    if (memberDetails) memberDetails.style.display = 'block';
+                    if (referralNameInput) referralNameInput.required = false;
+                    if (referralNbInput) referralNbInput.required = false;
+                } else if (value === 'referred') {
+                    if (referralDetails) referralDetails.style.display = 'block';
+                    if (memberDetails) memberDetails.style.display = 'none';
+                    if (referralNameInput) referralNameInput.required = true;
+                    if (referralNbInput) referralNbInput.required = true;
+                } else {
+                    if (referralDetails) referralDetails.style.display = 'none';
+                    if (memberDetails) memberDetails.style.display = 'none';
+                    if (referralNameInput) referralNameInput.required = false;
+                    if (referralNbInput) referralNbInput.required = false;
+                }
+            }
+
+            if (membershipSelect) {
+                membershipSelect.addEventListener('change', function() { updateVisibility(this.value); });
+                updateVisibility(membershipSelect.value);
             }
         }
 
