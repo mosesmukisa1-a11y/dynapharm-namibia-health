@@ -13383,8 +13383,8 @@ async function reverseLastPrescriptionPayment(reportId){
                     activeSection = 'dispenserStockSection';
                     activeTab = 'stockTab';
                     gradient = 'linear-gradient(135deg, #34495e, #2c3e50)';
-                    // Default to Inventory sub-tab when opening Branch Stock
-                    showBranchStockSubTab('inventory');
+                    // Default to Branch-only Inventory List when opening Branch Stock
+                    showBranchStockSubTab('list');
                     break;
                 case 'banking':
                     activeSection = 'dispenserBankingSection';
@@ -13831,22 +13831,28 @@ async function reverseLastPrescriptionPayment(reportId){
             const listEl = document.getElementById('branchInventoryList');
             if (!listEl) return;
 
-            // Load consolidated simple inventory used by Dispenser
-            let simpleInventory = {};
+            // Load branch-specific stock snapshot
+            const branchId = getBranchId();
+            let branchStockMap = {};
             try {
-                simpleInventory = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}');
-            } catch (e) { simpleInventory = {}; }
+                const stockData = JSON.parse(localStorage.getItem('dyna_branch_stock') || '{}');
+                branchStockMap = stockData && typeof stockData === 'object' ? (stockData[branchId] || {}) : {};
+            } catch (e) { branchStockMap = {}; }
+
+            // Load reorder levels from consolidated inventory to enrich branch view
+            let masterInventory = {};
+            try { masterInventory = JSON.parse(localStorage.getItem('dynapharm_inventory') || '{}'); } catch (_) { masterInventory = {}; }
 
             const search = (document.getElementById('branchInventorySearch')?.value || '').toLowerCase();
 
-            const entries = Object.keys(simpleInventory).map(name => ({
+            const entries = Object.keys(branchStockMap).map(name => ({
                 name,
-                currentStock: simpleInventory[name]?.currentStock || 0,
-                reorderLevel: simpleInventory[name]?.reorderLevel ?? 5
+                currentStock: Number(branchStockMap[name] || 0),
+                reorderLevel: masterInventory[name]?.reorderLevel ?? 5
             })).filter(e => !search || e.name.toLowerCase().includes(search));
 
             if (entries.length === 0) {
-                listEl.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:20px;">No inventory records found.</p>';
+                listEl.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:20px;">No inventory records found for this branch.</p>';
                 return;
             }
 
