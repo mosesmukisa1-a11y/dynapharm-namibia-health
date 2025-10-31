@@ -2428,6 +2428,7 @@
                 <button class="tab-button" onclick="showOrderTab('all')">📋 All Orders</button>
                 <button class="tab-button" onclick="showOrderTab('crm')">👥 CRM</button>
                 <button class="tab-button" onclick="showOrderTab('notifications')">🔔 Notifications</button>
+                <button class="tab-button" onclick="showOrderTab('staffComm')">💬 Staff Communication</button>
             </div>
             
             <!-- Pending Orders Tab -->
@@ -3049,26 +3050,73 @@
                 </div>
             </div>
             
-            <!-- Staff Section (Leave & Cash Requests) -->
+            <!-- Staff Section (Services & Communications) -->
             <div id="dispenserStaffSection" style="display: none;">
                 <div class="form-section">
-                    <h3>👤 Staff Services</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                        <!-- Leave Request -->
-                        <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; border: 2px solid #4caf50;">
-                            <h4 style="color: #2e7d32; margin-bottom: 15px;">📅 Leave Management</h4>
-                            <button class="btn btn-success" onclick="showDispenserLeaveRequest()">Request Leave</button>
-                            <button class="btn btn-info" onclick="viewMyLeaveRequests()">My Leave Requests</button>
-                            <div id="myLeaveStatus" style="margin-top: 15px;"></div>
+                    <div class="staff-subtabs">
+                        <button class="staff-subtab-btn active" data-tab="services" onclick="showStaffSubTab('services', event)">🛠️ Services</button>
+                        <button class="staff-subtab-btn" data-tab="communications" onclick="showStaffSubTab('communications', event)">💬 Communications</button>
+                    </div>
+
+                    <div id="staffServicesTab" class="staff-subtab-content active">
+                        <h3>👤 Staff Services</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                            <!-- Leave Request -->
+                            <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; border: 2px solid #4caf50;">
+                                <h4 style="color: #2e7d32; margin-bottom: 15px;">📅 Leave Management</h4>
+                                <button class="btn btn-success" onclick="showDispenserLeaveRequest()">Request Leave</button>
+                                <button class="btn btn-info" onclick="viewMyLeaveRequests()">My Leave Requests</button>
+                                <div id="myLeaveStatus" style="margin-top: 15px;"></div>
+                            </div>
+                            
+                            <!-- Cash Request -->
+                            <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3;">
+                                <h4 style="color: #1565c0; margin-bottom: 15px;">💵 Cash Requests</h4>
+                                <button class="btn btn-success" onclick="showDispenserCashRequest()">Request Cash</button>
+                                <button class="btn btn-info" onclick="viewMyCashRequests()">My Cash Requests</button>
+                                <div id="myCashStatus" style="margin-top: 15px;"></div>
+                            </div>
                         </div>
-                        
-                        <!-- Cash Request -->
-                        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3;">
-                            <h4 style="color: #1565c0; margin-bottom: 15px;">💵 Cash Requests</h4>
-                            <button class="btn btn-success" onclick="showDispenserCashRequest()">Request Cash</button>
-                            <button class="btn btn-info" onclick="viewMyCashRequests()">My Cash Requests</button>
-                            <div id="myCashStatus" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <div id="staffCommunicationsTab" class="staff-subtab-content">
+                        <h3>💬 Staff Communications</h3>
+                        <p class="portal-communication-note">Review messages from HR, GM, Director, Finance, Front Desk and MIS, then send updates back to them.</p>
+                        <div class="staff-comm-tabs">
+                            <button class="staff-comm-filter-btn active" data-filter="all" onclick="setStaffCommFilter('all', event)">All</button>
+                            <button class="staff-comm-filter-btn" data-filter="hr" onclick="setStaffCommFilter('hr', event)">👥 HR</button>
+                            <button class="staff-comm-filter-btn" data-filter="gm" onclick="setStaffCommFilter('gm', event)">👔 GM</button>
+                            <button class="staff-comm-filter-btn" data-filter="director" onclick="setStaffCommFilter('director', event)">🎯 Director</button>
+                            <button class="staff-comm-filter-btn" data-filter="finance" onclick="setStaffCommFilter('finance', event)">💰 Finance</button>
+                            <button class="staff-comm-filter-btn" data-filter="frontdesk" onclick="setStaffCommFilter('frontdesk', event)">🖥️ Front Desk</button>
+                            <button class="staff-comm-filter-btn" data-filter="mis" onclick="setStaffCommFilter('mis', event)">📊 MIS</button>
                         </div>
+                        <div id="staffCommunicationInbox" class="communication-list"></div>
+                        <form id="staffCommunicationForm" class="communication-form" onsubmit="submitStaffCommunication(event)">
+                            <div class="form-group">
+                                <label class="required">Choose recipients</label>
+                                <div class="checkbox-group" id="staffCommRecipients">
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="hr">👥 HR</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="gm">👔 GM</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="director">🎯 Director</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="finance">💰 Finance</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="frontdesk">🖥️ Front Desk</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="staffCommRecipient" value="mis">📊 MIS</label>
+                                </div>
+                                <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-info btn-sm" onclick="toggleStaffRecipients(true)">Select All</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleStaffRecipients(false)">Clear</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="required" for="staffCommMessage">Message</label>
+                                <textarea id="staffCommMessage" rows="4" placeholder="Type your update or request..." required></textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button type="submit" class="btn btn-success">Send Communication</button>
+                                <button type="button" class="btn" onclick="resetStaffCommunicationForm()">Clear</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -3439,6 +3487,7 @@
                 <button class="hr-tab-btn" onclick="showHRSubTab('terminations')">🚪 Terminations</button>
                 <button class="hr-tab-btn" onclick="showHRSubTab('attendance')">🕐 Attendance</button>
                 <button class="hr-tab-btn" onclick="showHRSubTab('performance')">📊 Performance Review</button>
+                <button class="hr-tab-btn" onclick="showHRSubTab('hr-communication')">💬 Staff Communication</button>
             </div>
 
             <!-- Employee Management Tab -->
@@ -3922,6 +3971,24 @@
                     </div>
                 </div>
             </div>
+
+            <div id="hr-communication" class="hr-tab-content">
+                <div class="form-section">
+                    <h3>💬 Staff Communication Tab</h3>
+                    <p class="portal-communication-note">Send HR updates to branch staff and review their replies.</p>
+                    <div id="portalCommunicationList-hr" class="communication-list"></div>
+                    <form class="communication-form" onsubmit="submitPortalCommunication(event, 'hr')">
+                        <div class="form-group">
+                            <label class="required" for="portalCommunicationMessage-hr">Message</label>
+                            <textarea id="portalCommunicationMessage-hr" rows="4" placeholder="Share policy changes, approvals or notices..." required></textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="submit" class="btn btn-success">Send to Staff</button>
+                            <button type="button" class="btn" onclick="clearPortalCommunication('hr')">Clear</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- GM Portal -->
@@ -3947,6 +4014,22 @@
                     <button class="btn" onclick="exportSectionToPDF('gmContent')">🖨️ Export PDF</button>
                     <a class="btn" href="gm-portal-integration.html" target="_blank" rel="noopener" style="margin-left: 10px;">📊 Open GM Business Portal</a>
                     <button class="btn btn-success" onclick="openScheduleModal('gm')" style="margin-left: 10px;">⏱️ Schedule Report</button>
+                </div>
+
+                <div class="form-section">
+                    <h3>💬 Staff Communication Tab</h3>
+                    <p class="portal-communication-note">Share announcements with branch staff and keep their responses visible to the GM office.</p>
+                    <div id="portalCommunicationList-gm" class="communication-list"></div>
+                    <form class="communication-form" onsubmit="submitPortalCommunication(event, 'gm')">
+                        <div class="form-group">
+                            <label class="required" for="portalCommunicationMessage-gm">Message</label>
+                            <textarea id="portalCommunicationMessage-gm" rows="4" placeholder="Inform staff about directives, meetings or approvals..." required></textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="submit" class="btn btn-success">Send to Staff</button>
+                            <button type="button" class="btn" onclick="clearPortalCommunication('gm')">Clear</button>
+                        </div>
+                    </form>
                 </div>
                 
                 <!-- KPI Dashboard -->
@@ -4028,6 +4111,22 @@
                     <button class="btn btn-primary" onclick="refreshDirectorData()">🔄 Refresh Data</button>
                     <button class="btn" onclick="exportSectionToPDF('directorContent')">🖨️ Export PDF</button>
                     <button class="btn btn-success" onclick="openScheduleModal('director')" style="margin-left: 10px;">⏱️ Schedule Report</button>
+                </div>
+
+                <div class="form-section">
+                    <h3>💬 Staff Communication Tab</h3>
+                    <p class="portal-communication-note">Coordinate strategic directives with staff and log their feedback.</p>
+                    <div id="portalCommunicationList-director" class="communication-list"></div>
+                    <form class="communication-form" onsubmit="submitPortalCommunication(event, 'director')">
+                        <div class="form-group">
+                            <label class="required" for="portalCommunicationMessage-director">Message</label>
+                            <textarea id="portalCommunicationMessage-director" rows="4" placeholder="Share strategic updates, policy changes or acknowledgements..." required></textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="submit" class="btn btn-success">Send to Staff</button>
+                            <button type="button" class="btn" onclick="clearPortalCommunication('director')">Clear</button>
+                        </div>
+                    </form>
                 </div>
                 
                 <!-- Executive KPIs -->
@@ -4422,6 +4521,22 @@
                 <select id="financeBranchSelect" onchange="refreshFinancialDashboard()" style="padding: 10px; width: 300px; border: 2px solid #ddd; border-radius: 5px;">
                     <option value="all">All Branches</option>
                 </select>
+            </div>
+
+            <div class="form-section">
+                <h3>💬 Staff Communication Tab</h3>
+                <p class="portal-communication-note">Notify staff about finance approvals and review cash office responses.</p>
+                <div id="portalCommunicationList-finance" class="communication-list"></div>
+                <form class="communication-form" onsubmit="submitPortalCommunication(event, 'finance')">
+                    <div class="form-group">
+                        <label class="required" for="portalCommunicationMessage-finance">Message</label>
+                        <textarea id="portalCommunicationMessage-finance" rows="4" placeholder="Share finance notices, approvals or reminders..." required></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="submit" class="btn btn-success">Send to Staff</button>
+                        <button type="button" class="btn" onclick="clearPortalCommunication('finance')">Clear</button>
+                    </div>
+                </form>
             </div>
             
             <!-- Live Per-Branch Metrics Dashboard -->
@@ -7965,15 +8080,6 @@
             }, 500);
         }
 
-        function clearForm() {
-            if (confirm('Are you sure you want to clear the entire form? All data will be lost.')) {
-                document.getElementById('clientForm').reset();
-                document.getElementById('signatureField').value = '';
-                document.getElementById('signaturePad').innerHTML = 'Click here to sign electronically';
-                document.getElementById('signaturePad').style.background = '#f0f8ff';
-            }
-        }
-
         document.getElementById('clientForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -8149,12 +8255,35 @@
         });
 
         function clearForm() {
-            if (confirm('Clear form?')) {
-                document.getElementById('clientForm').reset();
-                document.getElementById('currentDate').value = new Date().toISOString().split('T')[0];
-                document.getElementById('signaturePad').innerHTML = 'Click here to sign electronically';
-                document.getElementById('signaturePad').style.background = '#f0f8ff';
-                document.getElementById('clientRefNumber').style.display = 'none';
+            if (confirm('Are you sure you want to clear the entire form? All data will be lost.')) {
+                const form = document.getElementById('clientForm');
+                if (!form) return;
+                form.reset();
+
+                const signatureField = document.getElementById('signatureField');
+                if (signatureField) signatureField.value = '';
+                const signaturePad = document.getElementById('signaturePad');
+                if (signaturePad) {
+                    signaturePad.innerHTML = 'Tap to sign electronically';
+                    signaturePad.style.background = '#fff6f8';
+                }
+
+                const memberDetails = document.getElementById('memberDetails');
+                const referralDetails = document.getElementById('referralDetails');
+                if (memberDetails) memberDetails.style.display = 'none';
+                if (referralDetails) referralDetails.style.display = 'none';
+                document.querySelectorAll('.membership-option').forEach(option => option.classList.remove('active'));
+
+                const visitBadge = document.getElementById('visitTypeBadge');
+                if (visitBadge) visitBadge.textContent = '—';
+                const referencePreview = document.getElementById('referencePreview');
+                if (referencePreview) referencePreview.textContent = 'Generated on save';
+                const preferredDateDisplay = document.getElementById('preferredDateDisplay');
+                if (preferredDateDisplay) preferredDateDisplay.textContent = '—';
+                const refNumberDisplay = document.getElementById('clientRefNumber');
+                if (refNumberDisplay) refNumberDisplay.style.display = 'none';
+
+                initializeAppointmentPreferences();
             }
         }
 
@@ -12630,6 +12759,239 @@
         }
         
         // Staff Functions
+        const COMMUNICATION_STORAGE_KEY = 'dynapharm_portal_communications_v1';
+        const STAFF_IDENTIFIER = 'staff';
+        const COMMUNICATION_TARGETS = [
+            { id: 'hr', label: 'HR', icon: '👥' },
+            { id: 'gm', label: 'GM', icon: '👔' },
+            { id: 'director', label: 'Director', icon: '🎯' },
+            { id: 'finance', label: 'Finance', icon: '💰' },
+            { id: 'frontdesk', label: 'Front Desk', icon: '🖥️' },
+            { id: 'mis', label: 'MIS', icon: '📊' }
+        ];
+        const COMMUNICATION_TARGET_IDS = COMMUNICATION_TARGETS.map(p => p.id);
+        let staffSubTabActive = 'services';
+        let staffCommFilter = 'all';
+
+        function getCommunicationMeta(id) {
+            return COMMUNICATION_TARGETS.find(p => p.id === id) || { id, label: id.toUpperCase(), icon: '💬' };
+        }
+
+        function escapeHTML(str) {
+            return (str || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch));
+        }
+
+        function getAllCommunications() {
+            try {
+                const raw = localStorage.getItem(COMMUNICATION_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.warn('Failed to load communications', e);
+                return [];
+            }
+        }
+
+        function saveAllCommunications(list) {
+            try {
+                localStorage.setItem(COMMUNICATION_STORAGE_KEY, JSON.stringify(list));
+            } catch (e) {
+                console.warn('Failed to save communications', e);
+            }
+        }
+
+        function showStaffSubTab(tabName, evt) {
+            if (evt && typeof evt.preventDefault === 'function') evt.preventDefault();
+            staffSubTabActive = tabName;
+            const section = document.getElementById('dispenserStaffSection');
+            if (!section) return;
+            section.querySelectorAll('.staff-subtab-btn').forEach(btn => {
+                const btnTab = btn.dataset ? btn.dataset.tab : btn.getAttribute('data-tab');
+                btn.classList.toggle('active', btnTab === tabName);
+            });
+            section.querySelectorAll('.staff-subtab-content').forEach(panel => {
+                const isServices = tabName === 'services' && panel.id === 'staffServicesTab';
+                const isComm = tabName === 'communications' && panel.id === 'staffCommunicationsTab';
+                panel.classList.toggle('active', isServices || isComm);
+            });
+            if (tabName === 'communications') {
+                renderStaffCommunications();
+            }
+        }
+
+        function setStaffCommFilter(filter, evt) {
+            if (evt && typeof evt.preventDefault === 'function') evt.preventDefault();
+            staffCommFilter = filter;
+            const section = document.getElementById('dispenserStaffSection');
+            if (section) {
+                section.querySelectorAll('.staff-comm-filter-btn').forEach(btn => {
+                    const btnFilter = btn.dataset ? btn.dataset.filter : btn.getAttribute('data-filter');
+                    btn.classList.toggle('active', btnFilter === filter);
+                });
+            }
+            renderStaffCommunications();
+        }
+
+        function toggleStaffRecipients(selectAll) {
+            document.querySelectorAll('#staffCommRecipients input[name="staffCommRecipient"]').forEach(cb => {
+                cb.checked = !!selectAll;
+            });
+        }
+
+        function resetStaffCommunicationForm() {
+            const form = document.getElementById('staffCommunicationForm');
+            if (form) form.reset();
+        }
+
+        function submitStaffCommunication(event) {
+            event.preventDefault();
+            const recipients = Array.from(document.querySelectorAll('#staffCommRecipients input[name="staffCommRecipient"]:checked'))
+                .map(cb => cb.value)
+                .filter(id => COMMUNICATION_TARGET_IDS.includes(id));
+            if (recipients.length === 0) {
+                alert('Select at least one portal to send your message to.');
+                return;
+            }
+            const messageInput = document.getElementById('staffCommMessage');
+            if (!messageInput) return;
+            const message = messageInput.value.trim();
+            if (!message) {
+                alert('Enter a message before sending.');
+                return;
+            }
+            const entry = {
+                id: 'comm-' + Date.now(),
+                from: STAFF_IDENTIFIER,
+                fromName: (currentUser && currentUser.fullName) || 'Staff Member',
+                to: recipients,
+                message,
+                createdAt: new Date().toISOString()
+            };
+            const communications = getAllCommunications();
+            communications.push(entry);
+            saveAllCommunications(communications);
+            messageInput.value = '';
+            renderStaffCommunications();
+            recipients.forEach(portalId => renderPortalCommunications(portalId));
+            alert('Communication sent successfully.');
+        }
+
+        function submitPortalCommunication(event, portalId) {
+            event.preventDefault();
+            const textarea = document.getElementById(`portalCommunicationMessage-${portalId}`);
+            if (!textarea) return;
+            const message = textarea.value.trim();
+            if (!message) {
+                alert('Enter a message before sending.');
+                return;
+            }
+            const meta = getCommunicationMeta(portalId);
+            const entry = {
+                id: `comm-${Date.now()}-${portalId}`,
+                from: portalId,
+                fromName: (currentUser && currentUser.fullName) || meta.label,
+                to: [STAFF_IDENTIFIER],
+                message,
+                createdAt: new Date().toISOString()
+            };
+            const communications = getAllCommunications();
+            communications.push(entry);
+            saveAllCommunications(communications);
+            textarea.value = '';
+            renderPortalCommunications(portalId);
+            renderStaffCommunications();
+            alert('Message sent to staff.');
+        }
+
+        function clearPortalCommunication(portalId) {
+            const textarea = document.getElementById(`portalCommunicationMessage-${portalId}`);
+            if (textarea) textarea.value = '';
+        }
+
+        function buildCommunicationHTML(entry, perspective) {
+            const isOutgoing = perspective === STAFF_IDENTIFIER ? entry.from === STAFF_IDENTIFIER : entry.from === perspective;
+            const senderMeta = entry.from === STAFF_IDENTIFIER ? { icon: '👤', label: 'Staff' } : getCommunicationMeta(entry.from);
+            const senderName = entry.from === STAFF_IDENTIFIER ? (entry.fromName || 'Staff') : (entry.fromName || senderMeta.label);
+            const recipients = (entry.to || []).map(target => {
+                if (target === STAFF_IDENTIFIER) return '👤 Staff';
+                const meta = getCommunicationMeta(target);
+                return `${meta.icon} ${meta.label}`;
+            }).join(', ');
+            return `
+                <div class="communication-message ${isOutgoing ? 'outgoing' : ''}">
+                    <div class="communication-meta">
+                        <span>${senderMeta.icon} ${escapeHTML(senderName)}</span>
+                        <span> → ${recipients || '—'}</span>
+                        <span style="margin-left:8px;">${new Date(entry.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div class="communication-body">${escapeHTML(entry.message)}</div>
+                </div>
+            `;
+        }
+
+        function isStaffEntryVisible(entry, filter) {
+            const staffSent = entry.from === STAFF_IDENTIFIER;
+            const toStaff = Array.isArray(entry.to) && entry.to.includes(STAFF_IDENTIFIER);
+            const fromPortal = COMMUNICATION_TARGET_IDS.includes(entry.from);
+            if (!staffSent && !fromPortal) return false;
+
+            const involvedPortals = [];
+            if (staffSent) {
+                (entry.to || []).forEach(target => {
+                    if (COMMUNICATION_TARGET_IDS.includes(target)) involvedPortals.push(target);
+                });
+            } else if (fromPortal && toStaff) {
+                involvedPortals.push(entry.from);
+            }
+
+            if (filter === 'all') {
+                return involvedPortals.length > 0;
+            }
+            return involvedPortals.includes(filter);
+        }
+
+        function renderStaffCommunications() {
+            const container = document.getElementById('staffCommunicationInbox');
+            if (!container) return;
+            const communications = getAllCommunications();
+            const filtered = communications
+                .filter(entry => isStaffEntryVisible(entry, staffCommFilter))
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="communication-empty">No communications yet.</div>';
+                return;
+            }
+            container.innerHTML = filtered.map(entry => buildCommunicationHTML(entry, STAFF_IDENTIFIER)).join('');
+        }
+
+        function renderPortalCommunications(portalId) {
+            const container = document.getElementById(`portalCommunicationList-${portalId}`);
+            if (!container) return;
+            const communications = getAllCommunications();
+            const filtered = communications
+                .filter(entry => {
+                    if (entry.from === portalId && Array.isArray(entry.to) && entry.to.includes(STAFF_IDENTIFIER)) return true;
+                    if (entry.from === STAFF_IDENTIFIER && Array.isArray(entry.to) && entry.to.includes(portalId)) return true;
+                    return false;
+                })
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="communication-empty">No conversations yet.</div>';
+                return;
+            }
+            container.innerHTML = filtered.map(entry => buildCommunicationHTML(entry, portalId)).join('');
+        }
+
+        function initializeCommunicationPanels() {
+            try { renderStaffCommunications(); } catch (e) { console.warn(e); }
+            COMMUNICATION_TARGET_IDS.forEach(id => {
+                try { renderPortalCommunications(id); } catch (e) { console.warn(e); }
+            });
+        }
+
+        initializeCommunicationPanels();
+
         function showDispenserLeaveRequest() {
             const modal = document.createElement('div');
             modal.id = 'leaveRequestModal';
@@ -12811,6 +13173,8 @@
         function loadMyStaffStatus() {
             viewMyLeaveRequests();
             viewMyCashRequests();
+            showStaffSubTab(staffSubTabActive || 'services');
+            renderStaffCommunications();
         }
         
         // Cash drawer functions
@@ -17885,21 +18249,460 @@
         let windhoekStock = [];
         let ondangwaStock = [];
         let distributionHistory = [];
-        
+        let demandForecasts = [];
+        let purchaseOrdersDetailed = [];
+        let asnQueue = [];
+        let qualityInspections = [];
+        let putawayTasks = [];
+        let branchReplenishmentRequests = [];
+        let returnsLog = [];
+        let replenishmentSuggestionCache = [];
+        let reorderScenarios = [];
+
+        const STOCK_STORAGE_KEYS = {
+            forecasts: 'dyna_demand_forecasts',
+            purchaseOrders: 'dyna_purchase_orders_detailed',
+            asn: 'dyna_asn_queue',
+            quality: 'dyna_quality_checks',
+            putaway: 'dyna_putaway_tasks',
+            branchRequests: 'dyna_branch_replenishment_requests',
+            returns: 'dyna_returns_log',
+            replenishment: 'dyna_replenishment_suggestions',
+            scenarios: 'dyna_reorder_scenarios'
+        };
+
         // Load stock data from localStorage
         function loadStockData() {
             countryStock = safeParseFromStorage('dyna_countryStock', '[]');
             windhoekStock = safeParseFromStorage('dyna_windhoekStock', '[]');
             ondangwaStock = safeParseFromStorage('dyna_ondangwaStock', '[]');
             distributionHistory = safeParseFromStorage('dyna_distributionHistory', '[]');
+
+            demandForecasts = safeParseFromStorage(STOCK_STORAGE_KEYS.forecasts, '[]');
+            purchaseOrdersDetailed = safeParseFromStorage(STOCK_STORAGE_KEYS.purchaseOrders, '[]');
+            if (!Array.isArray(purchaseOrdersDetailed)) purchaseOrdersDetailed = [];
+
+            const legacyPOs = safeParseFromStorage('dyna_purchase_orders', '[]');
+            if (legacyPOs.length && purchaseOrdersDetailed.length === 0) {
+                purchaseOrdersDetailed = legacyPOs.map(po => ({
+                    id: po.id || ('PO-' + Date.now()),
+                    supplier: po.supplier || 'Unknown Supplier',
+                    number: po.number || po.id || ('PO-' + Math.random().toString(36).slice(2, 8).toUpperCase()),
+                    eta: po.eta || '',
+                    value: Number(po.value || 0),
+                    currency: po.currency || 'NAD',
+                    items: Array.isArray(po.items) ? po.items : ((po.items || '').toString().split(/\n|;/).map(i => i.trim()).filter(Boolean)),
+                    linked: po.linked || '',
+                    status: po.status || 'Open',
+                    notes: po.notes || '',
+                    createdAt: po.createdAt || new Date().toISOString(),
+                    updatedAt: po.updatedAt || po.createdAt || new Date().toISOString()
+                }));
+            }
+
+            asnQueue = safeParseFromStorage(STOCK_STORAGE_KEYS.asn, '[]');
+            qualityInspections = safeParseFromStorage(STOCK_STORAGE_KEYS.quality, '[]');
+            putawayTasks = safeParseFromStorage(STOCK_STORAGE_KEYS.putaway, '[]');
+            branchReplenishmentRequests = safeParseFromStorage(STOCK_STORAGE_KEYS.branchRequests, '[]');
+            returnsLog = safeParseFromStorage(STOCK_STORAGE_KEYS.returns, '[]');
+            replenishmentSuggestionCache = safeParseFromStorage(STOCK_STORAGE_KEYS.replenishment, '[]');
+            reorderScenarios = safeParseFromStorage(STOCK_STORAGE_KEYS.scenarios, '[]');
         }
-        
+
         // Save stock data to localStorage
         function saveStockData() {
             localStorage.setItem('dyna_countryStock', JSON.stringify(countryStock));
             localStorage.setItem('dyna_windhoekStock', JSON.stringify(windhoekStock));
             localStorage.setItem('dyna_ondangwaStock', JSON.stringify(ondangwaStock));
             localStorage.setItem('dyna_distributionHistory', JSON.stringify(distributionHistory));
+        }
+
+        const persistDemandForecasts = () => localStorage.setItem(STOCK_STORAGE_KEYS.forecasts, JSON.stringify(demandForecasts));
+        const persistPurchaseOrders = () => localStorage.setItem(STOCK_STORAGE_KEYS.purchaseOrders, JSON.stringify(purchaseOrdersDetailed));
+        const persistAsnQueue = () => localStorage.setItem(STOCK_STORAGE_KEYS.asn, JSON.stringify(asnQueue));
+        const persistQualityChecks = () => localStorage.setItem(STOCK_STORAGE_KEYS.quality, JSON.stringify(qualityInspections));
+        const persistPutawayTasks = () => localStorage.setItem(STOCK_STORAGE_KEYS.putaway, JSON.stringify(putawayTasks));
+        const persistBranchRequests = () => localStorage.setItem(STOCK_STORAGE_KEYS.branchRequests, JSON.stringify(branchReplenishmentRequests));
+        const persistReturnsLog = () => localStorage.setItem(STOCK_STORAGE_KEYS.returns, JSON.stringify(returnsLog));
+        const persistReplenishmentSuggestions = () => localStorage.setItem(STOCK_STORAGE_KEYS.replenishment, JSON.stringify(replenishmentSuggestionCache));
+        const persistReorderScenarios = () => localStorage.setItem(STOCK_STORAGE_KEYS.scenarios, JSON.stringify(reorderScenarios));
+
+        function renderPlanInsights() {
+            const list = document.getElementById('planInsights');
+            if (!list) return;
+            loadStockData();
+
+            const openPOs = purchaseOrdersDetailed.filter(po => po.status !== 'Delivered').length;
+            const inboundCartons = asnQueue.reduce((sum, asn) => sum + Number(asn.cartons || 0), 0);
+            const qualityOnHold = qualityInspections.filter(qc => (qc.disposition || '').toLowerCase() === 'quarantine').length;
+            const barcodeStock = safeParseFromStorage('dyna_barcode_stock', '[]');
+            const expiringSoon = barcodeStock.filter(batch => {
+                if (!batch.expiry && !batch.expiryDate) return false;
+                const expiry = new Date(batch.expiry || batch.expiryDate);
+                const diffDays = (expiry - new Date()) / (1000 * 60 * 60 * 24);
+                return diffDays >= 0 && diffDays <= 60;
+            }).length;
+
+            const bullets = [
+                `📦 ${openPOs} purchase orders still open — ensure supplier follow-ups are in place.`,
+                `🚛 ${asnQueue.length} inbound shipments registered covering ${inboundCartons} cartons.`,
+                qualityOnHold
+                    ? `🧪 ${qualityOnHold} batches currently quarantined pending QC sign-off.`
+                    : '🧪 All inspected batches are released.',
+                expiringSoon
+                    ? `⏳ ${expiringSoon} batches expiring within 60 days — consider branch pull-through campaigns.`
+                    : '✅ No batches expiring in the next 60 days.'
+            ];
+
+            list.innerHTML = bullets.map(text => `<li>${text}</li>`).join('');
+        }
+
+        function renderSupplierScorecard() {
+            const table = document.getElementById('supplierScorecard');
+            if (!table) return;
+            loadStockData();
+
+            if (!purchaseOrdersDetailed.length) {
+                table.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">No purchase orders captured yet.</p>';
+                return;
+            }
+
+            const supplierMap = new Map();
+            purchaseOrdersDetailed.forEach(po => {
+                const supplier = (po.supplier || 'Unknown Supplier').trim();
+                if (!supplierMap.has(supplier)) {
+                    supplierMap.set(supplier, { total: 0, open: 0, delivered: 0, value: 0, leadTimes: [], qualityIssues: 0 });
+                }
+                const bucket = supplierMap.get(supplier);
+                bucket.total += 1;
+                bucket.value += Number(po.value || 0);
+                if (po.status === 'Delivered') bucket.delivered += 1; else bucket.open += 1;
+                if (po.receivedAt && po.createdAt) {
+                    const lead = (new Date(po.receivedAt) - new Date(po.createdAt)) / (1000 * 60 * 60 * 24);
+                    if (!Number.isNaN(lead)) bucket.leadTimes.push(Math.max(0, Math.round(lead)));
+                }
+            });
+
+            qualityInspections.forEach(qc => {
+                const supplier = (qc.supplier || qc.linkedSupplier || '').trim();
+                if (!supplier) return;
+                const bucket = supplierMap.get(supplier);
+                if (!bucket) return;
+                if ((qc.disposition || '').toLowerCase() !== 'released') bucket.qualityIssues += 1;
+            });
+
+            const rows = Array.from(supplierMap.entries()).map(([supplier, stats]) => {
+                const avgLead = stats.leadTimes.length
+                    ? (stats.leadTimes.reduce((a, b) => a + b, 0) / stats.leadTimes.length).toFixed(1)
+                    : '—';
+                const qualityRate = stats.total ? Math.round(((stats.total - stats.qualityIssues) / stats.total) * 100) : 100;
+                return `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd; font-weight:600;">${supplier}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${stats.total}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${stats.open}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">N$ ${stats.value.toFixed(2)}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${avgLead} days</td>
+                        <td style="padding:10px; border:1px solid #ddd; color:${qualityRate < 95 ? '#e67e22' : '#27ae60'};">${qualityRate}% pass</td>
+                    </tr>
+                `;
+            }).join('');
+
+            table.innerHTML = `
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#c41e3a; color:white;">
+                            <th style="padding:10px; text-align:left;">Supplier</th>
+                            <th style="padding:10px; text-align:left;">Total POs</th>
+                            <th style="padding:10px; text-align:left;">Open</th>
+                            <th style="padding:10px; text-align:left;">Value</th>
+                            <th style="padding:10px; text-align:left;">Avg Lead Time</th>
+                            <th style="padding:10px; text-align:left;">Quality Pass Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function handleForecastSubmit(event) {
+            event.preventDefault();
+            const sku = (document.getElementById('forecastSku')?.value || '').trim();
+            if (!sku) return;
+            const forecast = {
+                id: 'FC-' + Date.now(),
+                sku,
+                location: document.getElementById('forecastLocation')?.value || 'country',
+                horizon: document.getElementById('forecastHorizon')?.value || 'monthly',
+                method: document.getElementById('forecastMethod')?.value || 'exponential',
+                quantity: Number(document.getElementById('forecastQuantity')?.value || 0),
+                notes: document.getElementById('forecastNotes')?.value || '',
+                createdBy: currentUser?.fullName || 'system',
+                createdAt: new Date().toISOString()
+            };
+            demandForecasts.unshift(forecast);
+            persistDemandForecasts();
+            event.target.reset();
+            renderForecastList();
+            renderPlanInsights();
+        }
+
+        function renderForecastList() {
+            const container = document.getElementById('forecastList');
+            if (!container) return;
+            loadStockData();
+
+            if (!demandForecasts.length) {
+                container.innerHTML = '<div style="padding:20px; border:1px dashed #ccc; border-radius:8px; text-align:center; color:#666;">No forecasts captured yet. Start by modelling expected demand.</div>';
+                return;
+            }
+
+            container.innerHTML = demandForecasts.slice(0, 8).map(forecast => `
+                <div class="client-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${forecast.sku}</div>
+                            <div style="font-size:.85rem; color:#666;">${forecast.location.toUpperCase()} • ${forecast.horizon}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:1.4rem; font-weight:700; color:#27ae60;">${forecast.quantity}</div>
+                            <div style="font-size:.75rem; color:#999;">${forecast.method}</div>
+                        </div>
+                    </div>
+                    ${forecast.notes ? `<p style="margin-top:8px; color:#555;">${forecast.notes}</p>` : ''}
+                    <div style="font-size:.75rem; color:#999; margin-top:6px;">Created ${new Date(forecast.createdAt).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        function handlePurchaseOrderSubmit(event) {
+            event.preventDefault();
+            const supplier = (document.getElementById('poSupplier')?.value || '').trim();
+            if (!supplier) return;
+            const po = {
+                id: 'PO-' + Date.now(),
+                supplier,
+                number: (document.getElementById('poNumber')?.value || '').trim() || ('PO-' + Date.now()),
+                eta: document.getElementById('poEta')?.value || '',
+                value: Number(document.getElementById('poValue')?.value || 0),
+                currency: document.getElementById('poCurrency')?.value || 'NAD',
+                items: (document.getElementById('poItems')?.value || '').split(/\n|;/).map(i => i.trim()).filter(Boolean),
+                linked: document.getElementById('poLinked')?.value || '',
+                status: document.getElementById('poStatus')?.value || 'Open',
+                notes: document.getElementById('poNotes')?.value || '',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            purchaseOrdersDetailed.unshift(po);
+            persistPurchaseOrders();
+            event.target.reset();
+            renderPurchaseOrders();
+            renderSupplierScorecard();
+            renderPlanInsights();
+        }
+
+        function renderPurchaseOrders() {
+            const container = document.getElementById('purchaseOrderList');
+            if (!container) return;
+            loadStockData();
+
+            if (!purchaseOrdersDetailed.length) {
+                container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">No purchase orders recorded yet.</p>';
+                return;
+            }
+
+            container.innerHTML = purchaseOrdersDetailed.slice(0, 6).map(po => `
+                <div class="client-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${po.number}</div>
+                            <div style="font-size:.85rem; color:#666;">${po.supplier}</div>
+                            <div style="font-size:.8rem; color:#999;">Created ${new Date(po.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="display:inline-block; padding:4px 8px; border-radius:12px; background:${po.status==='Delivered' ? '#e8f5e9' : '#e8f4fd'}; color:${po.status==='Delivered' ? '#2e7d32' : '#1565c0'}; font-size:.8rem;">${po.status}</span>
+                            <div style="font-size:1.1rem; font-weight:700; color:#27ae60; margin-top:6px;">${po.currency || 'NAD'} ${Number(po.value || 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+                    ${po.items && po.items.length ? `<div style="font-size:.85rem; color:#555; margin-top:8px;">${po.items.slice(0, 3).join(', ')}${po.items.length > 3 ? '…' : ''}</div>` : ''}
+                    ${po.notes ? `<p style="font-size:.8rem; color:#777; margin-top:6px;">${po.notes}</p>` : ''}
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                        <button class="btn btn-success" style="flex:1; min-width:120px;" onclick="updatePurchaseOrderStatus('${po.id}', 'Delivered')">Mark Delivered</button>
+                        <button class="btn btn-info" style="flex:1; min-width:120px;" onclick="updatePurchaseOrderStatus('${po.id}', 'In Transit')">In Transit</button>
+                        <button class="btn" style="flex:1; min-width:120px;" onclick="updatePurchaseOrderStatus('${po.id}', 'Open')">Reopen</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePurchaseOrderStatus(poId, status) {
+            const po = purchaseOrdersDetailed.find(p => p.id === poId);
+            if (!po) return;
+            po.status = status;
+            po.updatedAt = new Date().toISOString();
+            persistPurchaseOrders();
+            renderPurchaseOrders();
+            renderSupplierScorecard();
+            renderPlanInsights();
+        }
+
+        function exportPurchaseOrders() {
+            if (!purchaseOrdersDetailed.length) {
+                alert('No purchase orders to export.');
+                return;
+            }
+            const rows = ['PO Number,Supplier,Status,ETA,Value,Currency,Items'];
+            purchaseOrdersDetailed.forEach(po => {
+                rows.push([
+                    po.number,
+                    po.supplier,
+                    po.status,
+                    po.eta || '',
+                    Number(po.value || 0).toFixed(2),
+                    po.currency || 'NAD',
+                    (po.items || []).join(' | ')
+                ].map(v => String(v).replace(/,/g, ' ')).join(','));
+            });
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'purchase_orders.csv';
+            link.click();
+        }
+
+        function handleASNSubmit(event) {
+            event.preventDefault();
+            const asn = {
+                id: 'ASN-' + Date.now(),
+                supplier: (document.getElementById('asnSupplier')?.value || '').trim(),
+                reference: (document.getElementById('asnReference')?.value || '').trim(),
+                po: document.getElementById('asnPO')?.value || '',
+                eta: document.getElementById('asnEta')?.value || '',
+                cartons: Number(document.getElementById('asnCartons')?.value || 0),
+                temperature: document.getElementById('asnTemperature')?.value || 'ambient',
+                allocation: document.getElementById('asnAllocation')?.value || 'windhoek',
+                contact: document.getElementById('asnContact')?.value || '',
+                notes: document.getElementById('asnNotes')?.value || '',
+                status: 'In Transit',
+                createdAt: new Date().toISOString()
+            };
+            asnQueue.unshift(asn);
+            persistAsnQueue();
+            event.target.reset();
+            renderASNList();
+            renderPlanInsights();
+        }
+
+        function renderASNList() {
+            const container = document.getElementById('asnList');
+            if (!container) return;
+            loadStockData();
+            if (!asnQueue.length) {
+                container.innerHTML = '<div style="padding:20px; border:1px dashed #ccc; border-radius:8px; text-align:center; color:#666;">No ASNs registered. Capture supplier pre-alerts here.</div>';
+                return;
+            }
+            container.innerHTML = asnQueue.slice(0, 6).map(asn => `
+                <div class="client-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${asn.reference}</div>
+                            <div style="font-size:.85rem; color:#666;">${asn.supplier} • ${asn.allocation.toUpperCase()}</div>
+                            <div style="font-size:.8rem; color:#999;">ETA ${asn.eta ? new Date(asn.eta).toLocaleString() : 'TBC'}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700; color:#27ae60;">${asn.cartons} cartons</div>
+                            <span style="font-size:.75rem; color:#999;">${asn.temperature}</span>
+                        </div>
+                    </div>
+                    ${asn.notes ? `<p style="margin-top:8px; color:#555;">${asn.notes}</p>` : ''}
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-success" style="flex:1;" onclick="markASNArrived('${asn.id}')">Arrived</button>
+                        <button class="btn btn-info" style="flex:1;" onclick="promoteASNToPutaway('${asn.id}')">Create Put-away Tasks</button>
+                        <button class="btn" style="flex:1;" onclick="removeASN('${asn.id}')">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function markASNArrived(asnId) {
+            const asn = asnQueue.find(a => a.id === asnId);
+            if (!asn) return;
+            asn.status = 'Arrived';
+            asn.arrivedAt = new Date().toISOString();
+            persistAsnQueue();
+            renderASNList();
+        }
+
+        function removeASN(asnId) {
+            asnQueue = asnQueue.filter(a => a.id !== asnId);
+            persistAsnQueue();
+            renderASNList();
+        }
+
+        function promoteASNToPutaway(asnId) {
+            const asn = asnQueue.find(a => a.id === asnId);
+            if (!asn) return;
+            const task = {
+                id: 'PT-' + Date.now(),
+                reference: asn.reference,
+                sku: asn.reference,
+                quantity: Number(asn.cartons || 0),
+                location: asn.allocation === 'windhoek' ? 'Windhoek inbound' : 'Ondangwa inbound',
+                zone: asn.temperature,
+                priority: 'high',
+                notes: asn.notes || '',
+                status: 'open',
+                createdAt: new Date().toISOString()
+            };
+            putawayTasks.unshift(task);
+            persistPutawayTasks();
+            renderPutawayQueue();
+        }
+
+        function handleQualitySubmit(event) {
+            event.preventDefault();
+            const inspection = {
+                id: 'QC-' + Date.now(),
+                batch: (document.getElementById('qcBatch')?.value || '').trim(),
+                asn: document.getElementById('qcAsn')?.value || '',
+                date: document.getElementById('qcDate')?.value || new Date().toISOString().split('T')[0],
+                temperature: document.getElementById('qcTemperature')?.value || '',
+                visual: document.getElementById('qcVisual')?.value || 'Pass',
+                docs: document.getElementById('qcDocs')?.value || 'Complete',
+                disposition: document.getElementById('qcDisposition')?.value || 'Released',
+                holdUntil: document.getElementById('qcHold')?.value || '',
+                notes: document.getElementById('qcNotes')?.value || '',
+                supplier: asnQueue.find(a => a.reference === document.getElementById('qcAsn')?.value)?.supplier || '',
+                createdAt: new Date().toISOString()
+            };
+            qualityInspections.unshift(inspection);
+            persistQualityChecks();
+            event.target.reset();
+            renderQualityList();
+            renderSupplierScorecard();
+            renderPlanInsights();
+        }
+
+        function renderQualityList() {
+            const container = document.getElementById('qualityList');
+            if (!container) return;
+            loadStockData();
+            if (!qualityInspections.length) {
+                container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">No quality inspections logged yet.</p>';
+                return;
+            }
+            container.innerHTML = qualityInspections.slice(0, 6).map(qc => `
+                <div class="client-card" style="border-left:4px solid ${qc.disposition==='Released' ? '#27ae60' : (qc.disposition==='Quarantine' ? '#f39c12' : '#e74c3c')};">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">Batch ${qc.batch}</div>
+                            <div style="font-size:.85rem; color:#666;">${qc.asn || 'No ASN'} • ${qc.date}</div>
+                        </div>
+                        <div style="text-align:right; font-size:.85rem; color:#555;">${qc.disposition}</div>
+                    </div>
+                    ${qc.notes ? `<p style="margin-top:6px; color:#555;">${qc.notes}</p>` : ''}
+                </div>
+            `).join('');
         }
         
         // Receive stock to country inventory
@@ -21107,6 +21910,8 @@
                 loadAttendance();
             } else if (tabName === 'performance') {
                 loadPerformanceReviews();
+            } else if (tabName === 'hr-communication') {
+                renderPortalCommunications('hr');
             }
         }
         
@@ -22943,7 +23748,8 @@
                 'all': 'allOrders',
                 'crm': 'frontdeskCRM',
                 'documents': 'frontdeskDocuments',
-                'notifications': 'frontdeskNotifications'
+                'notifications': 'frontdeskNotifications',
+                'staffComm': 'frontdeskStaffCommunication'
             };
             
             const tabElement = document.getElementById(tabMap[tabName]);
@@ -22969,6 +23775,8 @@
                 try { ensureDocReminderTimer(); } catch(_) {}
             } else if (tabName === 'notifications') {
                 try { renderNotifications(); } catch(_) {}
+            } else if (tabName === 'staffComm') {
+                renderPortalCommunications('frontdesk');
             }
         }
         
