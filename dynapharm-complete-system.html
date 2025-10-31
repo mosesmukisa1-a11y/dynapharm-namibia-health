@@ -1070,6 +1070,62 @@
             cursor: not-allowed;
             opacity: 0.5;
         }
+        #preferredCalendarWrapper {
+            background: #ffffff;
+            border: 2px solid #c41e3a;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        #preferredCalendarWrapper .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        #preferredCalendarWrapper .calendar-header h4 {
+            margin: 0;
+            color: #c41e3a;
+        }
+        .preferred-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .preferred-calendar-grid .weekday {
+            text-align: center;
+            font-weight: 600;
+            color: #1f2937;
+            padding: 6px 0;
+        }
+        .preferred-calendar-day {
+            border: none;
+            background: #f8f9fa;
+            color: #1f2937;
+            padding: 10px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .preferred-calendar-day:hover:not(:disabled) {
+            background: #c41e3a;
+            color: #ffffff;
+        }
+        .preferred-calendar-day.selected {
+            background: #1f2937;
+            color: #ffffff;
+        }
+        .preferred-calendar-day:disabled {
+            background: #f0f0f0;
+            color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .preferred-calendar-day.today {
+            border: 2px solid #1f2937;
+        }
         .resource-selector {
             margin: 15px 0;
         }
@@ -2811,9 +2867,6 @@
                             <input type="text" id="branchInventorySearch" placeholder="Search products..." onkeyup="searchBranchInventory()">
                             <button class="btn btn-success" onclick="displayBranchInventory()">🔄 Refresh</button>
                             <button class="btn btn-info" onclick="showAllBranchInventory()">📋 Show All</button>
-                            <button class="btn" onclick="openStockDashboard()">📊 Stock Dashboard</button>
-                            <button class="btn" onclick="openMISFromStock()">🧾 MIS</button>
-                            <button class="btn" onclick="openFinanceFromStock()">💼 Finance</button>
                         </div>
                         <div id="branchInventoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
                     </div>
@@ -7923,13 +7976,38 @@
 
         document.getElementById('clientForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            if (!currentBranch) {
-                alert('Please select a branch first');
+
+            const formData = new FormData(this);
+            const preferredBranch = formData.get('preferredBranch') || currentBranch || (function(){
+                const checkSel = document.getElementById('checkupBranchSelect');
+                return checkSel ? checkSel.value : '';
+            })();
+            if (!preferredBranch) {
+                alert('Please select a preferred branch for the appointment.');
                 return;
             }
-            
-            const formData = new FormData(this);
-            const fullName = formData.get('fullName').trim();
+
+            const preferredDate = formData.get('preferredDate');
+            if (!preferredDate) {
+                alert('Please select a preferred appointment date.');
+                return;
+            }
+
+            const preferredTime = formData.get('preferredTime');
+            if (!preferredTime) {
+                alert('Please select a preferred appointment time.');
+                return;
+            }
+
+            currentBranch = preferredBranch;
+            const checkSel = document.getElementById('checkupBranchSelect');
+            if (checkSel) checkSel.value = preferredBranch;
+
+            const fullName = (formData.get('fullName') || '').trim();
+            if (!fullName) {
+                alert('Full Name is required');
+                return;
+            }
             const membershipStatus = formData.get('membershipStatus');
             const referralName = formData.get('referralName')?.trim();
             const referralNbNumber = formData.get('referralNbNumber')?.trim();
@@ -7985,7 +8063,12 @@
                 stressLevel: formData.get('stressLevel'),
                 symptoms: formData.getAll('symptoms'),
                 signature: formData.get('signature'),
-                branch: currentBranch,
+                preferredAppointment: {
+                    date: preferredDate,
+                    time: preferredTime,
+                    branch: preferredBranch
+                },
+                branch: preferredBranch,
                 timestamp: new Date().toISOString()
             };
             
@@ -8004,14 +8087,27 @@
             try {
                 const appointment = {
                     id: 'APT' + Date.now(),
-                    date: formData.get('date') || new Date().toISOString().split('T')[0],
-                    time: '09:00',
+                    date: preferredDate,
+                    time: preferredTime,
                     clientName: fullName,
-                    branch: currentBranch,
+                    branch: preferredBranch,
                     serviceType: 'Full Body Check-Up',
                     status: 'pending',
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    preferences: {
+                        date: preferredDate,
+                        time: preferredTime,
+                        branch: preferredBranch
+                    }
                 };
+                const branchName = (branches || []).find(b => b.id === preferredBranch)?.name || preferredBranch;
+                const friendlyDate = (function(){
+                    try {
+                        return new Date(preferredDate + 'T00:00:00').toLocaleDateString('en-GB');
+                    } catch(_) {
+                        return preferredDate;
+                    }
+                })();
                 appointments.push(appointment);
                 try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
                 // Lightweight toast
@@ -8021,20 +8117,20 @@
                     el.textContent = msg;
                     document.body.appendChild(el);
                     setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 300ms'; setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 320); }, 2500);
-                })(`📣 Appointment request sent to Front Desk and Consultant for ${currentBranch}. Ref: ${referenceNumber}`);
+                })(`📣 Appointment request sent to ${branchName}. Ref: ${referenceNumber} (${friendlyDate} @ ${preferredTime})`);
                 
                 // Send emails: to client and consultants at branch
                 const emailSubject = `Dynapharm Appointment Request — Ref ${referenceNumber}`;
-                const emailBody = `Dear ${fullName},\n\nYour Full Body Check Up request has been received.\n\nReference: ${referenceNumber}\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nWe will contact you to confirm your time.\n\nDynapharm Namibia`;
+                const emailBody = `Dear ${fullName},\n\nYour Full Body Check Up request has been received.\n\nReference: ${referenceNumber}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nWe will contact you to confirm your time.\n\nDynapharm Namibia`;
                 try {
                     if (client.email) {
                         await apiRequest('/email', 'POST', { to: client.email, subject: emailSubject, body: emailBody });
                     }
                 } catch (e) { console.warn('Email to client failed', e); }
                 try {
-                    const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(currentBranch) || u.branch === currentBranch));
+                    const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(preferredBranch) || u.branch === preferredBranch));
                     for (const c of branchConsultants) {
-                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName}\nBranch: ${branches.find(b => b.id === currentBranch)?.name || currentBranch}\nDate: ${appointment.date}\n\nPlease prepare to proceed with consultation.`;
+                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nPlease prepare to proceed with consultation.`;
                         await apiRequest('/email', 'POST', { to: c.email || 'consultant@dynapharm.com.na', subject: emailSubject, body: cBody });
                     }
                 } catch (e) { console.warn('Emails to consultants failed', e); }
@@ -15997,6 +16093,169 @@
             }
         }
 
+        let preferredCalendarDate = null;
+        let selectedPreferredDate = null;
+
+        function initializeAppointmentPreferences() {
+            populatePreferredBranchSelect();
+
+            const hiddenField = document.getElementById('preferredDate');
+            const display = document.getElementById('preferredDateDisplay');
+            const timeInput = document.getElementById('preferredTime');
+            const branchSelect = document.getElementById('preferredBranchSelect');
+
+            const today = new Date();
+            const todayIso = today.toISOString().split('T')[0];
+            let defaultDate = hiddenField && hiddenField.value ? hiddenField.value : todayIso;
+
+            selectedPreferredDate = defaultDate;
+            if (hiddenField) hiddenField.value = defaultDate;
+            if (display) {
+                try {
+                    display.textContent = new Date(defaultDate + 'T00:00:00').toLocaleDateString('en-GB');
+                } catch(_) {
+                    display.textContent = defaultDate;
+                }
+            }
+
+            if (timeInput && !timeInput.value) {
+                timeInput.value = '09:00';
+            }
+
+            preferredCalendarDate = new Date(defaultDate + 'T00:00:00');
+            if (isNaN(preferredCalendarDate.getTime())) {
+                preferredCalendarDate = new Date();
+            }
+            renderPreferredDateCalendar(preferredCalendarDate);
+
+            const prevBtn = document.getElementById('preferredPrevMonth');
+            const nextBtn = document.getElementById('preferredNextMonth');
+            if (prevBtn) {
+                prevBtn.onclick = function() {
+                    if (!preferredCalendarDate) preferredCalendarDate = new Date();
+                    preferredCalendarDate.setMonth(preferredCalendarDate.getMonth() - 1);
+                    renderPreferredDateCalendar(preferredCalendarDate);
+                };
+            }
+            if (nextBtn) {
+                nextBtn.onclick = function() {
+                    if (!preferredCalendarDate) preferredCalendarDate = new Date();
+                    preferredCalendarDate.setMonth(preferredCalendarDate.getMonth() + 1);
+                    renderPreferredDateCalendar(preferredCalendarDate);
+                };
+            }
+
+            if (branchSelect) {
+                branchSelect.onchange = function(e) {
+                    if (e.target.value) {
+                        currentBranch = e.target.value;
+                        const checkSel = document.getElementById('checkupBranchSelect');
+                        if (checkSel && checkSel.value !== e.target.value) {
+                            checkSel.value = e.target.value;
+                        }
+                    }
+                };
+
+                if (currentBranch && branchSelect.value !== currentBranch) {
+                    branchSelect.value = currentBranch;
+                } else if (!branchSelect.value) {
+                    const checkSel = document.getElementById('checkupBranchSelect');
+                    if (checkSel && checkSel.value) {
+                        branchSelect.value = checkSel.value;
+                    }
+                }
+            }
+        }
+
+        function populatePreferredBranchSelect() {
+            const select = document.getElementById('preferredBranchSelect');
+            if (!select) return;
+
+            const previousValue = select.value;
+            select.innerHTML = '<option value="">Select Branch</option>';
+
+            (branches || []).forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = branch.name;
+                select.appendChild(option);
+            });
+
+            const fallbackValue = previousValue || currentBranch || (function(){
+                const checkSel = document.getElementById('checkupBranchSelect');
+                return checkSel ? checkSel.value : '';
+            })();
+
+            if (fallbackValue && select.querySelector(`option[value="${fallbackValue}"]`)) {
+                select.value = fallbackValue;
+            }
+        }
+
+        function renderPreferredDateCalendar(baseDate) {
+            const grid = document.getElementById('preferredCalendarGrid');
+            const label = document.getElementById('preferredCalendarLabel');
+            if (!grid || !label) return;
+
+            const workingDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            label.textContent = `${monthNames[workingDate.getMonth()]} ${workingDate.getFullYear()}`;
+
+            const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const todayIso = new Date().toISOString().split('T')[0];
+            let html = '';
+
+            weekdays.forEach(day => {
+                html += `<div class="weekday">${day}</div>`;
+            });
+
+            const startDay = workingDate.getDay();
+            for (let i = 0; i < startDay; i++) {
+                html += '<div></div>';
+            }
+
+            const daysInMonth = new Date(workingDate.getFullYear(), workingDate.getMonth() + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${workingDate.getFullYear()}-${String(workingDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === todayIso;
+                const isSelected = selectedPreferredDate === dateStr;
+                const isPast = dateStr < todayIso;
+                const classes = ['preferred-calendar-day'];
+                if (isSelected) classes.push('selected');
+                if (isToday) classes.push('today');
+
+                html += `<button type="button" class="${classes.join(' ')}" data-date="${dateStr}" ${isPast ? 'disabled' : ''}>${day}</button>`;
+            }
+
+            grid.innerHTML = html;
+            Array.from(grid.querySelectorAll('.preferred-calendar-day[data-date]')).forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const dateStr = this.getAttribute('data-date');
+                    setPreferredDate(dateStr);
+                });
+            });
+        }
+
+        function setPreferredDate(dateStr) {
+            selectedPreferredDate = dateStr;
+            preferredCalendarDate = new Date(dateStr + 'T00:00:00');
+            if (isNaN(preferredCalendarDate.getTime())) {
+                preferredCalendarDate = new Date();
+            }
+
+            const hiddenField = document.getElementById('preferredDate');
+            const display = document.getElementById('preferredDateDisplay');
+            if (hiddenField) hiddenField.value = dateStr;
+            if (display) {
+                try {
+                    display.textContent = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB');
+                } catch(_) {
+                    display.textContent = dateStr;
+                }
+            }
+
+            renderPreferredDateCalendar(preferredCalendarDate);
+        }
+
         function openClientReg(type) {
             try {
                 var visitTypeEl = document.getElementById('visitType');
@@ -16004,6 +16263,7 @@
             } catch(_){ }
             var modal = document.getElementById('clientRegModal');
             if (modal) modal.style.display = 'block';
+            initializeAppointmentPreferences();
         }
 
         // Unified print helper for consistent printing across portals
