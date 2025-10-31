@@ -2823,6 +2823,9 @@
                     <button class="dispenserTab" id="paymentsTab" onclick="showDispenserTab('payments')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         💳 Payments
                     </button>
+                    <button class="dispenserTab" id="bonusTab" onclick="showDispenserTab('bonus')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        🎁 Bonus
+                    </button>
                     <button class="dispenserTab" id="communicationTab" onclick="showDispenserTab('communication')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         💬 Communication
                     </button>
@@ -3018,6 +3021,22 @@
                         <button class="btn btn-info" onclick="displayPaymentHistory()">🔄 Refresh</button>
                     </div>
                     <div id="paymentsList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- Bonus Section -->
+            <div id="dispenserBonusSection" style="display: none;">
+                <div class="form-section">
+                    <h3>🎁 Bonus Payouts</h3>
+                    <div class="search-box" style="margin-bottom: 12px; gap: 10px; flex-wrap: wrap;">
+                        <input type="month" id="dispenserBonusMonth" style="max-width: 200px;">
+                        <input type="text" id="dispenserBonusSearch" placeholder="Search NB or Name..." onkeyup="renderDispenserPendingBonuses()" style="flex: 1; min-width: 240px;">
+                        <button class="btn btn-success" onclick="renderDispenserPendingBonuses()">🔄 Refresh</button>
+                    </div>
+                    <div id="dispenserBonusSummary" style="margin: 8px 0; color: #2c3e50;"></div>
+                    <div id="dispenserPendingBonusList" class="scroll-x" style="max-height: 460px; overflow-y: auto;">
+                        <p style="text-align: center; color: #7f8c8d; padding: 20px;">No pending bonuses</p>
+                    </div>
                 </div>
             </div>
 
@@ -12511,14 +12530,14 @@
 
         function showDispenserTab(tab) {
             // Hide all sections
-            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserStaffSection'];
+            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserBonusSection', 'dispenserStaffSection'];
             sections.forEach(sec => {
                 const el = document.getElementById(sec);
                 if (el) el.style.display = 'none';
             });
             
             // Reset all tab buttons
-            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'staffTab'];
+            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'bonusTab', 'staffTab'];
             tabs.forEach(tabBtn => {
                 const el = document.getElementById(tabBtn);
                 if (el) {
@@ -12563,6 +12582,12 @@
                     gradient = 'linear-gradient(135deg, #9b59b6, #8e44ad)';
                     displayPaymentHistory();
                     break;
+                case 'bonus':
+                    activeSection = 'dispenserBonusSection';
+                    activeTab = 'bonusTab';
+                    gradient = 'linear-gradient(135deg, #e84393, #d63031)';
+                    initializeDispenserBonusTab();
+                    break;
                 case 'staff':
                     activeSection = 'dispenserStaffSection';
                     activeTab = 'staffTab';
@@ -12582,6 +12607,277 @@
                     tabEl.style.fontWeight = 'bold';
                 }
             }
+        }
+
+        // ========== Dispenser Bonus Tab ==========
+        function initializeDispenserBonusTab() {
+            try { loadEnhancedFinanceData && loadEnhancedFinanceData(); } catch(e) {}
+            const m = document.getElementById('dispenserBonusMonth');
+            if (m && !m.value) {
+                const today = new Date();
+                m.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            }
+            renderDispenserPendingBonuses();
+        }
+
+        function getUploadedBonusList() {
+            try {
+                const raw = localStorage.getItem('finance_bonus_list');
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (!data || !Array.isArray(data.items)) return null;
+                return data; // { month, items }
+            } catch(e) { return null; }
+        }
+
+        function sumPaidBonusFor(distributorNB, ym) {
+            try { loadEnhancedFinanceData && loadEnhancedFinanceData(); } catch(e) {}
+            const ymStr = String(ym || '').slice(0,7);
+            const toYm = (d) => String(d || '').slice(0,7);
+            const cash = (Array.isArray(typeof cashBonuses !== 'undefined' ? cashBonuses : []) ? cashBonuses : []);
+            const bank = (Array.isArray(typeof bankBonuses !== 'undefined' ? bankBonuses : []) ? bankBonuses : []);
+            let total = 0;
+            cash.forEach(b => {
+                if (b?.distributorNB && b.distributorNB.trim() === distributorNB && toYm(b.date) === ymStr) total += Number(b.amount || 0);
+            });
+            bank.forEach(b => {
+                if (b?.distributorNB && b.distributorNB.trim() === distributorNB && toYm(b.date) === ymStr) total += Number(b.amount || 0);
+            });
+            return total;
+        }
+
+        function renderDispenserPendingBonuses() {
+            const listEl = document.getElementById('dispenserPendingBonusList');
+            const summaryEl = document.getElementById('dispenserBonusSummary');
+            if (!listEl) return;
+            const monthInput = document.getElementById('dispenserBonusMonth');
+            const search = (document.getElementById('dispenserBonusSearch')?.value || '').trim().toLowerCase();
+            const ym = monthInput?.value || '';
+
+            const upload = getUploadedBonusList();
+            if (!upload || !Array.isArray(upload.items) || (upload.month && ym && upload.month !== ym)) {
+                listEl.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No uploaded bonus list for selected month</p>';
+                if (summaryEl) summaryEl.textContent = '';
+                return;
+            }
+
+            // Normalize items to { nb, name, branch, amount }
+            const norm = upload.items.map(row => {
+                const obj = (Array.isArray(row) ? {} : row) || {};
+                // Try common keys
+                const nb = (obj.NB || obj.DRN || obj.drn || obj.nb || obj.Id || obj.id || obj['Distributor NB'] || obj['Distributor'] || obj['DRN']).toString?.() || '';
+                const name = (obj.NAME || obj.Name || obj.name || obj['Distributor Name'] || obj['Distributor']).toString?.() || '';
+                const branch = (obj.Branch || obj.BRANCH || obj.branch || obj.Location || obj.location || '').toString?.() || '';
+                // Amount: try several keys
+                const amountRaw = obj.Amount ?? obj.AMOUNT ?? obj.amount ?? obj['Bonus'] ?? obj['BONUS'] ?? obj['Value'] ?? 0;
+                const amount = Number(normalizeBonusAmount ? normalizeBonusAmount(amountRaw) : (parseFloat(String(amountRaw).replace(/[^0-9.\-]/g,'')) || 0));
+                return { nb: String(nb).trim(), name: String(name).trim(), branch: String(branch).trim(), amount };
+            }).filter(x => x.nb);
+
+            let totalPending = 0;
+            let totalCount = 0;
+
+            const rows = norm
+                .map(item => {
+                    const paid = sumPaidBonusFor(item.nb, ym);
+                    const outstanding = Math.max(0, Number(item.amount || 0) - Number(paid || 0));
+                    return { ...item, paid, outstanding };
+                })
+                .filter(it => it.outstanding > 0)
+                .filter(it => !search || it.nb.toLowerCase().includes(search) || it.name.toLowerCase().includes(search));
+
+            rows.forEach(r => { totalPending += r.outstanding; totalCount++; });
+            if (summaryEl) summaryEl.innerHTML = `Pending: <strong>${totalCount}</strong> distributors, Total Outstanding: <strong>N$ ${totalPending.toFixed(2)}</strong>`;
+
+            if (rows.length === 0) {
+                listEl.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No pending bonuses</p>';
+                return;
+            }
+
+            listEl.innerHTML = rows.map(r => `
+                <div class="client-card" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 700; color: #2c3e50;">${r.name}</div>
+                        <div style="color: #7f8c8d; font-size: 0.9rem;">NB: ${r.nb} • Branch: ${r.branch || '—'}</div>
+                        <div style="margin-top: 6px; font-size: 0.9rem;">
+                            Uploaded: <strong>N$ ${Number(r.amount).toFixed(2)}</strong> • Paid: <strong>N$ ${Number(r.paid).toFixed(2)}</strong> • Outstanding: <strong style="color:#c41e3a;">N$ ${Number(r.outstanding).toFixed(2)}</strong>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-success" onclick="openDispenserBonusPayout('${r.nb}', '${r.name.replace(/'/g, "\'")}', '${r.branch.replace(/'/g, "\'")}', '${ym}', ${Number(r.outstanding).toFixed(2)})">💵 Pay</button>
+                        <button class="btn" onclick="showDistributorBonusHistory('${r.nb}')">📜 History</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openDispenserBonusPayout(nb, name, branch, ym, maxAmount) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'dispenserBonusPayoutModal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:520px;">
+                    <span class="close" onclick="closeModal('dispenserBonusPayoutModal')">&times;</span>
+                    <h2>🎁 Record Bonus Payout</h2>
+                    <div class="form-group"><label>Distributor</label><input type="text" value="${name} (${nb})" disabled></div>
+                    <div class="form-group"><label>Month</label><input type="text" value="${ym}" disabled></div>
+                    <div class="form-group"><label>Branch</label><input type="text" value="${branch || ''}" disabled></div>
+                    <div class="form-group"><label>Amount (N$)</label><input type="number" id="dispenserBonusAmount" step="0.01" min="0.01" max="${Number(maxAmount).toFixed(2)}" value="${Number(maxAmount).toFixed(2)}"></div>
+                    <div class="form-group"><label>Reason</label><input type="text" id="dispenserBonusReason" placeholder="Monthly bonus" value="Monthly bonus"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-success" onclick="recordDispenserBonusPayout('${nb}','${name.replace(/'/g, "\'")}', '${branch.replace(/'/g, "\'")}', '${ym}')">💾 Save & Print</button>
+                        <button class="btn" onclick="closeModal('dispenserBonusPayoutModal')">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function recordDispenserBonusPayout(nb, name, branch, ym) {
+            try { loadEnhancedFinanceData && loadEnhancedFinanceData(); } catch(e) {}
+            const amtEl = document.getElementById('dispenserBonusAmount');
+            const reasonEl = document.getElementById('dispenserBonusReason');
+            const amount = parseFloat(amtEl?.value || '0');
+            if (!amount || amount <= 0) { alert('Enter a valid amount'); return; }
+            const today = new Date();
+            const dateStr = `${ym}-01`;
+            const payout = {
+                id: 'BNS' + Date.now(),
+                branch: branch || (currentUser?.branch || ''),
+                distributorNB: nb,
+                distributorName: name,
+                date: dateStr,
+                amount: amount,
+                reason: reasonEl?.value || 'Monthly bonus',
+                approvedBy: currentUser?.username || 'Dispenser',
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.username || 'Dispenser',
+                method: 'cash',
+                source: 'dispenser'
+            };
+            if (!Array.isArray(cashBonuses)) { window.cashBonuses = []; }
+            cashBonuses.push(payout);
+            try { saveEnhancedFinanceData && saveEnhancedFinanceData(); } catch(e) {
+                localStorage.setItem('finance_bonuses', JSON.stringify(cashBonuses));
+            }
+            try { refreshFinancialDashboard && refreshFinancialDashboard(); } catch(e) {}
+            closeModal('dispenserBonusPayoutModal');
+            renderDispenserPendingBonuses();
+            openBonusReceiptWindow(payout, 'a4');
+        }
+
+        function showDistributorBonusHistory(nb) {
+            try { loadEnhancedFinanceData && loadEnhancedFinanceData(); } catch(e) {}
+            const payouts = [];
+            (Array.isArray(cashBonuses) ? cashBonuses : []).forEach(p => { if (p.distributorNB === nb) payouts.push({ ...p, channel: 'Cash' }); });
+            (Array.isArray(bankBonuses) ? bankBonuses : []).forEach(p => { if (p.distributorNB === nb) payouts.push({ ...p, channel: 'Bank' }); });
+            payouts.sort((a,b) => String(b.createdAt||b.date).localeCompare(String(a.createdAt||a.date)));
+
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'distributorBonusHistoryModal';
+            modal.style.display = 'block';
+            const name = payouts[0]?.distributorName || nb;
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:760px;">
+                    <span class="close" onclick="closeModal('distributorBonusHistoryModal')">&times;</span>
+                    <h2>📜 Bonus History - ${name} (${nb})</h2>
+                    <div style="max-height: 420px; overflow:auto; border:1px solid #eee; border-radius:8px;">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Date</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Amount</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Channel</th>
+                                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payouts.map(p => `
+                                    <tr>
+                                        <td style="padding:8px; border-bottom:1px solid #f3f3f3;">${(p.date||'').slice(0,10)}</td>
+                                        <td style="padding:8px; border-bottom:1px solid #f3f3f3;">N$ ${Number(p.amount||0).toFixed(2)}</td>
+                                        <td style="padding:8px; border-bottom:1px solid #f3f3f3;">${p.channel}</td>
+                                        <td style="padding:8px; border-bottom:1px solid #f3f3f3;">${p.reason||''}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px;">
+                        <button class="btn" onclick="printDistributorBonusHistory('${nb}')">🖨️ Print PDF</button>
+                        <button class="btn" onclick="closeModal('distributorBonusHistoryModal')">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function printDistributorBonusHistory(nb) {
+            try { loadEnhancedFinanceData && loadEnhancedFinanceData(); } catch(e) {}
+            const payouts = [];
+            (Array.isArray(cashBonuses) ? cashBonuses : []).forEach(p => { if (p.distributorNB === nb) payouts.push({ ...p, channel: 'Cash' }); });
+            (Array.isArray(bankBonuses) ? bankBonuses : []).forEach(p => { if (p.distributorNB === nb) payouts.push({ ...p, channel: 'Bank' }); });
+            payouts.sort((a,b) => String(a.date).localeCompare(String(b.date)));
+            const name = payouts[0]?.distributorName || nb;
+            const win = window.open('', '_blank');
+            const today = new Date().toISOString().slice(0,10);
+            const rows = payouts.map(p => `
+                <tr>
+                    <td>${(p.date||'').slice(0,10)}</td>
+                    <td>N$ ${Number(p.amount||0).toFixed(2)}</td>
+                    <td>${p.channel}</td>
+                    <td>${p.reason||''}</td>
+                </tr>
+            `).join('');
+            win.document.write(`
+                <html><head><title>Bonus History - ${name}</title>
+                <style>@media print {@page { size: A4; margin: 16mm; }} body{font-family:Arial, sans-serif; color:#2c3e50;} table{width:100%; border-collapse:collapse;} th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}</style>
+                </head><body>
+                <h2>Bonus History</h2>
+                <div>Distributor: <strong>${name} (${nb})</strong></div>
+                <div>Date: ${today}</div>
+                <hr/>
+                <table><thead><tr><th>Date</th><th>Amount</th><th>Channel</th><th>Reason</th></tr></thead><tbody>${rows}</tbody></table>
+                </body></html>
+            `);
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        function openBonusReceiptWindow(payout, format) {
+            const win = window.open('', '_blank');
+            const branch = payout.branch || '';
+            const name = payout.distributorName || payout.distributorNB;
+            const date = (payout.date||'').slice(0,10);
+            const amount = Number(payout.amount||0).toFixed(2);
+            const small = format === 'receipt';
+            const style = small ? '@page { size: 80mm auto; margin: 6mm; } body{font-size:12px;}' : '@page { size: A4; margin: 16mm; } body{font-size:14px;}';
+            win.document.write(`
+                <html><head><title>Bonus Receipt</title><style>${style} body{font-family: Arial, sans-serif; color:#2c3e50;} .muted{color:#7f8c8d} .sign{margin-top:40px;}
+                .row{display:flex; justify-content:space-between; margin:6px 0;}
+                </style></head><body>
+                <h2 style="margin:0 0 8px 0;">Bonus Payment Acknowledgement</h2>
+                <div class="muted">Receipt No: ${payout.id}</div>
+                <div class="muted">Date: ${date}</div>
+                <hr/>
+                <div class="row"><div>Distributor:</div><div><strong>${name}</strong> (${payout.distributorNB})</div></div>
+                <div class="row"><div>Branch:</div><div>${branch}</div></div>
+                <div class="row"><div>Amount:</div><div><strong>N$ ${amount}</strong></div></div>
+                <div class="row"><div>Reason:</div><div>${payout.reason||''}</div></div>
+                <div class="row"><div>Processed By:</div><div>${payout.createdBy||''}</div></div>
+                <hr/>
+                <div class="sign">
+                    <div style="height:60px; border:1px dashed #bbb; margin-bottom:6px;"></div>
+                    <div class="muted">Distributor Signature</div>
+                </div>
+                </body></html>
+            `);
+            win.document.close();
+            win.focus();
+            win.print();
         }
 
         function refreshDispenserData() {
