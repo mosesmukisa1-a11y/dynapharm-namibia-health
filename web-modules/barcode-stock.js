@@ -28,6 +28,19 @@ function saveBarcodeStockData() {
 
 loadBarcodeStockData();
 
+// Update central warehouse stock (dynamic import to API module)
+async function updateCentralWarehouseStock(warehouseId, productKey, quantity, movementType) {
+    try {
+        if (!warehouseId || !productKey || !quantity || !movementType) return;
+        const mod = await import('../api/stock-requests.js');
+        if (mod && typeof mod.updateWarehouseStock === 'function') {
+            mod.updateWarehouseStock(warehouseId, productKey, Number(quantity), movementType);
+        }
+    } catch (error) {
+        console.error('Error updating central warehouse stock:', error);
+    }
+}
+
 // Generate unique barcode for stock item
 export function generateBarcode(batchNumber, cartonNumber, productDescription) {
     const timestamp = Date.now();
@@ -39,6 +52,8 @@ export function generateBarcode(batchNumber, cartonNumber, productDescription) {
 export function importStockWithBarcode(stockData) {
     try {
         const { cartonNo, description, batchNo, expiryDate, quantity, totalCtns } = stockData;
+        const sourceWarehouseId = stockData.sourceWarehouseId || null; // optional
+        const productId = stockData.productId || description; // fallback to description if no productId
         
         // Generate barcode
         const barcode = generateBarcode(batchNo, cartonNo, description);
@@ -55,7 +70,7 @@ export function importStockWithBarcode(stockData) {
             quantity: parseInt(quantity),
             totalCtns: parseInt(totalCtns),
             importDate: new Date().toISOString(),
-            location: 'country_stock',
+            location: sourceWarehouseId || 'country_stock',
             status: 'available',
             dispatchedQuantity: 0,
             remainingQuantity: parseInt(quantity)
@@ -72,6 +87,11 @@ export function importStockWithBarcode(stockData) {
         }
         barcodeInventory[description].batches.push(batch.id);
         
+        // Reflect import into central warehouse stock if sourceWarehouseId provided
+        if (sourceWarehouseId) {
+            updateCentralWarehouseStock(sourceWarehouseId, productId, parseInt(quantity), 'in');
+        }
+
         saveBarcodeStockData();
         
         return { success: true, data: batch };
@@ -119,7 +139,7 @@ export function getFEFOStock(productDescription, quantity = 1) {
 }
 
 // Dispatch stock (scan barcode and deduct)
-export function dispatchStockByBarcode(barcode, quantity, toBranch) {
+export function dispatchStockByBarcode(barcode, quantity, toBranch, options = {}) {
     try {
         const batch = stockBatches.find(b => b.barcode === barcode);
         
@@ -154,6 +174,17 @@ export function dispatchStockByBarcode(barcode, quantity, toBranch) {
         batch.dispatches = batch.dispatches || [];
         batch.dispatches.push(dispatch);
         
+        // Reflect movement in central warehouse stock (fire-and-forget)
+        const productKey = options.productId || batch.description;
+        const fromWarehouseId = options.fromWarehouseId || batch.location;
+        if (fromWarehouseId) {
+            updateCentralWarehouseStock(fromWarehouseId, productKey, Number(quantity), 'out');
+        }
+        if (toBranch) {
+            updateCentralWarehouseStock(toBranch, productKey, Number(quantity), 'in');
+            batch.location = toBranch;
+        }
+
         saveBarcodeStockData();
         
         return { success: true, data: { batch, dispatch } };
