@@ -86,6 +86,27 @@ class CloudStorage {
                 }
             } catch(_) {}
         }
+
+        // Additionally, load employees from dedicated file and sync
+        try {
+            const empUrl = `https://raw.githubusercontent.com/${this.repo}/main/cloud-data/employees_data.json`;
+            const r = await fetch(empUrl, { cache: 'no-store' });
+            if (r.ok) {
+                const list = await r.json();
+                if (Array.isArray(list)) {
+                    localStorage.setItem('dyna_employees', JSON.stringify(list));
+                    console.log(`✅ Synced ${list.length} employees from employees_data.json`);
+                    try {
+                        if (typeof window !== 'undefined') {
+                            const evt = new CustomEvent('cloud-sync:employees', { detail: { count: list.length } });
+                            window.dispatchEvent(evt);
+                        }
+                    } catch(_) {}
+                }
+            }
+        } catch (e) {
+            console.warn('Employees sync skipped:', e && e.message ? e.message : e);
+        }
     }
 
     async saveToCloud() {
@@ -123,6 +144,7 @@ class CloudStorage {
     _aggregateData() {
         return {
             clients: JSON.parse(localStorage.getItem('dyna_clients') || '[]'),
+            employees: JSON.parse(localStorage.getItem('dyna_employees') || '[]'),
             users: JSON.parse(localStorage.getItem('dyna_users') || '[]'),
             branches: JSON.parse(localStorage.getItem('dyna_branches') || '[]'),
             reports: JSON.parse(localStorage.getItem('dyna_reports') || '[]'),
