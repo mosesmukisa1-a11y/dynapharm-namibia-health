@@ -12,6 +12,95 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dynapharm">
     <link rel="manifest" href="./manifest.json">
+    <script src="./cloud-sync.js"></script>
+    <script>
+        // Collect local data (localStorage + IndexedDB) and upload to /api/collect
+        async function collectAndUploadSnapshot(providedToken) {
+            try {
+                const token = providedToken || (window.cloudStorage && window.cloudStorage.getStoredToken && window.cloudStorage.getStoredToken()) || '';
+                if (!token) {
+                    alert('GitHub token required to upload snapshot. Click the Save to Cloud button to store one.');
+                    return { success: false };
+                }
+
+                // Gather localStorage keys starting with "dyna_"
+                const ls = {};
+                try {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const k = localStorage.key(i);
+                        if (k && k.startsWith('dyna_')) {
+                            try { ls[k] = JSON.parse(localStorage.getItem(k)); } catch(_) { ls[k] = localStorage.getItem(k); }
+                        }
+                    }
+                } catch(_) {}
+
+                // Dump IndexedDB: DynapharmDB stores if present
+                async function dumpIndexedDB() {
+                    const out = {};
+                    try {
+                        const req = indexedDB.open('DynapharmDB');
+                        const db = await new Promise((resolve, reject) => {
+                            req.onerror = () => reject(req.error);
+                            req.onsuccess = () => resolve(req.result);
+                        });
+                        const storeNames = Array.from(db.objectStoreNames || []);
+                        for (const name of storeNames) {
+                            try {
+                                const tx = db.transaction(name, 'readonly');
+                                const store = tx.objectStore(name);
+                                const getAllReq = store.getAll();
+                                const rows = await new Promise((resolve, reject) => {
+                                    getAllReq.onerror = () => resolve([]);
+                                    getAllReq.onsuccess = () => resolve(getAllReq.result || []);
+                                });
+                                out[name] = rows;
+                            } catch(_) {}
+                        }
+                        try { db.close(); } catch(_) {}
+                    } catch(_) {}
+                    return out;
+                }
+
+                const idb = await dumpIndexedDB();
+
+                const meta = {
+                    hostname: location.hostname,
+                    href: location.href,
+                    userAgent: navigator.userAgent,
+                    at: new Date().toISOString(),
+                    currentUser: (window.currentUser && window.currentUser.username) || null,
+                };
+                const snapshot = { localStorage: ls, indexedDB: idb };
+
+                const resp = await fetch('/api/collect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, snapshot, meta })
+                });
+                const json = await resp.json();
+                if (resp.ok && json && json.success) {
+                    alert('Snapshot uploaded: ' + json.id);
+                    return { success: true };
+                } else {
+                    alert('Upload failed: ' + (json && json.error ? json.error : 'Unknown error'));
+                    return { success: false };
+                }
+            } catch(e) {
+                alert('Snapshot error: ' + e.message);
+                return { success: false };
+            }
+        }
+
+        // Auto-trigger when URL has ?collect=1
+        (function(){
+            try {
+                const u = new URL(location.href);
+                if (u.searchParams.get('collect') === '1') {
+                    setTimeout(() => { collectAndUploadSnapshot(); }, 500);
+                }
+            } catch(_) {}
+        })();
+    </script>
     
     <!-- Optional: Backend API base override (set this in deployments) -->
     <!-- Example: <meta name="api-base" content="https://dynapharm-backend-production.up.railway.app/api"> -->
@@ -6674,9 +6763,9 @@
         // IMPORTANT: Set your actual Railway/backend URL here
         // For now, this is commented out. Uncomment and update when you have a deployed backend.
         // const API_BASE = 'https://dynapharm-backend-production.up.railway.app/api';
-        const API_BASE = 'http://localhost:8001/api'; // Local development server
-        const API_BASE_LOCAL = 'http://192.168.178.182:8001/api';
-        const USE_OFFLINE_MODE = true; // Fall back to localStorage if backend is unavailable
+        const API_BASE = '/api'; // Use Vercel serverless functions in production
+        const API_BASE_LOCAL = '/api';
+        const USE_OFFLINE_MODE = false; // Prefer online API; only fallback if truly offline
 
         // Safe JSON parse with default fallback
         function safeParseFromStorage(key, defaultJsonString) {

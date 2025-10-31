@@ -8,6 +8,8 @@
     { "src": "distributor-guest.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "cloud-sync.js", "use": "@vercel/static" },
+    { "src": "reports_data.json", "use": "@vercel/static" },
     { "src": "api/health.js", "use": "@vercel/node" },
     { "src": "api/clients.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" },
@@ -17,11 +19,11 @@
     { "src": "api/reports.js", "use": "@vercel/node" },
     { "src": "api/attendance.js", "use": "@vercel/node" }
   ],
-  "routes": [
-    { "src": "/", "dest": "/dynapharm-complete-system.html" },
-    { "src": "/dynapharm-complete-system", "dest": "/dynapharm-complete-system.html" },
-    { "src": "/distributor/guest", "dest": "/distributor-guest.html" },
-    { "src": "/staff/appointments", "dest": "/appointments-admin.html" }
+  "redirects": [
+    { "source": "/", "destination": "/dynapharm-complete-system.html", "permanent": false },
+    { "source": "/dynapharm-complete-system", "destination": "/dynapharm-complete-system.html", "permanent": false },
+    { "source": "/distributor/guest", "destination": "/distributor-guest.html", "permanent": false },
+    { "source": "/staff/appointments", "destination": "/appointments-admin.html", "permanent": false }
   ],
   "headers": [
     {
