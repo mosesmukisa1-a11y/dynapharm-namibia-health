@@ -100,6 +100,37 @@
                 }
             } catch(_) {}
         })();
+
+        // Fun: Floating Cat overlay (toggleable)
+        (function addFloatingCat(){
+            try {
+                const style = document.createElement('style');
+                style.textContent = `
+                @keyframes dyna-cat-float { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
+                #dynaFloatingCat { position: fixed; right: 16px; bottom: 16px; z-index: 9999; display: flex; align-items: flex-end; gap: 8px; }
+                #dynaFloatingCat .cat { width: 72px; height: 72px; animation: dyna-cat-float 3s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(0,0,0,.2)); cursor: pointer; }
+                #dynaFloatingCat .toggle { background:#c41e3a; color:#fff; border:none; border-radius:999px; padding:8px 10px; cursor:pointer; font-size:14px; box-shadow:0 2px 6px rgba(0,0,0,.2) }
+                @media (max-width: 480px) { #dynaFloatingCat .cat { width: 56px; height: 56px; } }
+                `;
+                document.head.appendChild(style);
+
+                const wrap = document.createElement('div');
+                wrap.id = 'dynaFloatingCat';
+                wrap.innerHTML = `
+                    <img class="cat" alt="Friendly cat" title="Meow!" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'%3E%3Ccircle cx='64' cy='64' r='60' fill='%23fff3'/%3E%3Cpath d='M32 52c0-18 12-28 32-28s32 10 32 28-14 28-32 28S32 70 32 52z' fill='%23ffd28a' stroke='%232c3e50' stroke-width='2'/%3E%3Ccircle cx='50' cy='56' r='6' fill='%232c3e50'/%3E%3Ccircle cx='78' cy='56' r='6' fill='%232c3e50'/%3E%3Cpath d='M56 72c4 4 12 4 16 0' stroke='%232c3e50' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M44 30l6 10M84 30l-6 10' stroke='%232c3e50' stroke-width='3'/%3E%3C/svg%3E" />
+                    <button class="toggle" aria-pressed="true" aria-label="Hide cat" title="Hide cat">😺</button>
+                `;
+                const shouldShow = localStorage.getItem('dyna_show_cat') !== 'false';
+                wrap.style.display = shouldShow ? 'flex' : 'none';
+                document.addEventListener('DOMContentLoaded', () => { document.body.appendChild(wrap); });
+                const btn = wrap.querySelector('.toggle');
+                btn.addEventListener('click', () => {
+                    const visible = wrap.style.display !== 'none';
+                    if (visible) { wrap.style.display = 'none'; localStorage.setItem('dyna_show_cat', 'false'); }
+                    else { wrap.style.display = 'flex'; localStorage.setItem('dyna_show_cat', 'true'); }
+                });
+            } catch(_) {}
+        })();
     </script>
     
     <!-- Optional: Backend API base override (set this in deployments) -->
@@ -25418,8 +25449,9 @@ async function reverseLastPrescriptionPayment(reportId){
                                 const srcset = isObj ? `${photo.w300 || src} 300w, ${photo.w600 || src} 600w, ${photo.full || src} 1200w` : '';
                                 return `
                                 <img ${srcset ? `srcset="${srcset}"` : ''} src="${src}" alt="${product.description} - Image ${idx + 1}" 
-                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
-                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden;">
+                                     data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" referrerpolicy="no-referrer" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
+                                     onload="this.style.filter='none'; this.style.background='transparent'"
+                                     style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden; background:#f3f4f6; filter: blur(8px);">
                                 `;
                             }).join('')}
                             ${productPhotos.length > 1 ? `
@@ -27070,7 +27102,9 @@ This sale appears in the Dispenser Portal sales reports.
                 return `
                     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
                         <div style="position: relative;">
-                            <img src="${displayPhoto}" alt="${name}" loading="lazy" decoding="async" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px;">
+                            <img src="${displayPhoto}" alt="${name}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="200" height="200"
+                                 onload="this.style.filter='none'; this.style.background='transparent'"
+                                 style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px; aspect-ratio: 1/1; background:#f3f4f6; filter: blur(8px); transition: filter .3s ease;">
                             ${photoCount > 1 ? `
                                 <div style="position: absolute; top: 5px; right: 5px; background: rgba(196, 30, 58, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
                                     ${photoCount} photos
