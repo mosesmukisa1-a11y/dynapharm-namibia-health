@@ -13102,14 +13102,14 @@ async function reverseLastPrescriptionPayment(reportId){
 
         function showDispenserTab(tab) {
             // Hide all sections
-            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserBonusSection', 'dispenserStaffSection'];
+            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserBonusSection', 'dispenserCommunicationSection', 'dispenserStaffSection'];
             sections.forEach(sec => {
                 const el = document.getElementById(sec);
                 if (el) el.style.display = 'none';
             });
             
             // Reset all tab buttons
-            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'bonusTab', 'staffTab'];
+            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'bonusTab', 'communicationTab', 'staffTab'];
             tabs.forEach(tabBtn => {
                 const el = document.getElementById(tabBtn);
                 if (el) {
@@ -13159,6 +13159,12 @@ async function reverseLastPrescriptionPayment(reportId){
                     activeTab = 'bonusTab';
                     gradient = 'linear-gradient(135deg, #e84393, #d63031)';
                     initializeDispenserBonusTab();
+                    break;
+                case 'communication':
+                    activeSection = 'dispenserCommunicationSection';
+                    activeTab = 'communicationTab';
+                    gradient = 'linear-gradient(135deg, #16a34a, #0d9488)';
+                    try { renderStaffCommunications(); } catch(_) {}
                     break;
                 case 'staff':
                     activeSection = 'dispenserStaffSection';
