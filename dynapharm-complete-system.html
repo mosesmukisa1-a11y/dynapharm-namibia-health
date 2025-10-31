@@ -1326,6 +1326,24 @@
         }
         document.addEventListener('DOMContentLoaded', applyRoleGuards);
 
+        // Action-level guards
+        const ACTION_ROLES = {
+            dispense: ['dispenser','pharmacist','admin','supervisor'],
+            collect_payment: ['cashier','finance','admin','supervisor'],
+            reverse_payment: ['admin','supervisor','finance_manager','finance']
+        };
+        function getEffectiveRole(){
+            try {
+                if (window.currentUser && currentUser.role) return String(currentUser.role).toLowerCase();
+            } catch(_){ }
+            try { return String(getCurrentUserRole()).toLowerCase(); } catch(_){ return 'guest'; }
+        }
+        function hasActionPermission(action){
+            const role = getEffectiveRole();
+            const allowed = ACTION_ROLES[action] || [];
+            return allowed.includes(role) || role === 'admin';
+        }
+
         // Schedule report helpers
         function openScheduleModal(portal){
             document.getElementById('schedulePortal').value = portal;
@@ -1788,7 +1806,7 @@
             <button class="tab-button active" onclick="openTab('client', event)">Distributor / Guest</button>
             <button class="tab-button" onclick="openTab('frontdesk', event)">Front Desk Portal</button>
             <button class="tab-button" onclick="openTab('consultant', event)">Consultant Portal</button>
-            <button class="tab-button" onclick="openTab('dispenser', event)">Dispenser Portal</button>
+            <button class="tab-button" onclick="openTab('dispenser', event)">Branch Portal</button>
             <button class="tab-button" onclick="openTab('hr-portal', event)">HR Portal</button>
             <button class="tab-button" onclick="openTab('finance', event)">Finance Portal</button>
             
@@ -2650,6 +2668,39 @@
                         </div>
                         <div id="reorderList" style="max-height: 600px; overflow-y: auto;"></div>
                     </div>
+                    <div class="form-section">
+                        <h3>🧪 Reorder Scenarios</h3>
+                        <form onsubmit="handleReorderScenario(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background:#f8f9fa; border:1px solid #e1e5ec; padding:10px; border-radius:8px;">
+                            <div>
+                                <label>Name</label>
+                                <input type="text" id="scenarioName" placeholder="e.g., Festive Uplift">
+                            </div>
+                            <div>
+                                <label>Uplift %</label>
+                                <input type="number" id="scenarioUplift" value="10" min="0" step="1">
+                            </div>
+                            <div>
+                                <label>Lead Time (days)</label>
+                                <input type="number" id="scenarioLeadTime" value="0" min="0">
+                            </div>
+                            <div>
+                                <label>Service Level</label>
+                                <select id="scenarioServiceLevel">
+                                    <option value="0.9">90%</option>
+                                    <option value="0.95" selected>95%</option>
+                                    <option value="0.99">99%</option>
+                                </select>
+                            </div>
+                            <div style="grid-column:1 / -1;">
+                                <label>Notes</label>
+                                <textarea id="scenarioNotes" rows="2" placeholder="Assumptions, constraints..."></textarea>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:end;">
+                                <button class="btn btn-success" type="submit">Run Scenario</button>
+                            </div>
+                        </form>
+                        <div id="reorderScenarioResults" style="margin-top:10px;"></div>
+                    </div>
                 </div>
 
                 <!-- Batch Tracking Tab -->
@@ -2667,6 +2718,51 @@
                             <button class="btn btn-info" onclick="displayBatchTracking()">🔄 Refresh</button>
                         </div>
                         <div id="batchTrackingList" style="max-height: 600px; overflow-y: auto; margin-top: 10px;"></div>
+                    </div>
+                    <div class="form-section">
+                        <h3>↩️ Returns & Recalls</h3>
+                        <form onsubmit="handleReturnSubmit(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background:#f8f9fa; border:1px solid #e1e5ec; padding:10px; border-radius:8px;">
+                            <div>
+                                <label>Type</label>
+                                <select id="returnType">
+                                    <option value="customer">Customer Return</option>
+                                    <option value="supplier">Supplier Return</option>
+                                    <option value="recall">Recall</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Product</label>
+                                <input type="text" id="returnProduct" required>
+                            </div>
+                            <div>
+                                <label>Batch</label>
+                                <input type="text" id="returnBatch">
+                            </div>
+                            <div>
+                                <label>Quantity</label>
+                                <input type="number" id="returnQuantity" min="1" required>
+                            </div>
+                            <div>
+                                <label>Reason</label>
+                                <input type="text" id="returnReason" placeholder="e.g., damage">
+                            </div>
+                            <div>
+                                <label>Disposition</label>
+                                <select id="returnDisposition">
+                                    <option value="hold">Hold</option>
+                                    <option value="destroy">Destroy</option>
+                                    <option value="return">Return to Supplier</option>
+                                </select>
+                            </div>
+                            <div style="grid-column:1 / -1;">
+                                <label>Notes</label>
+                                <textarea id="returnNotes" rows="2"></textarea>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:end;">
+                                <button class="btn btn-success" type="submit">Save</button>
+                            </div>
+                        </form>
+                        <div id="returnsList" style="margin-top:10px;"></div>
                     </div>
                 </div>
 
@@ -2783,23 +2879,23 @@
             </div>
         </div>
 
-        <!-- Dispenser Portal -->
+        <!-- Branch Portal (formerly Dispenser Portal) -->
         <div id="dispenser" class="tab-content">
             <div id="dispenserAuth">
                 <div class="portal-header">
-                    <h2>💊 Dispenser Portal</h2>
-                    <p>Manage prescriptions and dispensing operations</p>
+                    <h2>🏬 Branch Portal</h2>
+                    <p>Sales, prescriptions, and branch operations</p>
                     <button class="btn btn-primary" onclick="refreshAllData()" style="margin-top: 10px;">🔄 Refresh Data</button>
                 </div>
                 <div style="text-align: center; padding: 40px;">
-                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access dispenser portal</p>
+                    <p style="font-size: 1.2rem; margin-bottom: 20px;">Please login to access branch portal</p>
                     <button class="btn" onclick="showLogin('dispenser')">🔐 Login</button>
                 </div>
             </div>
             <div id="dispenserContent" style="display: none;">
                 <div class="user-profile" id="dispenserProfile"></div>
                 
-                <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">💊 Dispenser Portal</h2>
+                <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">🏬 Branch Portal</h2>
                 
                 <!-- Cash Drawer Status -->
                 <div id="cashDrawerStatus" style="background: #f8f9fa; border: 2px solid #c41e3a; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
@@ -2843,8 +2939,66 @@
                             <button class="btn btn-success" onclick="displayBranchInventory()">🔄 Refresh</button>
                             <button class="btn btn-info" onclick="showAllBranchInventory()">📋 Show All</button>
                         </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                            <button class="btn btn-success" onclick="openBranchRequestModal()">➕ Request Stock</button>
+                        </div>
                         <div id="branchInventoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
                     </div>
+                    <!-- Branch Stock Request Modal -->
+                    <div class="modal" id="branchRequestModal" style="display:none;">
+                        <div class="modal-content" style="max-width: 640px; max-height: 90vh; overflow-y: auto;">
+                            <span class="close" onclick="closeBranchRequestModal()">&times;</span>
+                            <h2>➕ New Branch Stock Request</h2>
+                            <form id="branchRequestForm" onsubmit="handleBranchRequestSubmit(event)">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label class="required">Branch</label>
+                                        <input type="text" id="branchRequestBranch" required placeholder="e.g., townshop">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="required">Product</label>
+                                        <input type="text" id="branchRequestProduct" required placeholder="Product name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="required">Quantity</label>
+                                        <input type="number" id="branchRequestQuantity" required min="1" placeholder="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Required By</label>
+                                        <input type="date" id="branchRequestDate">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Priority</label>
+                                        <select id="branchRequestPriority">
+                                            <option value="low">Low</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="grid-column: 1 / -1;">
+                                        <label>Notes</label>
+                                        <textarea id="branchRequestNotes" rows="3" placeholder="Reason, context or special handling..."></textarea>
+                                    </div>
+                                </div>
+                                <div style="text-align:right; margin-top:12px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                                    <button type="button" class="btn" onclick="closeBranchRequestModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-success">Submit Request</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <script>
+                        function openBranchRequestModal(){
+                            const m = document.getElementById('branchRequestModal');
+                            const b = document.getElementById('branchRequestBranch');
+                            if (b) b.value = (window.currentUser && window.currentUser.branch) || b.value || '';
+                            if (m) m.style.display = 'block';
+                        }
+                        function closeBranchRequestModal(){
+                            const m = document.getElementById('branchRequestModal');
+                            if (m) m.style.display = 'none';
+                        }
+                    </script>
                 </div>
 
                 <!-- Walk-in Section (Default visible) -->
@@ -2880,6 +3034,20 @@
                     <button class="btn btn-warning" onclick="updateExistingReportsPricing()">💰 Update Pricing</button>
                     <button class="btn btn-primary" onclick="showDailyStatementModal()">📊 Daily Statement</button>
                     <button class="btn btn-success" onclick="refreshDispenserData()">🔄 Refresh Data</button>
+                </div>
+
+                <!-- Status/Date Filters -->
+                <div class="search-box" style="gap: 10px; align-items: center;">
+                    <select id="rxStatusFilter" onchange="displayPrescriptions()" style="padding: 10px;">
+                        <option value="all" selected>Status: All</option>
+                        <option value="pending">Pending</option>
+                        <option value="dispensed">Dispensed</option>
+                        <option value="paid">Paid</option>
+                        <option value="outstanding">Outstanding</option>
+                    </select>
+                    <input type="date" id="rxFromDate" onchange="displayPrescriptions()" title="From date" style="padding: 10px;">
+                    <input type="date" id="rxToDate" onchange="displayPrescriptions()" title="To date" style="padding: 10px;">
+                    <button class="btn" onclick="clearRxFilters()">♻️ Clear Filters</button>
                 </div>
 
                 <div id="prescriptionList"></div>
@@ -3290,6 +3458,75 @@
                 
                 <!-- Country Stock Tab -->
                 <div id="countryStockTab" class="stock-tab-content" style="display: block;">
+                    <div class="form-section">
+                        <h3>🚚 Inbound ASNs & 🧪 Quality</h3>
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+                            <div>
+                                <h4 style="margin-bottom:8px;">Supplier ASNs</h4>
+                                <div id="asnList"></div>
+                            </div>
+                            <div>
+                                <h4 style="margin-bottom:8px;">Quality & Disposition</h4>
+                                <div id="qualityList"></div>
+                                <form onsubmit="handleQualitySubmit(event)" style="margin-top:12px; background:#f8f9fa; border:1px solid #e1e5ec; border-radius:8px; padding:10px;">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label class="required">Batch</label>
+                                            <input type="text" id="qcBatch" required placeholder="Batch No.">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>ASN Ref</label>
+                                            <input type="text" id="qcAsn" placeholder="ASN Reference">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Date</label>
+                                            <input type="date" id="qcDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Temp Zone</label>
+                                            <select id="qcTemperature">
+                                                <option value="ambient">Ambient</option>
+                                                <option value="cold">Cold-chain</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Visual</label>
+                                            <select id="qcVisual">
+                                                <option>Pass</option>
+                                                <option>Fail</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Docs</label>
+                                            <select id="qcDocs">
+                                                <option>Complete</option>
+                                                <option>Missing</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Disposition</label>
+                                            <select id="qcDisposition">
+                                                <option value="Released">Released</option>
+                                                <option value="Quarantine">Quarantine</option>
+                                                <option value="Reject">Reject</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Hold Until</label>
+                                            <input type="date" id="qcHold">
+                                        </div>
+                                        <div class="form-group" style="grid-column:1 / -1;">
+                                            <label>Notes</label>
+                                            <textarea id="qcNotes" rows="2" placeholder="Inspection notes..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:right; margin-top:8px;">
+                                        <button class="btn btn-success" type="submit">Save Inspection</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-section">
                         <h3>📥 Receive Country Stock <button class="btn" data-stock-help="country" style="margin-left:8px;">Help</button></h3>
                         <p style="margin-bottom: 20px; color: #666;">Import stock with batch tracking and FIFO/FEFO enforcement</p>
@@ -12057,7 +12294,38 @@
             
             const list = document.getElementById('prescriptionList');
             // Filter only actual reports (with id field) that have prescriptions
-            const pendingReports = reports.filter(r => r.id && r.prescription && r.medicines);
+    let pendingReports = reports.filter(r => r.id && r.prescription && r.medicines);
+
+    // Apply status/date filters if present
+    try {
+        const statusSel = document.getElementById('rxStatusFilter');
+        const fromEl = document.getElementById('rxFromDate');
+        const toEl = document.getElementById('rxToDate');
+        const status = statusSel ? statusSel.value : 'all';
+        const fromDate = fromEl && fromEl.value ? new Date(fromEl.value + 'T00:00:00') : null;
+        const toDate = toEl && toEl.value ? new Date(toEl.value + 'T23:59:59') : null;
+
+        if (fromDate || toDate) {
+            pendingReports = pendingReports.filter(r => {
+                const t = r.timestamp ? new Date(r.timestamp) : null;
+                if (!t) return true;
+                if (fromDate && t < fromDate) return false;
+                if (toDate && t > toDate) return false;
+                return true;
+            });
+        }
+
+        if (status && status !== 'all') {
+            pendingReports = pendingReports.filter(r => {
+                const meds = Array.isArray(r.medicines) ? r.medicines : [];
+                if (status === 'pending') return meds.some(m => !m.dispensed);
+                if (status === 'dispensed') return meds.length > 0 && meds.every(m => m.dispensed);
+                if (status === 'paid') return meds.filter(m => m.dispensed).every(m => m.paid);
+                if (status === 'outstanding') return meds.some(m => m.dispensed && !m.paid);
+                return true;
+            });
+        }
+    } catch(_){ /* ignore filter errors */ }
             
             if (pendingReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>💊 No prescriptions to dispense</h3><p>Prescriptions will appear here once consultants create reports.</p></div>';
@@ -12323,6 +12591,10 @@
                         <button class="btn btn-info" onclick="viewPrescriptionDetails('${report.id}')">👁️ View Details</button>
                         <button class="btn btn-warning" onclick="printPrescription('${report.id}')">🖨️ Print Full</button>
                         <button class="btn btn-success" onclick="printThermalReceipt('${report.id}')">🧾 Thermal Receipt</button>
+                        <button class="btn" onclick="dispenseAll('${report.id}')">✅ Mark All Dispensed</button>
+                        <button class="btn btn-primary" onclick="openPaymentModal('${report.id}')">💳 Collect Payment</button>
+                        <button class="btn" onclick="viewPrescriptionPaymentHistory('${report.id}')">📜 Payment History</button>
+                        <button class="btn btn-warning" onclick="reverseLastPrescriptionPayment('${report.id}')">↩️ Reverse Last Payment</button>
                     </div>
                 `;
                 list.appendChild(card);
@@ -12527,6 +12799,306 @@
             document.getElementById('dispenserSearch').value = '';
             displayPrescriptions();
         }
+
+function clearRxFilters() {
+    const s = document.getElementById('rxStatusFilter');
+    const f = document.getElementById('rxFromDate');
+    const t = document.getElementById('rxToDate');
+    if (s) s.value = 'all';
+    if (f) f.value = '';
+    if (t) t.value = '';
+    displayPrescriptions();
+}
+
+// -----------------------
+// Prescription Payment Modal Handlers
+// -----------------------
+let rxPaymentContext = null;
+
+function rxFormat(n){ const v = Number(n||0); return 'N$ ' + v.toFixed(2); }
+
+function openPaymentModal(reportId){
+    if (!hasActionPermission('collect_payment')) { alert('You do not have permission to collect payments.'); return; }
+    const modal = document.getElementById('rxPaymentModal');
+    if (!modal) return;
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+    const client = clients.find(c => c.referenceNumber === report.clientId);
+    const memberStatus = client && client.membershipStatus ? client.membershipStatus : 'referred';
+    const totals = calculatePrescriptionTotals(report.medicines||[], memberStatus);
+    const consultation = memberStatus === 'member' ? CONSULTATION_FEES.member : CONSULTATION_FEES.referred;
+    const amountDue = memberStatus === 'member' ? Number(totals.outstanding.dp||0) : Number(totals.outstanding.cp||0);
+
+    rxPaymentContext = { reportId, memberStatus, totals, consultation, amountDue };
+
+    const summary = document.getElementById('paymentSummary');
+    if (summary){
+        const totalVal = memberStatus === 'member' ? totals.total.dp : totals.total.cp;
+        const dispVal = memberStatus === 'member' ? totals.dispensed.dp : totals.dispensed.cp;
+        const paidVal = memberStatus === 'member' ? totals.paid.dp : totals.paid.cp;
+        const outVal = memberStatus === 'member' ? totals.outstanding.dp : totals.outstanding.cp;
+        summary.innerHTML = `
+            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #c41e3a; padding:10px; border-radius:6px;">
+                <div style="font-size:12px; color:#555;">Total</div>
+                <div style="font-weight:700; color:#c41e3a;">${rxFormat(totalVal)}</div>
+            </div>
+            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #27ae60; padding:10px; border-radius:6px;">
+                <div style="font-size:12px; color:#555;">Dispensed</div>
+                <div style="font-weight:700; color:#27ae60;">${rxFormat(dispVal)}</div>
+            </div>
+            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #155724; padding:10px; border-radius:6px;">
+                <div style="font-size:12px; color:#555;">Paid</div>
+                <div style="font-weight:700; color:#155724;">${rxFormat(paidVal)}</div>
+            </div>
+            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #f39c12; padding:10px; border-radius:6px;">
+                <div style="font-size:12px; color:#555;">Outstanding</div>
+                <div style="font-weight:700; color:#f39c12;">${rxFormat(outVal)}</div>
+            </div>`;
+    }
+
+    const consult = document.getElementById('paymentConsultation');
+    if (consult) consult.textContent = rxFormat(consultation);
+
+    const tenderRows = document.getElementById('tenderRows');
+    if (tenderRows){
+        tenderRows.innerHTML = '';
+        const row = document.createElement('div');
+        row.style.display = 'contents';
+        row.innerHTML = `
+            <select class="tender-method" onchange="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="Mobile Money">Mobile Money</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+            <input class="tender-ref" placeholder="Ref (optional)" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+            <input class="tender-amount" type="number" min="0" step="0.01" value="${amountDue.toFixed(2)}" oninput="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+        `;
+        tenderRows.appendChild(row);
+    }
+
+    const disc = document.getElementById('paymentDiscount');
+    if (disc) disc.value = '0';
+    recalcPaymentTotals();
+    modal.style.display = 'flex';
+}
+
+function closePaymentModal(){
+    const modal = document.getElementById('rxPaymentModal');
+    if (modal) modal.style.display = 'none';
+    rxPaymentContext = null;
+}
+
+function addTenderRow(){
+    const tenderRows = document.getElementById('tenderRows');
+    if (!tenderRows) return;
+    const row = document.createElement('div');
+    row.style.display = 'contents';
+    row.innerHTML = `
+        <select class="tender-method" onchange="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Mobile Money">Mobile Money</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+        </select>
+        <input class="tender-ref" placeholder="Ref (optional)" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+        <input class="tender-amount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+    `;
+    tenderRows.appendChild(row);
+    recalcPaymentTotals();
+}
+
+function recalcPaymentTotals(){
+    if (!rxPaymentContext) return;
+    const discount = Number(document.getElementById('paymentDiscount')?.value||0);
+    const amountDue = Math.max(0, Number(rxPaymentContext.amountDue||0) - discount);
+    const tenderInputs = Array.from(document.querySelectorAll('#tenderRows .tender-amount'));
+    const tenderTotal = tenderInputs.reduce((sum, el) => sum + (Number(el.value)||0), 0);
+    const changeOrBalance = tenderTotal - amountDue;
+    const amountDueEl = document.getElementById('amountDue');
+    const tenderTotalEl = document.getElementById('tenderTotal');
+    const changeBalanceEl = document.getElementById('changeBalance');
+    if (amountDueEl) amountDueEl.textContent = rxFormat(amountDue);
+    if (tenderTotalEl) tenderTotalEl.textContent = rxFormat(tenderTotal);
+    if (changeBalanceEl) changeBalanceEl.textContent = rxFormat(changeOrBalance);
+}
+
+function generateReceiptNumber(reportId){
+    try {
+        const report = reports.find(r => r.id === reportId);
+        const client = report ? clients.find(c => c.referenceNumber === report.clientId) : null;
+        const branch = client ? (client.branch||'BR') : 'BR';
+        const dt = new Date();
+        const ymd = dt.toISOString().slice(0,10).replaceAll('-','');
+        const seq = (''+Date.now()).slice(-6);
+        return `${branch}-${ymd}-${seq}`;
+    } catch(_) { return 'RX-'+Date.now(); }
+}
+
+async function confirmPayment(){
+    if (!rxPaymentContext) return;
+    const { reportId } = rxPaymentContext;
+    const report = reports.find(r => r.id === reportId);
+    if (!report) return;
+    const discount = Number(document.getElementById('paymentDiscount')?.value||0);
+    const methods = Array.from(document.querySelectorAll('#tenderRows .tender-method'));
+    const refs = Array.from(document.querySelectorAll('#tenderRows .tender-ref'));
+    const amts = Array.from(document.querySelectorAll('#tenderRows .tender-amount'));
+    const tenders = methods.map((m, i) => ({ method: m.value, reference: refs[i]?.value || '', amount: Number(amts[i]?.value||0) }));
+    const receipt = generateReceiptNumber(reportId);
+
+    if (!report.payments) report.payments = [];
+    report.payments.push({
+        receipt,
+        discount,
+        tenders,
+        memberStatus: rxPaymentContext.memberStatus,
+        collectedBy: (currentUser && currentUser.fullName) ? currentUser.fullName : 'system',
+        collectedAt: new Date().toISOString()
+    });
+
+    if (Array.isArray(report.medicines)) {
+        report.medicines.forEach(m => {
+            if (m.dispensed) {
+                if (!m.paymentHistory) m.paymentHistory = [];
+                m.paid = true;
+                m.paidBy = (currentUser && currentUser.fullName) ? currentUser.fullName : 'system';
+                m.paidAt = new Date().toISOString();
+                m.paymentMethod = 'Multiple';
+                m.amountPaid = tenders.reduce((s, t) => s + (Number(t.amount)||0), 0);
+                m.paymentHistory.push({ amount: m.amountPaid, method: 'Multiple', paidBy: m.paidBy, paidAt: m.paidAt, reference: receipt });
+            }
+        });
+    }
+
+    try {
+        const result = await apiRequest('/reports', 'PUT', report);
+        if (result && result.success) {
+            const idx = reports.findIndex(r => r.id === reportId);
+            if (idx !== -1) reports[idx] = report;
+            closePaymentModal();
+            displayPrescriptions();
+            alert(`✅ Payment recorded. Receipt: ${receipt}`);
+        } else {
+            alert('Error saving payment');
+        }
+    } catch(e){ alert('Error saving payment'); }
+}
+
+function viewPrescriptionPaymentHistory(reportId){
+    const report = reports.find(r => r.id === reportId);
+    if (!report || !report.payments || report.payments.length === 0){
+        alert('No prescription-level payments recorded');
+        return;
+    }
+    const lines = report.payments.map(p => {
+        const sum = (p.tenders||[]).reduce((s,t)=> s+(Number(t.amount)||0),0);
+        const methods = (p.tenders||[]).map(t=> `${t.method}:${(Number(t.amount)||0).toFixed(2)}`).join(', ');
+        return `${new Date(p.collectedAt).toLocaleString('en-GB')} | ${p.receipt} | ${methods} | Total: ${sum.toFixed(2)}`;
+    }).join('\n');
+    alert(`Payment History for ${reportId}:\n\n${lines}`);
+}
+
+// FEFO helper: choose earliest-expiring lot with enough qty (or first available)
+function pickFefoLot(productName, qty){
+    try {
+        const inv = (window.inventory && window.inventory[productName]) ? window.inventory[productName] : null;
+        const lots = Array.isArray(inv?.lots) ? inv.lots.slice() : [];
+        if (lots.length === 0) return null;
+        lots.sort((a,b) => new Date(a.expiry) - new Date(b.expiry));
+        let chosen = null;
+        for (const lot of lots){
+            if (Number(lot.qty||0) >= Number(qty||1)) { chosen = lot; break; }
+            if (!chosen) chosen = lot; // fallback to first
+        }
+        if (!chosen) chosen = lots[0];
+        // decrement lot qty if tracked
+        if (inv && inv.lots) {
+            const idx = inv.lots.findIndex(l => l.batch === chosen.batch && l.expiry === chosen.expiry);
+            if (idx >= 0) inv.lots[idx].qty = Math.max(0, Number(inv.lots[idx].qty||0) - Number(qty||1));
+        }
+        return { batch: chosen.batch, expiry: chosen.expiry };
+    } catch(_){ return null; }
+}
+
+async function dispenseAll(reportId){
+    if (!hasActionPermission('dispense')) { alert('You do not have permission to dispense.'); return; }
+    const report = reports.find(r => r.id === reportId);
+    if (!report || !Array.isArray(report.medicines)) return;
+    const confirmAll = confirm('Mark all items as dispensed? This will update package items as given and adjust inventory.');
+    if (!confirmAll) return;
+    report.medicines.forEach(med => {
+        const price = findProductPrice(med.name);
+        const isPackage = !!price.isPackage;
+        if (isPackage){
+            const products = price.products || [];
+            med.packageStatus = med.packageStatus || {};
+            products.forEach(p => med.packageStatus[p] = 'given');
+        }
+        try {
+            const inv = (window.inventory && window.inventory[med.name]) ? window.inventory[med.name] : null;
+            const neededQty = Number(med.quantity || 1);
+            const available = inv ? Number(inv.currentStock || 0) : Infinity;
+            if (available < neededQty) {
+                med.dueOut = Math.max(0, neededQty - available);
+                med.dispensed = false;
+                return;
+            }
+        } catch(_){ }
+        med.dispensed = true;
+        med.dispensedBy = (currentUser && currentUser.fullName) ? currentUser.fullName : 'system';
+        med.dispensedAt = new Date().toISOString();
+        try { const lot = pickFefoLot(med.name, Number(med.quantity||1)); if (lot) { med.lotBatch = lot.batch; med.lotExpiry = lot.expiry; } } catch(_){ }
+        try { adjustInventoryForDispense(report, med, Number(med.quantity||1)); } catch(_){ }
+    });
+    try {
+        const result = await apiRequest('/reports', 'PUT', report);
+        if (result && result.success){
+            const idx = reports.findIndex(r => r.id === reportId);
+            if (idx !== -1) reports[idx] = report;
+            displayPrescriptions();
+            alert('✅ All eligible items marked as dispensed. Due-outs recorded where stock was insufficient.');
+        } else {
+            alert('Error updating prescription');
+        }
+    } catch(e){ alert('Error updating prescription'); }
+}
+
+async function reverseLastPrescriptionPayment(reportId){
+    const report = reports.find(r => r.id === reportId);
+    if (!report || !report.payments || report.payments.length === 0){
+        alert('No payments to reverse');
+        return;
+    }
+    const reason = prompt('Enter reversal reason:');
+    if (!reason) return;
+    const last = report.payments[report.payments.length - 1];
+    const reversingTenders = (last.tenders||[]).map(t => ({ method: t.method, reference: (t.reference||'') + ' (REV)', amount: -Math.abs(Number(t.amount)||0) }));
+    report.payments.push({
+        receipt: last.receipt + '-REV',
+        discount: 0,
+        tenders: reversingTenders,
+        memberStatus: last.memberStatus,
+        collectedBy: (currentUser && currentUser.fullName) ? currentUser.fullName : 'system',
+        collectedAt: new Date().toISOString(),
+        reversalOf: last.receipt,
+        reason
+    });
+    if (Array.isArray(report.medicines)) {
+        report.medicines.forEach(m => { if (m.dispensed) { m.paid = false; delete m.paidAt; delete m.paidBy; delete m.paymentMethod; delete m.amountPaid; } });
+    }
+    try {
+        const result = await apiRequest('/reports', 'PUT', report);
+        if (result && result.success){
+            const idx = reports.findIndex(r => r.id === reportId);
+            if (idx !== -1) reports[idx] = report;
+            displayPrescriptions();
+            alert('✅ Payment reversed');
+        } else {
+            alert('Error reversing payment');
+        }
+    } catch(e){ alert('Error reversing payment'); }
+}
 
         function showDispenserTab(tab) {
             // Hide all sections
@@ -16169,22 +16741,43 @@
         async function toggleDispense(reportId, medIndex) {
             const report = reports.find(r => r.id === reportId);
             if (report && report.medicines && report.medicines[medIndex]) {
+        if (!hasActionPermission('dispense')) { alert('You do not have permission to dispense.'); return; }
                 const medicine = report.medicines[medIndex];
                 const price = findProductPrice(medicine.name);
                 const isPackage = price.isPackage;
                 
-                // For packages, check if all individual products are given
-                if (isPackage) {
-                    const packageProducts = price.products || [];
-                    const allGiven = packageProducts.every(product => 
-                        medicine.packageStatus && medicine.packageStatus[product] === 'given'
-                    );
-                    
-                    if (!allGiven) {
-                        alert('⚠️ Please mark all individual products as "Given" in the package before dispensing the entire package.');
+        // For packages, guide for partial/all dispensing
+        if (isPackage) {
+            const packageProducts = price.products || [];
+            const allGiven = packageProducts.every(product => 
+                medicine.packageStatus && medicine.packageStatus[product] === 'given'
+            );
+            if (!allGiven) {
+                const doAll = confirm('Some items in this package are not marked as Given.\n\nOK: Mark all remaining as Given and dispense the full package.\nCancel: Keep partial (do not set as fully dispensed).');
+                if (!doAll) { return; }
+                medicine.packageStatus = medicine.packageStatus || {};
+                packageProducts.forEach(p => { if (medicine.packageStatus[p] !== 'given') medicine.packageStatus[p] = 'given'; });
+            }
+        }
+
+        // Due-out/backorder check when dispensing
+        if (!medicine.dispensed) {
+            try {
+                const inv = (window.inventory && window.inventory[medicine.name]) ? window.inventory[medicine.name] : null;
+                const neededQty = Number(medicine.quantity || 1);
+                const available = inv ? Number(inv.currentStock || 0) : Infinity;
+                if (available < neededQty) {
+                    const proceed = confirm(`Insufficient stock for ${medicine.name}.\nAvailable: ${available}, Needed: ${neededQty}.\n\nOK: Mark as Due-out\nCancel: Abort dispensing`);
+                    if (proceed) {
+                        medicine.dueOut = Math.max(0, neededQty - available);
+                        try { const res = await apiRequest('/reports', 'PUT', report); if (res?.success) { const idx = reports.findIndex(r=>r.id===reportId); if (idx!==-1) reports[idx]=report; displayPrescriptions(); alert('📦 Item marked as Due-out.'); } } catch(_){ }
+                        return;
+                    } else {
                         return;
                     }
                 }
+            } catch(_){ }
+        }
                 
                 medicine.dispensed = !medicine.dispensed;
                 
@@ -16192,6 +16785,12 @@
                 if (medicine.dispensed) {
                     medicine.dispensedBy = currentUser.fullName;
                     medicine.dispensedAt = new Date().toISOString();
+            // FEFO lot assignment if available
+            try {
+                const lot = pickFefoLot(medicine.name, Number(medicine.quantity||1));
+                if (lot) { medicine.lotBatch = lot.batch; medicine.lotExpiry = lot.expiry; }
+            } catch(_){ }
+            try { adjustInventoryForDispense(report, medicine, Number(medicine.quantity||1)); } catch(_){ }
                 } else {
                     delete medicine.dispensedBy;
                     delete medicine.dispensedAt;
@@ -19448,6 +20047,63 @@
             renderRouteOverview();
             renderColdChainAlerts();
             renderDeliveryTimeline();
+        }
+
+        function renderPutawayQueue() {
+            const container = document.getElementById('putawayQueue');
+            if (!container) return;
+            loadStockData();
+            if (!putawayTasks.length) {
+                container.innerHTML = '<p style="text-align:center; color:#666; padding:10px;">No open put-away tasks.</p>';
+                return;
+            }
+            container.innerHTML = putawayTasks.slice(0, 8).map(t => `
+                <div class="client-card" style="border-left:4px solid ${t.status==='done' ? '#27ae60' : '#2980b9'};">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${t.reference}</div>
+                            <div style="font-size:.85rem; color:#666;">${t.location} • ${t.zone || 'ambient'}</div>
+                        </div>
+                        <div style="font-weight:700; color:#2c3e50;">${t.quantity}</div>
+                    </div>
+                    ${t.notes ? `<p style=\"margin-top:6px; color:#555;\">${t.notes}</p>` : ''}
+                    <div style="text-align:right; margin-top:8px;">
+                        ${t.status !== 'done' ? `<button class=\"btn btn-success\" onclick=\"completePutawayTask('${t.id}')\">Complete</button>` : '<span style="color:#27ae60; font-weight:600;">Completed</span>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function completePutawayTask(taskId) {
+            const task = putawayTasks.find(p => p.id === taskId);
+            if (!task) return;
+            task.status = 'done';
+            task.completedAt = new Date().toISOString();
+            persistPutawayTasks();
+            renderPutawayQueue();
+            renderWarehouseCapacity();
+        }
+
+        function renderWarehouseCapacity() {
+            const container = document.getElementById('warehouseCapacity');
+            if (!container) return;
+            loadStockData();
+            // Simple simulated capacity model
+            const maxWindhoek = 10000; // units
+            const usedWindhoek = windhoekStock.reduce((a, b) => a + Number(b.quantity || 0), 0);
+            const pct = Math.min(100, Math.round((usedWindhoek / maxWindhoek) * 100));
+            container.innerHTML = `
+                <div style="background:#fff; border:1px solid #e1e5ec; border-radius:8px; padding:10px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:600; color:#2c3e50;">
+                        <span>Windhoek Utilization</span>
+                        <span>${usedWindhoek} / ${maxWindhoek}</span>
+                    </div>
+                    <div style="height:12px; background:#f1f3f5; border-radius:6px; margin-top:8px; overflow:hidden;">
+                        <div style="width:${pct}%; height:100%; background:${pct>85?'#e74c3c':pct>70?'#f39c12':'#27ae60'};"></div>
+                    </div>
+                    <div style="margin-top:8px; font-size:.85rem; color:#666;">${pct}% used</div>
+                </div>
+            `;
         }
 
         function renderRouteOverview() {
@@ -26219,6 +26875,57 @@ This sale appears in the Dispenser Portal sales reports.
             })();
         });
     </script>
+    <!-- Payment Modal -->
+    <div id="rxPaymentModal" style="display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center; background: rgba(0,0,0,0.45);">
+        <div style="background:#fff; width: 95%; max-width: 800px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow:hidden;">
+            <div style="padding: 14px 18px; background:#c41e3a; color:#fff; display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-weight:700;">Collect Payment</div>
+                <button id="paymentCloseBtn" onclick="closePaymentModal()" style="background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer;">✖</button>
+            </div>
+            <div style="padding: 16px;">
+                <div id="paymentSummary" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom: 12px;">
+                    <!-- dynamic totals injected here -->
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items:end;">
+                    <div>
+                        <label style="display:block; font-size: 12px; color:#666; margin-bottom:6px;">Discount (N$)</label>
+                        <input id="paymentDiscount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;" />
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 12px; color:#666; margin-bottom:6px;">Consultation Fee</label>
+                        <div id="paymentConsultation" style="padding:10px; border:1px solid #ddd; border-radius:6px; background:#f8f9fa;">N$ 0.00</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <strong>Tenders</strong>
+                        <button class="btn btn-info" onclick="addTenderRow()">➕ Add Tender</button>
+                    </div>
+                    <div id="tenderRows" style="display:grid; grid-template-columns: 1fr 140px 1fr; gap:10px; align-items:center;">
+                        <!-- tender rows inserted here -->
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top: 16px;">
+                    <div style="background:#e8f5e9; padding:12px; border-radius:6px; text-align:center;">
+                        <div style="font-size:12px; color:#2e7d32;">Amount Due</div>
+                        <div id="amountDue" style="font-weight:700; color:#2e7d32;">N$ 0.00</div>
+                    </div>
+                    <div style="background:#fff3cd; padding:12px; border-radius:6px; text-align:center;">
+                        <div style="font-size:12px; color:#8a6d3b;">Tender Total</div>
+                        <div id="tenderTotal" style="font-weight:700; color:#8a6d3b;">N$ 0.00</div>
+                    </div>
+                    <div style="background:#d1ecf1; padding:12px; border-radius:6px; text-align:center;">
+                        <div style="font-size:12px; color:#0c5460;">Change / Balance</div>
+                        <div id="changeBalance" style="font-weight:700; color:#0c5460;">N$ 0.00</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px;">
+                    <button class="btn" onclick="closePaymentModal()">Cancel</button>
+                    <button class="btn btn-success" onclick="confirmPayment()">✅ Confirm Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 <script>
     (function(){
