@@ -146,6 +146,21 @@ export function dispatchStockByBarcode(barcode, quantity, toBranch, options = {}
         if (!batch) {
             return { success: false, error: 'Barcode not found' };
         }
+
+        // FEFO enforcement: ensure this batch is the earliest expiring available for this product
+        try {
+            const fefo = getFEFOStock(batch.description, quantity);
+            const allowNonFEFO = options && options.allowNonFEFO === true;
+            if (fefo && fefo.success && Array.isArray(fefo.data) && fefo.data.length > 0 && !allowNonFEFO) {
+                const earliest = fefo.data[0];
+                // If scanned batch expires later than the earliest available, block
+                if (typeof batch.expiryTimestamp === 'number' && typeof earliest.expiryTimestamp === 'number') {
+                    if (batch.expiryTimestamp > earliest.expiryTimestamp) {
+                        return { success: false, error: `FEFO violation: use earlier batch ${earliest.batchNo} (barcode ${earliest.barcode}) expiring first` };
+                    }
+                }
+            }
+        } catch (_) {}
         
         if (batch.remainingQuantity < quantity) {
             return { success: false, error: 'Insufficient stock. Available: ' + batch.remainingQuantity };
@@ -249,6 +264,19 @@ export function scanBarcodeForSale(barcode) {
             return { success: false, error: 'Product has expired' };
         }
         
+        // FEFO enforcement: cannot scan a later-expiring batch if an earlier one is available
+        try {
+            const fefo = getFEFOStock(batch.description, 1);
+            if (fefo && fefo.success && Array.isArray(fefo.data) && fefo.data.length > 0) {
+                const earliest = fefo.data[0];
+                if (typeof batch.expiryTimestamp === 'number' && typeof earliest.expiryTimestamp === 'number') {
+                    if (batch.expiryTimestamp > earliest.expiryTimestamp) {
+                        return { success: false, error: `FEFO violation: scan batch ${earliest.batchNo} (barcode ${earliest.barcode}) which expires earlier` };
+                    }
+                }
+            }
+        } catch (_) {}
+
         if (batch.remainingQuantity <= 0) {
             return { success: false, error: 'Stock exhausted' };
         }
@@ -281,6 +309,19 @@ export function sellStockByBarcode(barcode, quantity, buyerType, branch) {
         if (!batch) {
             return { success: false, error: 'Barcode not found' };
         }
+
+        // FEFO enforcement: ensure selling from earliest-expiring batch
+        try {
+            const fefo = getFEFOStock(batch.description, quantity);
+            if (fefo && fefo.success && Array.isArray(fefo.data) && fefo.data.length > 0) {
+                const earliest = fefo.data[0];
+                if (typeof batch.expiryTimestamp === 'number' && typeof earliest.expiryTimestamp === 'number') {
+                    if (batch.expiryTimestamp > earliest.expiryTimestamp) {
+                        return { success: false, error: `FEFO violation: sell from batch ${earliest.batchNo} (barcode ${earliest.barcode}) which expires earlier` };
+                    }
+                }
+            }
+        } catch (_) {}
         
         if (batch.remainingQuantity < quantity) {
             return { success: false, error: 'Insufficient stock' };

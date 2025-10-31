@@ -21,6 +21,27 @@
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script>
+        (function(){
+            const isGitHub = location.hostname.endsWith('github.io');
+            const meta = document.querySelector('meta[name="api-base"]');
+            const configured = meta && meta.content && meta.content.trim();
+            const defaultApiBase = 'https://dynapharm-namibia-health.vercel.app/api';
+            const vercelApiBase = (configured || defaultApiBase).replace(/\/+$/, '');
+            const originalFetch = window.fetch.bind(window);
+            window.fetch = function(input, init){
+                try {
+                    const reqUrl = typeof input === 'string' ? new URL(input, location.origin) : new URL(input.url, location.origin);
+                    if (isGitHub && reqUrl.pathname.startsWith('/api/')) {
+                        const path = reqUrl.pathname.replace(/^\/api/, '');
+                        const proxied = vercelApiBase + path + (reqUrl.search || '');
+                        return originalFetch(proxied, init);
+                    }
+                } catch(_){}
+                return originalFetch(input, init);
+            };
+        })();
+    </script>
+    <script>
         // ========== Branch Online Orders ==========
         async function fetchAllOrders(){
             try {
@@ -121,11 +142,19 @@
             const all = await fetchAllOrders();
             const o = all.find(x=>x.id===orderId);
             if (!o) { alert('Order not found'); return; }
-            // Deduct inventory
-            const inv = reduceInventoryForProducts(o.items||[], (window.currentUser && window.currentUser.fullName)||'system', o.id);
-            if (!inv.success) {
-                if (!confirm('Stock issues detected:\n' + inv.errors.join('\n') + '\n\nDispense anyway?')) return;
+            // FEFO mandatory: deduct via barcode/batch FEFO first
+            const branchId = (window.currentUser && window.currentUser.branch) || 'unknown_branch';
+            const userName = (window.currentUser && window.currentUser.fullName) || 'system';
+            try {
+                const fefo = await fefoDispenseProducts((o.items||[]).map(i=>({ name:i.name||i.productName, quantity:i.quantity||1 })), branchId, userName, o.id);
+                if (!fefo.success) {
+                    if (!confirm('FEFO stock issues detected:\n' + fefo.errors.join('\n') + '\n\nDispense anyway?')) return;
+                }
+            } catch (e) {
+                console.warn('FEFO dispense failed, falling back to simple counters:', e);
             }
+            // Update legacy counters for dashboards
+            const inv = reduceInventoryForProducts(o.items||[], userName, o.id);
             o.status = 'dispensed';
             o.dispensedAt = new Date().toISOString();
             o.dispensedBy = (window.currentUser && window.currentUser.fullName) || 'system';
@@ -6354,6 +6383,87 @@
                 console.warn('Inventory persistence warning:', e);
             }
             return { success: errors.length === 0, errors };
+        }
+
+        // Append a stock audit entry compatible with dyna_stock_audit used by stock APIs
+        function appendStockAudit(action, details) {
+            try {
+                const key = 'dyna_stock_audit';
+                const list = JSON.parse(localStorage.getItem(key) || '[]');
+                list.push({
+                    id: 'AUD' + Date.now(),
+                    action: action,
+                    details: details,
+                    timestamp: new Date().toISOString()
+                });
+                if (list.length > 5000) list.shift();
+                localStorage.setItem(key, JSON.stringify(list));
+            } catch (e) {
+                console.warn('Audit append failed:', e);
+            }
+        }
+
+        // FEFO-based deduction for prescription items using barcode/batch stock
+        // products: [{ name, quantity }]
+        async function fefoDispenseProducts(products, branchId, userFullName, reference) {
+            const errors = [];
+            const successes = [];
+            try {
+                if (!Array.isArray(products) || products.length === 0) return { success: true, errors: [], successes: [] };
+                // Dynamic import ensures we don't hard-couple this file to modules at parse time
+                const mod = await import('/web-modules/barcode-stock.js');
+                for (const prod of products) {
+                    const productName = (prod && (prod.name || prod.productName)) || '';
+                    let needed = Number(prod && prod.quantity) || 0;
+                    if (!productName || needed <= 0) continue;
+
+                    // Get FEFO-ordered batches and enforce not expired
+                    const fefo = mod.getFEFOStock(productName, needed);
+                    if (!fefo || !fefo.success) {
+                        errors.push(`No stock available for ${productName}`);
+                        continue;
+                    }
+                    const batches = (fefo.data || []).filter(b => {
+                        try {
+                            const expiry = new Date((b.expiryDate || '') + '-01');
+                            return expiry >= new Date();
+                        } catch (_) {
+                            return true; // if bad date, allow but module also guards quantity
+                        }
+                    });
+
+                    for (const batch of batches) {
+                        if (needed <= 0) break;
+                        const available = Number(batch.remainingQuantity) || 0;
+                        if (available <= 0) continue;
+                        const take = Math.min(available, needed);
+                        // Use sellStockByBarcode to model dispense (retail) and update batch
+                        const sale = mod.sellStockByBarcode(batch.barcode, take, 'retail', branchId);
+                        if (!sale || !sale.success) {
+                            errors.push(`Failed to deduct ${take} of ${productName} from batch ${batch.batchNo || ''}`);
+                            continue;
+                        }
+                        needed -= take;
+                        successes.push({ product: productName, quantity: take, batchNo: batch.batchNo, barcode: batch.barcode });
+                        appendStockAudit('dispense_fefo', {
+                            reference: reference,
+                            branch: branchId,
+                            product: productName,
+                            quantity: take,
+                            batchNo: batch.batchNo,
+                            barcode: batch.barcode,
+                            user: userFullName || 'system'
+                        });
+                    }
+
+                    if (needed > 0) {
+                        errors.push(`Insufficient FEFO stock for ${productName} (short ${needed})`);
+                    }
+                }
+            } catch (e) {
+                errors.push('FEFO dispense error: ' + (e && e.message ? e.message : String(e)));
+            }
+            return { success: errors.length === 0, errors, successes };
         }
 
         // Record a department notification event for MIS/Finance/Stock/GM/Director
@@ -17284,11 +17394,20 @@ async function reverseLastPrescriptionPayment(reportId){
         async function markDispensed(reportId) {
             const report = reports.find(r => r.id === reportId);
             if (report) {
-                // Reduce inventory for all medicines in the report
+                // FEFO deduction across barcode/batch stock first
                 const products = (report.medicines || []).map(m => ({ name: m.name, quantity: m.quantity || 1 }));
-                const invReduction = reduceInventoryForProducts(products, (currentUser && currentUser.fullName) || 'system', report.id);
-                if (!invReduction.success) {
-                    alert('⚠️ Stock deduction issues for prescription:\n' + invReduction.errors.join('\n'));
+                const branchId = (currentUser && currentUser.branch) || (selectedBranch && selectedBranch.id) || 'unknown_branch';
+                const userName = (currentUser && currentUser.fullName) || 'system';
+                const fefoResult = await fefoDispenseProducts(products, branchId, userName, report.id);
+                if (!fefoResult.success) {
+                    alert('⚠️ FEFO deduction issues for prescription:\n' + fefoResult.errors.join('\n'));
+                }
+
+                // Also update simple inventory counters for legacy displays
+                const invReduction = reduceInventoryForProducts(products, userName, report.id);
+                if (!invReduction.success && (!fefoResult || !fefoResult.success)) {
+                    // Only block if both mechanisms report failures across the board
+                    alert('⚠️ Stock deduction issues persisted. Please review inventory.');
                 }
 
                 report.dispensed = true;
@@ -18773,10 +18892,25 @@ async function reverseLastPrescriptionPayment(reportId){
                 paymentMethod: 'cash' // Default, can be updated if payment method tracking added
             };
             
-            // Reduce inventory for sold items
-            const invReduction = reduceInventoryForProducts(walkInCart, (currentUser && currentUser.fullName) || 'system', sale.id);
-            if (!invReduction.success) {
-                alert('⚠️ Stock deduction issues:\n' + invReduction.errors.join('\n'));
+            // FEFO mandatory: deduct via barcode/batch FEFO first
+            try {
+                const branchId = (currentUser && currentUser.branch) || 'unknown_branch';
+                const userName = (currentUser && currentUser.fullName) || 'system';
+                const fefo = await fefoDispenseProducts(walkInCart.map(i=>({ name:i.name, quantity:i.quantity||1 })), branchId, userName, sale.id);
+                if (!fefo.success) {
+                    alert('⚠️ FEFO stock issues:\n' + fefo.errors.join('\n'));
+                }
+                // Update legacy counters for dashboards
+                const invReduction = reduceInventoryForProducts(walkInCart, userName, sale.id);
+                if (!invReduction.success && fefo.success) {
+                    console.warn('Legacy counter update reported issues but FEFO deduction succeeded.');
+                }
+            } catch (e) {
+                console.warn('FEFO dispense failed, falling back to simple counters:', e);
+                const invReduction = reduceInventoryForProducts(walkInCart, (currentUser && currentUser.fullName) || 'system', sale.id);
+                if (!invReduction.success) {
+                    alert('⚠️ Stock deduction issues:\n' + invReduction.errors.join('\n'));
+                }
             }
 
             // Record department event
@@ -20582,11 +20716,16 @@ async function reverseLastPrescriptionPayment(reportId){
                 // Check barcode stock if item not found in countryStock
                 if (!item) {
                     const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
-                    const matchingBatches = barcodeStock.filter(b => 
+                    let matchingBatches = barcodeStock.filter(b => 
                         b.description === productName && 
                         b.location === 'country_stock' && 
                         b.status === 'available'
                     );
+                    // FEFO: sort by soonest expiry and skip expired batches
+                    const now = new Date();
+                    matchingBatches = matchingBatches
+                        .filter(b => { try { return new Date((b.expiryDate||'') + '-01') >= now; } catch(_) { return true; } })
+                        .sort((a,b) => (a.expiryTimestamp||0) - (b.expiryTimestamp||0));
                     const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
                     
                     if (totalBarcodeQty >= quantity) {
@@ -20607,7 +20746,10 @@ async function reverseLastPrescriptionPayment(reportId){
                     let remainingQty = quantity;
                     const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
                     
-                    barcodeItem.batches.forEach(batch => {
+                    barcodeItem.batches
+                        .filter(b => { try { return new Date((b.expiryDate||'') + '-01') >= new Date(); } catch(_) { return true; } })
+                        .sort((a,b) => (a.expiryTimestamp||0) - (b.expiryTimestamp||0))
+                        .forEach(batch => {
                         if (remainingQty <= 0) return;
                         const deduct = Math.min(remainingQty, batch.remainingQuantity);
                         batch.remainingQuantity -= deduct;
@@ -20672,11 +20814,16 @@ async function reverseLastPrescriptionPayment(reportId){
                 // Check barcode stock if item not found in countryStock
                 if (!item) {
                     const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
-                    const matchingBatches = barcodeStock.filter(b => 
+                    let matchingBatches = barcodeStock.filter(b => 
                         b.description === productName && 
                         b.location === 'country_stock' && 
                         b.status === 'available'
                     );
+                    // FEFO: sort by soonest expiry and skip expired batches
+                    const now2 = new Date();
+                    matchingBatches = matchingBatches
+                        .filter(b => { try { return new Date((b.expiryDate||'') + '-01') >= now2; } catch(_) { return true; } })
+                        .sort((a,b) => (a.expiryTimestamp||0) - (b.expiryTimestamp||0));
                     const totalBarcodeQty = matchingBatches.reduce((sum, b) => sum + (b.remainingQuantity || 0), 0);
                     
                     if (totalBarcodeQty >= quantity) {
@@ -20697,7 +20844,10 @@ async function reverseLastPrescriptionPayment(reportId){
                     let remainingQty = quantity;
                     const barcodeStock = JSON.parse(localStorage.getItem('dyna_barcode_stock') || '[]');
                     
-                    barcodeItem.batches.forEach(batch => {
+                    barcodeItem.batches
+                        .filter(b => { try { return new Date((b.expiryDate||'') + '-01') >= new Date(); } catch(_) { return true; } })
+                        .sort((a,b) => (a.expiryTimestamp||0) - (b.expiryTimestamp||0))
+                        .forEach(batch => {
                         if (remainingQty <= 0) return;
                         const deduct = Math.min(remainingQty, batch.remainingQuantity);
                         batch.remainingQuantity -= deduct;
@@ -21397,6 +21547,45 @@ async function reverseLastPrescriptionPayment(reportId){
             if (!container) return;
             container.innerHTML = '<p style="color:#666;">Enter a SKU/Code and click Generate to preview barcode.</p>';
         }
+        // Simple toast system for inline feedback with optional action
+        function showToast(message, options = {}) {
+            let root = document.getElementById('toastContainer');
+            if (!root) {
+                root = document.createElement('div');
+                root.id = 'toastContainer';
+                root.style.position = 'fixed';
+                root.style.bottom = '20px';
+                root.style.right = '20px';
+                root.style.display = 'flex';
+                root.style.flexDirection = 'column';
+                root.style.gap = '8px';
+                root.style.zIndex = '9999';
+                document.body.appendChild(root);
+            }
+            const toast = document.createElement('div');
+            toast.style.background = '#2c3e50';
+            toast.style.color = '#ecf0f1';
+            toast.style.padding = '10px 12px';
+            toast.style.borderRadius = '6px';
+            toast.style.boxShadow = '0 4px 14px rgba(0,0,0,0.2)';
+            toast.style.display = 'flex';
+            toast.style.alignItems = 'center';
+            toast.style.gap = '10px';
+            const span = document.createElement('span');
+            span.textContent = message;
+            toast.appendChild(span);
+            if (options && options.actionLabel && typeof options.onAction === 'function') {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-warning';
+                btn.textContent = options.actionLabel;
+                btn.onclick = () => { try { options.onAction(); } finally { root.removeChild(toast); } };
+                toast.appendChild(btn);
+            }
+            root.appendChild(toast);
+            if (!options || !options.actionLabel) {
+                setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
+            }
+        }
         function generateProductBarcode() {
             const name = document.getElementById('barcodeProductName')?.value || '';
             const sku = (document.getElementById('barcodeSku')?.value || '').trim();
@@ -21426,6 +21615,35 @@ async function reverseLastPrescriptionPayment(reportId){
             const location = document.getElementById('scanLocation')?.value || 'branch';
             const status = document.getElementById('scanUpdateStatus');
             if (!code || !qty || qty <= 0) { if (status) status.textContent = 'Enter code and valid quantity.'; return; }
+            // If barcode API is available and action removes stock, enforce FEFO and assist user
+            try {
+                if (window.barcodeStockAPI && action === 'remove') {
+                    const found = window.barcodeStockAPI.getStockByBarcode(code);
+                    if (found && found.success && found.data) {
+                        const productName = found.data.description;
+                        const fefo = window.barcodeStockAPI.getFEFOStock(productName, qty);
+                        if (fefo && fefo.success && Array.isArray(fefo.data) && fefo.data.length > 0) {
+                            const earliest = fefo.data[0];
+                            if (typeof found.data.expiryTimestamp === 'number' && typeof earliest.expiryTimestamp === 'number') {
+                                if (found.data.expiryTimestamp > earliest.expiryTimestamp) {
+                                    // FEFO violation: show toast with quick action to select earliest batch
+                                    showToast(`FEFO required: use earliest batch ${earliest.batchNo} expiring first.`, {
+                                        actionLabel: 'Use earliest batch',
+                                        onAction: () => {
+                                            const input = document.getElementById('scannedCode');
+                                            if (input) {
+                                                input.value = earliest.barcode;
+                                                if (status) status.textContent = `Selected earliest batch ${earliest.batchNo} (${earliest.barcode}). Click Apply again.`;
+                                            }
+                                        }
+                                    });
+                                    return; // block apply until user confirms using earliest
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_) {}
             // Minimal implementation: record an adjustment event
             const adjustments = JSON.parse(localStorage.getItem('dyna_scan_adjustments') || '[]');
             adjustments.push({ id: 'ADJ-' + Date.now(), code, quantity: qty, action, location, timestamp: new Date().toISOString(), user: currentUser?.fullName || 'system' });

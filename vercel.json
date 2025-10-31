@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "dynapharm-cloud",
+  "name": "dynapharm-namibia-health",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "dynapharm-complete-system.html", "use": "@vercel/static" },
