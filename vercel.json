@@ -17,7 +17,8 @@
     { "src": "api/branches.js", "use": "@vercel/node" },
     { "src": "api/notifications.js", "use": "@vercel/node" },
     { "src": "api/reports.js", "use": "@vercel/node" },
-    { "src": "api/attendance.js", "use": "@vercel/node" }
+    { "src": "api/attendance.js", "use": "@vercel/node" },
+    { "src": "api/stock-movements.js", "use": "@vercel/node" }
   ],
   "redirects": [
     { "source": "/", "destination": "/dynapharm-complete-system.html", "permanent": false },

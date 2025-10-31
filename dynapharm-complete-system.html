@@ -6543,6 +6543,17 @@
                             barcode: batch.barcode,
                             user: userFullName || 'system'
                         });
+                        try {
+                            await recordStockMovement({
+                                type: 'dispense',
+                                product: productName,
+                                quantity: take,
+                                batchNo: batch.batchNo,
+                                branchId: branchId,
+                                reference: reference,
+                                createdBy: userFullName || 'system'
+                            });
+                        } catch(_){}
                     }
 
                     if (needed > 0) {
@@ -6782,8 +6793,9 @@
 
         // Unified storage adapter (IndexedDB-first with localStorage fallback)
         const DYN_DB_NAME = 'DynapharmDB';
-        const DYN_DB_VERSION = 2; // v2 adds 'clients' store
+        const DYN_DB_VERSION = 3; // v3 adds 'stockMovements' store
         const DYN_CLIENTS_STORE = 'clients';
+        const DYN_MOVEMENTS_STORE = 'stockMovements';
 
         let dynDb = null;
 
@@ -6806,6 +6818,13 @@
                         try { store.createIndex('fullName', 'fullName', { unique: false }); } catch(_){}
                         try { store.createIndex('phone', 'phone', { unique: false }); } catch(_){}
                         try { store.createIndex('createdAt', 'createdAt', { unique: false }); } catch(_){}
+                    }
+                    // Ensure stock movements store exists
+                    if (!dbu.objectStoreNames.contains(DYN_MOVEMENTS_STORE)) {
+                        const m = dbu.createObjectStore(DYN_MOVEMENTS_STORE, { keyPath: 'id' });
+                        try { m.createIndex('createdAt', 'createdAt', { unique: false }); } catch(_){}
+                        try { m.createIndex('branchId', 'branchId', { unique: false }); } catch(_){}
+                        try { m.createIndex('type', 'type', { unique: false }); } catch(_){}
                     }
                 };
             });
@@ -6852,6 +6871,103 @@
                 try { store.put(item); } catch (e) { reject(e); }
             });
         }
+
+        // --- Stock Movements: record locally in IDB and attempt cloud sync ---
+        function getGitHubTokenForWrites(){
+            try { return (window.cloudStorage && window.cloudStorage.getStoredToken && window.cloudStorage.getStoredToken()) || ''; } catch(_){ return ''; }
+        }
+
+        function getPendingMovements(){
+            try { return JSON.parse(localStorage.getItem('dyna_pending_movements')||'[]'); } catch(_){ return []; }
+        }
+        function setPendingMovements(list){
+            try { localStorage.setItem('dyna_pending_movements', JSON.stringify(list||[])); } catch(_){ }
+        }
+
+        async function recordStockMovement(movement){
+            const normalized = Object.assign({
+                id: movement.id || ('MOV-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)),
+                createdAt: new Date().toISOString()
+            }, movement);
+            try { await dbAdd(DYN_MOVEMENTS_STORE, normalized); } catch(_){ }
+            // queue for server write
+            const pending = getPendingMovements(); pending.push(normalized); setPendingMovements(pending);
+            // try sync in background
+            try { trySyncPendingMovements(); } catch(_){ }
+            return normalized;
+        }
+
+        async function trySyncPendingMovements(){
+            const token = getGitHubTokenForWrites();
+            if (!token) return false;
+            let pending = getPendingMovements();
+            if (!Array.isArray(pending) || pending.length === 0) return true;
+            const keep = [];
+            for (const mov of pending){
+                try {
+                    const resp = await fetch('/api/stock-movements', {
+                        method: 'POST',
+                        headers: { 'Content-Type':'application/json', 'x-github-token': token },
+                        body: JSON.stringify({ movement: mov })
+                    });
+                    if (!resp.ok) { keep.push(mov); }
+                } catch(_){ keep.push(mov); }
+            }
+            setPendingMovements(keep);
+            return keep.length === 0;
+        }
+
+        async function rebuildBranchStockFromMovements(){
+            try {
+                // fetch cloud movements
+                let cloud = [];
+                try {
+                    const r = await fetch('/api/stock-movements');
+                    if (r.ok) cloud = await r.json();
+                } catch(_){ cloud = []; }
+                // local queued movements also included
+                const localPending = getPendingMovements();
+                // local IDB movements
+                let localDb = [];
+                try { localDb = await dbGetAll(DYN_MOVEMENTS_STORE) || []; } catch(_){ localDb = []; }
+                const all = ([]).concat(Array.isArray(cloud)?cloud:[], Array.isArray(localDb)?localDb:[], Array.isArray(localPending)?localPending:[]);
+                // derive branch -> product -> qty
+                const branchStock = {};
+                for (const m of all){
+                    const type = (m && m.type) || '';
+                    const product = (m && m.product) || '';
+                    const qty = Number(m && m.quantity || 0);
+                    if (!product || !qty) continue;
+                    if (type === 'receive'){
+                        const dest = m.destination || m.branchId || 'unknown';
+                        branchStock[dest] = branchStock[dest] || {};
+                        branchStock[dest][product] = (branchStock[dest][product] || 0) + qty;
+                    } else if (type === 'transfer'){
+                        const from = m.source || m.branchId || 'unknown';
+                        const to = m.destination || 'unknown';
+                        branchStock[from] = branchStock[from] || {};
+                        branchStock[to] = branchStock[to] || {};
+                        branchStock[from][product] = (branchStock[from][product] || 0) - qty;
+                        branchStock[to][product] = (branchStock[to][product] || 0) + qty;
+                    } else if (type === 'adjust'){
+                        const b = m.branchId || 'unknown';
+                        branchStock[b] = branchStock[b] || {};
+                        branchStock[b][product] = (branchStock[b][product] || 0) + qty; // qty can be negative
+                    } else if (type === 'dispense'){
+                        const b = m.branchId || 'unknown';
+                        branchStock[b] = branchStock[b] || {};
+                        branchStock[b][product] = (branchStock[b][product] || 0) - qty;
+                    }
+                }
+                localStorage.setItem('dyna_branch_stock', JSON.stringify(branchStock));
+            } catch(_){ }
+        }
+
+        // background timers
+        setInterval(() => { try { trySyncPendingMovements(); } catch(_){} }, 15000);
+        setInterval(() => { try { rebuildBranchStockFromMovements(); } catch(_){} }, 20000);
+        // initial kick
+        setTimeout(() => { try { trySyncPendingMovements(); rebuildBranchStockFromMovements(); } catch(_){} }, 1200);
 
         // Adapter: Clients
         async function loadClientsAdapter() {
@@ -21738,6 +21854,24 @@ async function reverseLastPrescriptionPayment(reportId){
             adjustments.push({ id: 'ADJ-' + Date.now(), code, quantity: qty, action, location, timestamp: new Date().toISOString(), user: currentUser?.fullName || 'system' });
             localStorage.setItem('dyna_scan_adjustments', JSON.stringify(adjustments));
             if (status) status.textContent = `Recorded ${action} of ${qty} for ${code} (${location}).`;
+            // Record movement (adjust) for branch
+            try {
+                let productName = code;
+                if (window.barcodeStockAPI) {
+                    const found = window.barcodeStockAPI.getStockByBarcode(code);
+                    if (found && found.success && found.data && found.data.description) productName = found.data.description;
+                }
+                const delta = action === 'remove' ? -Math.abs(qty) : Math.abs(qty);
+                recordStockMovement({
+                    type: 'adjust',
+                    product: productName,
+                    quantity: delta,
+                    batchNo: null,
+                    branchId: (currentUser && currentUser.branch) || 'unknown_branch',
+                    reference: adjustments[adjustments.length-1]?.id,
+                    createdBy: (currentUser && currentUser.fullName) || 'system'
+                });
+            } catch(_){}
             // Optionally refresh inventory movements
             if (typeof displayInventoryMovements === 'function') displayInventoryMovements();
         }
