@@ -148,6 +148,7 @@
       "nbNumber": "76091510479"
     }
   ],
+  "employees": [],
   "users": [
     {
       "id": "USR001",
@@ -2094,5 +2095,5 @@
   "branchStock": {},
   "scanAdjustments": [],
   "appointments": [],
-  "lastSync": "2025-10-31T16:16:23.410Z"
+  "lastSync": "2025-10-31T17:30:09.986Z"
 }
