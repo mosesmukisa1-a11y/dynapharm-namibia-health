@@ -7,6 +7,8 @@ class CloudStorage {
         this.githubDataPath = 'cloud-data/data.json';
         this.githubApiBase = 'https://api.github.com';
         this.tokenStorageKey = 'dyna_github_token';
+        this.lastCloudSyncKey = 'dyna_cloud_lastSync';
+        this.pollIntervalMs = 20000; // 20s light polling for near real-time
     }
 
     async loadFromCloud() {
@@ -28,8 +30,11 @@ class CloudStorage {
 
     async syncToLocal() {
         const cloudData = await this.loadFromCloud();
-        
         if (cloudData) {
+            const prev = (typeof localStorage !== 'undefined') ? (localStorage.getItem(this.lastCloudSyncKey) || '') : '';
+            const incomingLastSync = cloudData.lastSync || '';
+            const hasChange = !prev || (incomingLastSync && incomingLastSync !== prev);
+            // Merge cloud data with local data, keeping newer versions
             // Merge cloud data with local data, keeping newer versions
             if (cloudData.clients) {
                 localStorage.setItem('dyna_clients', JSON.stringify(cloudData.clients));
@@ -70,8 +75,16 @@ class CloudStorage {
             if (cloudData.appointments) {
                 localStorage.setItem('dyna_consult_appointments', JSON.stringify(cloudData.appointments));
             }
-            
+            if (incomingLastSync) {
+                try { localStorage.setItem(this.lastCloudSyncKey, incomingLastSync); } catch(_) {}
+            }
             console.log('✅ Synced cloud data to local storage');
+            try {
+                if (hasChange && typeof window !== 'undefined') {
+                    const evt = new CustomEvent('cloud-sync:updated', { detail: { lastSync: incomingLastSync } });
+                    window.dispatchEvent(evt);
+                }
+            } catch(_) {}
         }
     }
 
@@ -195,6 +208,10 @@ const cloudStorage = new CloudStorage();
 // Auto-sync on page load
 window.addEventListener('load', () => {
     cloudStorage.syncToLocal();
+    // Lightweight polling for near real-time updates
+    try {
+        setInterval(() => { cloudStorage.syncToLocal(); }, cloudStorage.pollIntervalMs);
+    } catch(_) {}
     try {
         if (!document.getElementById('cloud-save-btn')) {
             const btn = document.createElement('button');
