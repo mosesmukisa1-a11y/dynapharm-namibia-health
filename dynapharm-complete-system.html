@@ -138,7 +138,6 @@
     <meta name="api-base" content="">
     <title>Dynapharm International Namibia - v2.0</title>
     <!-- FullCalendar.js -->
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script>
         (function(){
@@ -1702,15 +1701,13 @@
             } catch(_) { /* ignore */ }
         });
     </script>
-    <!-- SheetJS library for Excel parsing (fallback to jsdelivr) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.1/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS library for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"></script>
     <!-- Chart.js for interactive charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- D3.js for advanced visualizations -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- ML.js for predictive analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/ml-matrix@6.10.5/lib/ml-matrix.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ml-regression@4.0.1/dist/ml-regression.min.js"></script>
+    <!-- Predictive analytics libs temporarily disabled due to CDN 404s (re-enable with correct URLs if needed) -->
     <!-- jsPDF and html2canvas for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -7737,6 +7734,8 @@
                     options.body = JSON.stringify(data);
                 }
                 
+                
+
                 // Try primary API
                 try {
                     const response = await fetch(`${API_BASE}${endpoint}`, options);

@@ -12,19 +12,22 @@ class CloudStorage {
     }
 
     async loadFromCloud() {
-        try {
-            const url = `https://raw.githubusercontent.com/${this.repo}/main/cloud-data/data.json`;
-            const response = await fetch(url);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Loaded data from cloud storage');
-                return data;
-            }
-        } catch (error) {
-            console.log('Cloud storage not available, using local data');
+        // Try same-origin static first, then GitHub fallback
+        const candidates = [
+            '/cloud-data/data.json',
+            `https://raw.githubusercontent.com/${this.repo}/main/cloud-data/data.json`
+        ];
+        for (let i = 0; i < candidates.length; i++) {
+            try {
+                const response = await fetch(candidates[i], { cache: 'no-store' });
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Loaded data from cloud storage');
+                    return data;
+                }
+            } catch (_) {}
         }
-        
+        console.log('Cloud storage not available, using local data');
         return null;
     }
 
@@ -89,22 +92,29 @@ class CloudStorage {
 
         // Additionally, load employees from dedicated file and sync
         try {
-            const empUrl = `https://raw.githubusercontent.com/${this.repo}/main/cloud-data/employees_data.json`;
-            const r = await fetch(empUrl, { cache: 'no-store' });
-            if (r.ok) {
-                const list = await r.json();
-                if (Array.isArray(list)) {
-                    localStorage.setItem('dyna_employees', JSON.stringify(list));
-                    // Keep HR portal compatibility
-                    try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
-                    console.log(`✅ Synced ${list.length} employees from employees_data.json`);
-                    try {
-                        if (typeof window !== 'undefined') {
-                            const evt = new CustomEvent('cloud-sync:employees', { detail: { count: list.length } });
-                            window.dispatchEvent(evt);
-                        }
-                    } catch(_) {}
-                }
+            const empCandidates = [
+                '/cloud-data/employees_data.json',
+                `https://raw.githubusercontent.com/${this.repo}/main/cloud-data/employees_data.json`
+            ];
+            for (let i = 0; i < empCandidates.length; i++) {
+                try {
+                    const r = await fetch(empCandidates[i], { cache: 'no-store' });
+                    if (!r.ok) continue;
+                    const list = await r.json();
+                    if (Array.isArray(list)) {
+                        localStorage.setItem('dyna_employees', JSON.stringify(list));
+                        // Keep HR portal compatibility
+                        try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
+                        console.log(`✅ Synced ${list.length} employees from employees_data.json`);
+                        try {
+                            if (typeof window !== 'undefined') {
+                                const evt = new CustomEvent('cloud-sync:employees', { detail: { count: list.length } });
+                                window.dispatchEvent(evt);
+                            }
+                        } catch(_) {}
+                        break;
+                    }
+                } catch(_) {}
             }
         } catch (e) {
             console.warn('Employees sync skipped:', e && e.message ? e.message : e);
