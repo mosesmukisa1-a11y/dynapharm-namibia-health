@@ -3055,22 +3055,6 @@
                 
                 <!-- Branch Stock Section (Hidden by default) -->
                 <div id="dispenserStockSection" style="display: none;">
-                    <!-- Sub-tabs for Branch Stock -->
-                    <div style="display:flex; gap:10px; margin: 0 0 14px 0; flex-wrap: wrap;">
-                        <button id="branchStockSubTabInventoryBtn" class="btn" onclick="showBranchStockSubTab('inventory')">📊 Inventory Dashboard</button>
-                        <button id="branchStockSubTabListBtn" class="btn" onclick="showBranchStockSubTab('list')">📋 Branch Inventory List</button>
-                    </div>
-
-                    <!-- Inventory Dashboard (embedded) -->
-                    <div id="branchStockInventoryDashboard" style="display:none; margin-bottom:14px;">
-                        <div class="form-section">
-                            <div style="color:#7f8c8d; margin-bottom:8px;">Embedded stock dashboard with movements, requests, transfers and warehouse snapshot.</div>
-                            <iframe title="Stock Management" src="./stock-management-portal.html" style="width:100%; height:70vh; border:1px solid #ddd; border-radius:8px;"></iframe>
-                        </div>
-                    </div>
-
-                    <!-- Branch Inventory List -->
-                    <div id="branchStockListContainer" style="display:block;">
                     <div class="form-section">
                         <h3 style="color:#2c3e50; margin-bottom: 10px;">📦 Branch Inventory</h3>
                         <div class="search-box">
@@ -3082,7 +3066,6 @@
                             <button class="btn btn-success" onclick="openBranchRequestModal()">➕ Request Stock</button>
                         </div>
                         <div id="branchInventoryList" style="max-height: 500px; overflow-y: auto; margin-top: 15px;"></div>
-                    </div>
                     </div>
                     <!-- Branch Stock Request Modal -->
                     <div class="modal" id="branchRequestModal" style="display:none;">
@@ -13383,8 +13366,8 @@ async function reverseLastPrescriptionPayment(reportId){
                     activeSection = 'dispenserStockSection';
                     activeTab = 'stockTab';
                     gradient = 'linear-gradient(135deg, #34495e, #2c3e50)';
-                    // Default to Branch-only Inventory List when opening Branch Stock
-                    showBranchStockSubTab('list');
+                    // Show branch-only inventory list by default
+                    try { displayBranchInventory(); } catch(_) {}
                     break;
                 case 'banking':
                     activeSection = 'dispenserBankingSection';
@@ -13437,31 +13420,7 @@ async function reverseLastPrescriptionPayment(reportId){
             }
         }
 
-        // Sub-tabs under Branch Stock (Inventory vs List)
-        function showBranchStockSubTab(tab) {
-            try {
-                const invDash = document.getElementById('branchStockInventoryDashboard');
-                const list = document.getElementById('branchStockListContainer');
-                const btnInv = document.getElementById('branchStockSubTabInventoryBtn');
-                const btnList = document.getElementById('branchStockSubTabListBtn');
-
-                if (!invDash || !list || !btnInv || !btnList) return;
-
-                if (tab === 'inventory') {
-                    invDash.style.display = 'block';
-                    list.style.display = 'none';
-                    btnInv.classList.add('btn-success');
-                    btnList.classList.remove('btn-success');
-                } else {
-                    invDash.style.display = 'none';
-                    list.style.display = 'block';
-                    btnList.classList.add('btn-success');
-                    btnInv.classList.remove('btn-success');
-                    // Ensure list content is populated
-                    try { displayBranchInventory(); } catch (_) {}
-                }
-            } catch(_) {}
-        }
+        
 
         // ========== Dispenser Bonus Tab ==========
         function initializeDispenserBonusTab() {
