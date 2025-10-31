@@ -8,9 +8,7 @@
     { "src": "distributor-guest.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
-    { "src": "api/health.js", "use": "@vercel/node" },
-    { "src": "api/clients.js", "use": "@vercel/node" },
-    { "src": "api/users.js", "use": "@vercel/node" }
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/", "dest": "/dynapharm-complete-system.html" },
@@ -32,7 +30,11 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, HEAD" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
       ]
     }
   ]
