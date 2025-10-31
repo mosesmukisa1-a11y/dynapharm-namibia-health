@@ -1185,17 +1185,15 @@
         function setCurrentUserRole(role){ try{ localStorage.setItem('currentUserRole', role); applyRoleGuards(); }catch(_){} }
         function getCurrentUserRole(){ try{ return localStorage.getItem('currentUserRole') || 'guest'; }catch(_){ return 'guest'; } }
         function applyRoleGuards(){
-            const role = getCurrentUserRole().toLowerCase();
             const tabButtons = document.querySelectorAll('.tabs .tab-button');
             tabButtons.forEach(btn => {
                 const onclick = btn.getAttribute('onclick') || '';
                 const match = onclick.match(/openTab\('([^']+)'/);
                 const tabId = match ? match[1] : null;
-                if (!tabId) return;
-                const allowed = ROLE_TABS[tabId];
-                if (Array.isArray(allowed)) {
-                    btn.style.display = allowed.includes(role) ? '' : 'none';
+                if (tabId && Array.isArray(ROLE_TABS[tabId])) {
+                    btn.dataset.allowedRoles = ROLE_TABS[tabId].join(',');
                 }
+                btn.style.display = '';
             });
         }
         document.addEventListener('DOMContentLoaded', applyRoleGuards);
