@@ -2922,6 +2922,9 @@
                     <button class="dispenserTab" id="paymentsTab" onclick="showDispenserTab('payments')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         💳 Payments
                     </button>
+                    <button class="dispenserTab" id="onlineOrdersTab" onclick="showDispenserTab('onlineOrders')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        🛍️ Online Orders
+                    </button>
                     <button class="dispenserTab" id="bonusTab" onclick="showDispenserTab('bonus')" style="flex: 1; padding: 15px; background: #ecf0f1; color: #2c3e50; font-size: 1rem; border: none; border-radius: 8px 8px 0 0; cursor: pointer;">
                         🎁 Bonus
                     </button>
@@ -3002,6 +3005,29 @@
                             if (m) m.style.display = 'none';
                         }
                     </script>
+                </div>
+
+                <!-- Online Orders Section (Hidden by default) -->
+                <div id="dispenserOnlineOrdersSection" style="display: none;">
+                    <div class="form-section">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <h3 style="color:#2c3e50; margin:0;">🛍️ Online Orders</h3>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-success" onclick="displayBranchOnlineOrders()">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <p style="color:#7f8c8d; margin-top:6px;">Receive and dispense online orders assigned to this branch.</p>
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-top:12px;">
+                            <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
+                                <h4 style="margin:0 0 10px 0;">📥 Receiving</h4>
+                                <div id="branchOnlineOrdersReceiving" style="max-height:420px; overflow:auto;"></div>
+                            </div>
+                            <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
+                                <h4 style="margin:0 0 10px 0;">📦 Dispensing</h4>
+                                <div id="branchOnlineOrdersDispensing" style="max-height:420px; overflow:auto;"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Walk-in Section (Default visible) -->
@@ -25127,6 +25153,51 @@ async function reverseLastPrescriptionPayment(reportId){
                 if (cartCount) cartCount.textContent = String(countVal);
                 if (cartBadge) cartBadge.style.display = countVal > 0 ? 'inline-block' : 'none';
             } catch (_) {}
+            try { updateFloatingCartUI(); } catch(_) {}
+        }
+
+        function ensureFloatingCart(){
+            if (document.getElementById('floatingCart')) return;
+            const el = document.createElement('div');
+            el.id = 'floatingCart';
+            el.style.position = 'fixed';
+            el.style.right = '20px';
+            el.style.bottom = '20px';
+            el.style.background = 'white';
+            el.style.border = '2px solid #c41e3a';
+            el.style.borderRadius = '12px';
+            el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+            el.style.padding = '12px 16px';
+            el.style.minWidth = '220px';
+            el.style.zIndex = '9999';
+            el.style.display = 'none';
+            el.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background:#c41e3a; color:white; border-radius:999px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:700;" id="floatingCartCount">0</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700; color:#2c3e50;">Cart</div>
+                        <div style="color:#7f8c8d; font-size:12px;" id="floatingCartTotal">N$ 0.00</div>
+                    </div>
+                    <button class="btn btn-success" style="padding:8px 12px;" onclick="checkoutShopOrder()">Checkout</button>
+                </div>`;
+            el.onclick = function(e){ if (e.target.tagName !== 'BUTTON') scrollToShopCart(); };
+            document.body.appendChild(el);
+        }
+
+        function updateFloatingCartUI(){
+            ensureFloatingCart();
+            const el = document.getElementById('floatingCart');
+            const countEl = document.getElementById('floatingCartCount');
+            const totalEl = document.getElementById('floatingCartTotal');
+            const countVal = (shopCart || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const totalVal = (shopCart || []).reduce((sum, item) => sum + (item.price * (item.quantity || 0)), 0);
+            if (countVal > 0) {
+                el.style.display = 'block';
+                if (countEl) countEl.textContent = String(countVal);
+                if (totalEl) totalEl.textContent = 'N$ ' + totalVal.toFixed(2);
+            } else {
+                el.style.display = 'none';
+            }
         }
         
         function removeFromShopCart(index) {
@@ -25242,6 +25313,7 @@ async function reverseLastPrescriptionPayment(reportId){
                             <label class="required">Payment Method</label>
                             <select id="checkoutPaymentMethod" required onchange="onPaymentMethodChange()">
                                 <option value="">Select Payment Method</option>
+                                <option value="online">Online (Card/Mobile via Flutterwave)</option>
                                 <option value="ewallet">E-Wallet (+264817317160)</option>
                                 <option value="easywallet">Easy Wallet (+264817317160)</option>
                                 <option value="bluewallet">Blue Wallet (+264817317160)</option>
@@ -25329,42 +25401,100 @@ async function reverseLastPrescriptionPayment(reportId){
                 totalBV: totalBV,
                 total: subtotal
             };
-	            
-	            // Submit to backend API with graceful fallback to localStorage
-	            (async () => {
-	                const payload = JSON.stringify(order);
-	                const headers = { 'Content-Type': 'application/json' };
-	                const endpoints = [
-	                    '/api/orders',
-	                    'http://localhost:8001/api/orders'
-	                ];
-	                let submitted = false;
-	                for (let i = 0; i < endpoints.length; i++) {
-	                    try {
-	                        const res = await fetch(endpoints[i], { method: 'POST', headers, body: payload });
-	                        if (res.ok) {
-	                            const data = await res.json();
-	                            if (data && data.success && data.order) {
-	                                submitted = true;
-	                                // Use server order id if provided
-	                                order.id = data.order.id || order.id;
-	                                break;
-	                            }
-	                        }
-	                    } catch (e) { /* try next endpoint */ }
-	                }
-	                if (!submitted) {
-	                    // Fallback to local storage
-	                    try {
-	                        onlineOrders.push(order);
-	                        localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
-	                    } catch (e) { /* ignore storage errors */ }
-	                }
+
+                // If online payment selected, start gateway checkout first
+                if (paymentMethod === 'online') {
+                    try { startOnlinePayment(order); } catch (e) { alert('Payment init failed'); }
+                    return;
+                }
+                // Otherwise submit immediately as pending (wallet/COD/Pickup)
+                finalizeOrder(order, false, null);
+        }
+
+        function finalizeOrder(order, isPaid, paymentMeta){
+            if (isPaid) {
+                order.status = 'paid';
+                order.payment = Object.assign({}, paymentMeta || {}, { verified: !!paymentMeta });
+            }
+            (async () => {
+                const payload = JSON.stringify(order);
+                const headers = { 'Content-Type': 'application/json' };
+                const endpoints = ['/api/orders', 'http://localhost:8001/api/orders'];
+                let submitted = false;
+                for (let i = 0; i < endpoints.length; i++) {
+                    try {
+                        const res = await fetch(endpoints[i], { method: 'POST', headers, body: payload });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.success && data.order) {
+                                submitted = true;
+                                order.id = data.order.id || order.id;
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                }
+                if (!submitted) {
+                    try {
+                        onlineOrders.push(order);
+                        localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
+                    } catch (e) {}
+                }
                 try { recordDepartmentEvent && recordDepartmentEvent('online_order_placed', order); } catch (_) {}
-	                alert('Order placed successfully! Order ID: ' + order.id);
-	                closeModal('checkoutModal');
-	                clearShopCart();
-	            })();
+                alert('Order placed successfully! Order ID: ' + order.id + (isPaid ? '\nPayment received.' : ''));
+                closeModal('checkoutModal');
+                clearShopCart();
+            })();
+        }
+
+        function loadFlutterwaveScript(cb){
+            if (window.FlutterwaveCheckout) { cb(); return; }
+            const existing = document.querySelector('script[src="https://checkout.flutterwave.com/v3.js"]');
+            if (existing) { existing.onload = () => cb(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://checkout.flutterwave.com/v3.js';
+            s.onload = () => cb();
+            s.onerror = () => alert('Failed to load payment script');
+            document.head.appendChild(s);
+        }
+
+        function startOnlinePayment(order){
+            loadFlutterwaveScript(() => {
+                const pub = (window.FLW_PUBLIC_KEY || localStorage.getItem('FLW_PUBLIC_KEY') || '').trim();
+                if (!pub) {
+                    alert('Payment not configured. Set FLW_PUBLIC_KEY in environment.');
+                    return;
+                }
+                const amount = Number(order.total || 0);
+                const txRef = order.id;
+                const customer = { email: order.customerEmail, phonenumber: order.customerPhone, name: order.customerName };
+                try {
+                    FlutterwaveCheckout({
+                        public_key: pub,
+                        tx_ref: txRef,
+                        amount: amount,
+                        currency: 'NAD',
+                        customer,
+                        meta: { order_id: order.id, branch: order.branch },
+                        callback: function (data) {
+                            // Verify on backend
+                            const body = JSON.stringify({ transaction_id: data?.transaction_id || data?.id, order_id: order.id });
+                            fetch('/api/payments/verify/flutterwave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+                                .then(r => r.json()).then(v => {
+                                    const ok = v?.success && v?.verify?.success;
+                                    finalizeOrder(order, !!ok, { provider: 'flutterwave', ref: data?.tx_ref, transaction_id: data?.transaction_id || data?.id });
+                                }).catch(() => finalizeOrder(order, false, null));
+                        },
+                        onclose: function () {
+                            // If user closed without paying, still place order as pending
+                            finalizeOrder(order, false, null);
+                        }
+                    });
+                } catch (e) {
+                    alert('Payment error. Order will be placed as pending.');
+                    finalizeOrder(order, false, null);
+                }
+            });
         }
         
         // ==========================

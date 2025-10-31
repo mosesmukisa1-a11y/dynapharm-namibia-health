@@ -224,6 +224,73 @@ class DynapharmAPIHandler(BaseHTTPRequestHandler):
                 emails.append(email_record)
                 save_json_file(EMAILS_FILE, emails)
                 response = {"success": True, "message": "Email queued", "email": email_record}
+            
+            elif path == '/api/payments/verify/flutterwave':
+                # Verify a Flutterwave transaction and optionally update an order
+                # Expected payload: { "transaction_id": "...", "order_id": "..." }
+                tx_id = (data.get('transaction_id') or '').strip()
+                order_id = (data.get('order_id') or '').strip()
+                secret_key = os.environ.get('FLW_SECRET_KEY', '').strip()
+                if not tx_id or not secret_key:
+                    response = {"success": False, "error": "Missing transaction_id or FLW_SECRET_KEY"}
+                    self.wfile.write(json.dumps(response).encode('utf-8'))
+                    return
+                # Call Flutterwave verify endpoint using stdlib to avoid extra deps
+                import urllib.request
+                import urllib.error
+                verify_url = f"https://api.flutterwave.com/v3/transactions/{tx_id}/verify"
+                req = urllib.request.Request(verify_url, method='GET', headers={
+                    'Authorization': f'Bearer {secret_key}',
+                    'Content-Type': 'application/json'
+                })
+                verify_result = {"success": False}
+                try:
+                    with urllib.request.urlopen(req, timeout=15) as res:
+                        body = res.read().decode('utf-8')
+                        vr = json.loads(body)
+                        status = (vr.get('status') or '').lower()
+                        data_block = vr.get('data') or {}
+                        charge_code = (data_block.get('processor_response') or '').lower()
+                        amount = data_block.get('amount')
+                        currency = data_block.get('currency')
+                        tx_ref = data_block.get('tx_ref')
+                        flw_id = data_block.get('id')
+                        if status == 'success':
+                            verify_result = {
+                                "success": True,
+                                "amount": amount,
+                                "currency": currency,
+                                "tx_ref": tx_ref,
+                                "transaction_id": flw_id
+                            }
+                except urllib.error.HTTPError as e:
+                    verify_result = {"success": False, "error": f"HTTP {e.code}"}
+                except Exception as e:
+                    verify_result = {"success": False, "error": str(e)}
+
+                # If order_id provided and verification succeeded, mark order paid
+                if verify_result.get('success') and order_id:
+                    orders = load_json_file(ORDERS_FILE, [])
+                    updated = False
+                    for i, o in enumerate(orders):
+                        if o.get('id') == order_id:
+                            o['status'] = 'paid'
+                            o.setdefault('payment', {})
+                            o['payment'].update({
+                                'provider': 'flutterwave',
+                                'verified': True,
+                                'transaction_id': verify_result.get('transaction_id'),
+                                'tx_ref': verify_result.get('tx_ref'),
+                                'amount': verify_result.get('amount'),
+                                'currency': verify_result.get('currency'),
+                                'verifiedAt': datetime.utcnow().isoformat() + 'Z'
+                            })
+                            orders[i] = o
+                            updated = True
+                            break
+                    if updated:
+                        save_json_file(ORDERS_FILE, orders)
+                response = {"success": verify_result.get('success', False), "verify": verify_result}
                 
             else:
                 response = {"error": "Endpoint not found"}
@@ -296,6 +363,31 @@ class DynapharmAPIHandler(BaseHTTPRequestHandler):
                     response = {"success": True, "message": "Report updated"}
                 else:
                     response = {"error": "Report not found"}
+            
+            elif path == '/api/orders':
+                # Update an existing order (status, assignments, fulfillment details)
+                orders = load_json_file(ORDERS_FILE, [])
+                order_id = data.get('id')
+                if not order_id:
+                    response = {"error": "Order id is required"}
+                else:
+                    updated = False
+                    for i, o in enumerate(orders):
+                        if o.get('id') == order_id:
+                            # Merge top-level fields conservatively
+                            for k, v in data.items():
+                                if k == 'id':
+                                    continue
+                                o[k] = v
+                            o.setdefault('updatedAt', datetime.utcnow().isoformat() + 'Z')
+                            orders[i] = o
+                            updated = True
+                            break
+                    if updated:
+                        save_json_file(ORDERS_FILE, orders)
+                        response = {"success": True, "message": "Order updated"}
+                    else:
+                        response = {"error": "Order not found"}
                 
             else:
                 response = {"error": "Endpoint not found"}
