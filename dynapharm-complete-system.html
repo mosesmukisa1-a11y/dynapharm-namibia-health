@@ -2020,7 +2020,7 @@
     </div>
 
     <div class="container">
-        <div class="logo"><img src="./assets/dynapharm-logo.png" alt="Dynapharm Namibia Logo" style="max-width:300px;height:auto;"></div>
+        <div class="logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='64' viewBox='0 0 300 64'%3E%3Crect width='300' height='64' rx='10' fill='%23c41e3a'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='Arial, sans-serif' font-size='20'%3EDynapharm Namibia%3C/text%3E%3C/svg%3E" alt="Dynapharm Namibia" style="max-width:300px;height:auto;"></div>
 
         <div class="header">
             <h1>DYNAPHARM INTERNATIONAL NAMIBIA</h1>
@@ -24353,7 +24353,24 @@ async function reverseLastPrescriptionPayment(reportId){
         }
         
         // Leave Management Functions
-        function loadLeaveRequests() {
+        async function loadLeaveRequests() {
+            try {
+                const r = await fetch('/api/leave');
+                if (r.ok) {
+                    const list = await r.json();
+                    const ui = (list||[]).map(l => ({
+                        id: l.id || ('LEAVE' + Date.now()),
+                        employee: l.fullName || l.userId || 'Unknown',
+                        type: l.type || 'Annual',
+                        startDate: l.startDate,
+                        endDate: l.endDate,
+                        days: l.days || 0,
+                        status: l.status || 'pending',
+                        reason: l.reason || ''
+                    }));
+                    localStorage.setItem('hr_leave', JSON.stringify(ui));
+                }
+            } catch(_) {}
             const leaveData = localStorage.getItem('hr_leave');
             leaveRequests = leaveData ? JSON.parse(leaveData) : [];
             displayLeaveRequests();
@@ -24668,7 +24685,23 @@ async function reverseLastPrescriptionPayment(reportId){
         }
         
         // Attendance Functions
-        function loadAttendance() {
+        async function loadAttendance() {
+            try {
+                const r = await fetch('/api/attendance');
+                if (r.ok) {
+                    const list = await r.json();
+                    const ui = (list||[]).map(a => ({
+                        id: a.id || ('ATT' + Date.now()),
+                        employee: a.fullName || a.userId || 'Unknown',
+                        date: a.date,
+                        status: (a.status||'').charAt(0).toUpperCase() + (a.status||'').slice(1),
+                        checkIn: a.checkIn || '',
+                        checkOut: a.checkOut || '',
+                        notes: a.notes || ''
+                    }));
+                    localStorage.setItem('hr_attendance', JSON.stringify(ui));
+                }
+            } catch(_) {}
             const attendanceData = localStorage.getItem('hr_attendance');
             attendanceRecords = attendanceData ? JSON.parse(attendanceData) : [];
             displayAttendance();
@@ -24952,6 +24985,24 @@ async function reverseLastPrescriptionPayment(reportId){
                 closeModal('applyLeaveModal');
                 displayLeaveRequests();
                 alert('Leave request submitted!');
+                // Mirror to cloud API
+                (async () => {
+                    try {
+                        const empId = document.getElementById('leaveEmployeeSelect').value;
+                        const emp = employees.find(e => e.employeeId === empId);
+                        const payload = {
+                            userId: empId || ('STAFF-' + Date.now()),
+                            fullName: emp?.name || formData.employee,
+                            branch: (currentUser && currentUser.branch) || 'townshop',
+                            type: formData.type,
+                            startDate: formData.startDate,
+                            endDate: formData.endDate,
+                            halfDay: false,
+                            reason: formData.reason
+                        };
+                        await fetch('/api/leave', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-user-role':'hr_manager' }, body: JSON.stringify(payload) });
+                    } catch(_){}
+                })();
             }
             
             if (e.target.id === 'issueWarningForm') {
@@ -25009,6 +25060,24 @@ async function reverseLastPrescriptionPayment(reportId){
                 closeModal('recordAttendanceModal');
                 displayAttendance();
                 alert('Attendance recorded!');
+                // Mirror to cloud API
+                (async () => {
+                    try {
+                        const empId = document.getElementById('attendanceEmployeeSelect').value;
+                        const emp = employees.find(e => e.employeeId === empId);
+                        const payload = {
+                            userId: empId || ('STAFF-' + Date.now()),
+                            fullName: emp?.name || formData.employee,
+                            branch: (currentUser && currentUser.branch) || 'townshop',
+                            date: formData.date,
+                            status: (formData.status||'').toLowerCase(),
+                            checkIn: formData.checkIn || null,
+                            checkOut: formData.checkOut || null,
+                            notes: formData.notes || ''
+                        };
+                        await fetch('/api/attendance', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-user-role':'hr_manager' }, body: JSON.stringify(payload) });
+                    } catch(_){}
+                })();
             }
             
             if (e.target.id === 'addPerformanceReviewForm') {
@@ -25434,7 +25503,7 @@ async function reverseLastPrescriptionPayment(reportId){
                 // Handle both legacy single photo and new array format
                 let productPhotos = photoMap[product.description];
                 if (!productPhotos) {
-                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                    productPhotos = ['https://placehold.co/200x200?text=Product'];
                 } else if (typeof productPhotos === 'string') {
                     // Legacy format: convert single photo to array
                     productPhotos = [productPhotos];
@@ -25451,7 +25520,7 @@ async function reverseLastPrescriptionPayment(reportId){
                     return false;
                 });
                 if (productPhotos.length === 0) {
-                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                    productPhotos = ['https://placehold.co/200x200?text=Product'];
                 }
                 // Limit to max 4 photos
                 if (productPhotos.length > 4) {
@@ -25547,7 +25616,7 @@ async function reverseLastPrescriptionPayment(reportId){
                 // Handle both legacy single photo and new array format
                 let productPhotos = photoMap[product.description];
                 if (!productPhotos) {
-                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                    productPhotos = ['https://placehold.co/200x200?text=Product'];
                 } else if (typeof productPhotos === 'string') {
                     // Legacy format: convert single photo to array
                     productPhotos = [productPhotos];
@@ -25564,7 +25633,7 @@ async function reverseLastPrescriptionPayment(reportId){
                     return false;
                 });
                 if (productPhotos.length === 0) {
-                    productPhotos = ['https://via.placeholder.com/200x200?text=Product'];
+                    productPhotos = ['https://placehold.co/200x200?text=Product'];
                 }
                 // Limit to max 4 photos
                 if (productPhotos.length > 4) {
@@ -27117,7 +27186,7 @@ This sale appears in the Dispenser Portal sales reports.
                 productPhotos = productPhotos.filter(photo => photo && typeof photo === 'string' && photo.trim().length > 0);
                 
                 const photoCount = productPhotos.length;
-                const displayPhoto = productPhotos.length > 0 ? productPhotos[0] : 'https://via.placeholder.com/200x200?text=No+Photo';
+                const displayPhoto = productPhotos.length > 0 ? productPhotos[0] : 'https://placehold.co/200x200?text=No+Photo';
                 
                 return `
                     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">

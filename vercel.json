@@ -10,6 +10,11 @@
     { "src": "manifest.json", "use": "@vercel/static" },
     { "src": "cloud-sync.js", "use": "@vercel/static" },
     { "src": "reports_data.json", "use": "@vercel/static" },
+    { "src": "web-modules/barcode-stock.js", "use": "@vercel/static" },
+    { "src": "web-modules/products.js", "use": "@vercel/static" },
+    { "src": "web-modules/stock-requests.js", "use": "@vercel/static" },
+    { "src": "web-modules/transactions.js", "use": "@vercel/static" },
+    { "src": "assets/dynapharm-logo.png", "use": "@vercel/static" },
     { "src": "api/health.js", "use": "@vercel/node" },
     { "src": "api/clients.js", "use": "@vercel/node" },
     { "src": "api/users.js", "use": "@vercel/node" },
@@ -18,6 +23,8 @@
     { "src": "api/notifications.js", "use": "@vercel/node" },
     { "src": "api/reports.js", "use": "@vercel/node" },
     { "src": "api/attendance.js", "use": "@vercel/node" },
+    { "src": "api/leave.js", "use": "@vercel/node" },
+    { "src": "api/employees.js", "use": "@vercel/node" },
     { "src": "api/stock-movements.js", "use": "@vercel/node" }
   ],
   "redirects": [

@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "Dynapharm International Namibia - Cloud Health Management System",
   "main": "dynapharm_backend.py",
+  "type": "module",
   "scripts": {
     "start": "python3 dynapharm_backend.py",
     "dev": "python3 dynapharm_backend.py",
