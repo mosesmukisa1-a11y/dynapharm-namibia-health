@@ -8253,25 +8253,27 @@
             e.preventDefault();
 
             const formData = new FormData(this);
+            const visitType = formData.get('visitType') || '';
             const preferredBranch = formData.get('preferredBranch') || currentBranch || (function(){
                 const checkSel = document.getElementById('checkupBranchSelect');
                 return checkSel ? checkSel.value : '';
             })();
             if (!preferredBranch) {
-                alert('Please select a preferred branch for the appointment.');
+                alert('Please select a branch.');
                 return;
             }
 
             const preferredDate = formData.get('preferredDate');
-            if (!preferredDate) {
-                alert('Please select a preferred appointment date.');
-                return;
-            }
-
             const preferredTime = formData.get('preferredTime');
-            if (!preferredTime) {
-                alert('Please select a preferred appointment time.');
-                return;
+            if (visitType !== 'walkin') {
+                if (!preferredDate) {
+                    alert('Please select a preferred appointment date.');
+                    return;
+                }
+                if (!preferredTime) {
+                    alert('Please select a preferred appointment time.');
+                    return;
+                }
             }
 
             currentBranch = preferredBranch;
@@ -8338,7 +8340,7 @@
                 stressLevel: formData.get('stressLevel'),
                 symptoms: formData.getAll('symptoms'),
                 signature: formData.get('signature'),
-                preferredAppointment: {
+                preferredAppointment: (visitType === 'walkin') ? null : {
                     date: preferredDate,
                     time: preferredTime,
                     branch: preferredBranch
@@ -8358,58 +8360,77 @@
             
             alert(`Client saved!\n\nReference: ${referenceNumber}\nReferred by: ${client.referralName}\n\nSave this reference number for future visits.`);
 
-            // Create appointment entry and notify Front Desk & Consultant
+            // Create appointment or visit depending on visit type
             try {
-                const appointment = {
-                    id: 'APT' + Date.now(),
-                    date: preferredDate,
-                    time: preferredTime,
-                    clientName: fullName,
-                    branch: preferredBranch,
-                    serviceType: 'Full Body Check-Up',
-                    status: 'pending',
-                    createdAt: new Date().toISOString(),
-                    preferences: {
+                if (visitType !== 'walkin') {
+                    const exists = (appointments || []).some(a => a.branch === preferredBranch && a.date === preferredDate && a.time === preferredTime);
+                    const status = exists ? 'pending' : 'scheduled';
+                    const appointment = {
+                        id: 'APT' + Date.now(),
                         date: preferredDate,
                         time: preferredTime,
-                        branch: preferredBranch
-                    }
-                };
-                const branchName = (branches || []).find(b => b.id === preferredBranch)?.name || preferredBranch;
-                const friendlyDate = (function(){
+                        clientName: fullName,
+                        branch: preferredBranch,
+                        serviceType: 'Full Body Check-Up',
+                        status: status,
+                        createdAt: new Date().toISOString(),
+                        preferences: {
+                            date: preferredDate,
+                            time: preferredTime,
+                            branch: preferredBranch
+                        }
+                    };
+                    const branchName = (branches || []).find(b => b.id === preferredBranch)?.name || preferredBranch;
+                    const friendlyDate = (function(){
+                        try {
+                            return new Date(preferredDate + 'T00:00:00').toLocaleDateString('en-GB');
+                        } catch(_) {
+                            return preferredDate;
+                        }
+                    })();
+                    appointments.push(appointment);
+                    try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
+                    // Lightweight toast
+                    (function(msg){
+                        const el = document.createElement('div');
+                        el.style.cssText = 'position:fixed;top:20px;right:20px;background:#111827;color:#fff;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;';
+                        el.textContent = msg;
+                        document.body.appendChild(el);
+                        setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 300ms'; setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 320); }, 2500);
+                    })(status === 'scheduled' ? `✅ Appointment scheduled at ${branchName}. Ref: ${referenceNumber} (${friendlyDate} @ ${preferredTime})` : `📣 Appointment request sent to ${branchName}. Ref: ${referenceNumber} (${friendlyDate} @ ${preferredTime})`);
+                    
+                    // Send emails: to client and consultants at branch
+                    const emailSubject = `Dynapharm Appointment Request — Ref ${referenceNumber}`;
+                    const emailBody = `Dear ${fullName},\n\nYour Full Body Check Up request has been received.\n\nReference: ${referenceNumber}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nWe will contact you to confirm your time.\n\nDynapharm Namibia`;
                     try {
-                        return new Date(preferredDate + 'T00:00:00').toLocaleDateString('en-GB');
-                    } catch(_) {
-                        return preferredDate;
-                    }
-                })();
-                appointments.push(appointment);
-                try { localStorage.setItem('dyna_appointments', JSON.stringify(appointments)); } catch (e) {}
-                // Lightweight toast
-                (function(msg){
-                    const el = document.createElement('div');
-                    el.style.cssText = 'position:fixed;top:20px;right:20px;background:#111827;color:#fff;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;';
-                    el.textContent = msg;
-                    document.body.appendChild(el);
-                    setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 300ms'; setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 320); }, 2500);
-                })(`📣 Appointment request sent to ${branchName}. Ref: ${referenceNumber} (${friendlyDate} @ ${preferredTime})`);
-                
-                // Send emails: to client and consultants at branch
-                const emailSubject = `Dynapharm Appointment Request — Ref ${referenceNumber}`;
-                const emailBody = `Dear ${fullName},\n\nYour Full Body Check Up request has been received.\n\nReference: ${referenceNumber}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nWe will contact you to confirm your time.\n\nDynapharm Namibia`;
-                try {
-                    if (client.email) {
-                        await apiRequest('/email', 'POST', { to: client.email, subject: emailSubject, body: emailBody });
-                    }
-                } catch (e) { console.warn('Email to client failed', e); }
-                try {
-                    const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(preferredBranch) || u.branch === preferredBranch));
-                    for (const c of branchConsultants) {
-                        const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nPlease prepare to proceed with consultation.`;
-                        await apiRequest('/email', 'POST', { to: c.email || 'consultant@dynapharm.com.na', subject: emailSubject, body: cBody });
-                    }
-                } catch (e) { console.warn('Emails to consultants failed', e); }
-            } catch (e) { console.warn('Appointment creation/notification skipped:', e); }
+                        if (client.email) {
+                            await apiRequest('/email', 'POST', { to: client.email, subject: emailSubject, body: emailBody });
+                        }
+                    } catch (e) { console.warn('Email to client failed', e); }
+                    try {
+                        const branchConsultants = (users || []).filter(u => u.role === 'consultant' && ((u.branches || []).includes(preferredBranch) || u.branch === preferredBranch));
+                        for (const c of branchConsultants) {
+                            const cBody = `Consultant Notification\n\nA new Full Body Check Up request has been submitted.\n\nReference: ${referenceNumber}\nClient: ${fullName}\nBranch: ${branchName}\nPreferred Date: ${friendlyDate}\nPreferred Time: ${preferredTime}\n\nPlease prepare to proceed with consultation.`;
+                            await apiRequest('/email', 'POST', { to: c.email || 'consultant@dynapharm.com.na', subject: emailSubject, body: cBody });
+                        }
+                    } catch (e) { console.warn('Emails to consultants failed', e); }
+                } else {
+                    // Walk-in: auto create a visit record (checked in)
+                    const visit = {
+                        id: 'VIS' + Date.now(),
+                        appointmentId: null,
+                        clientName: fullName,
+                        consultant: (currentUser && currentUser.fullName) || 'Consultant',
+                        serviceType: 'Full Body Check-Up',
+                        branch: preferredBranch,
+                        status: 'checked_in',
+                        createdAt: new Date().toISOString(),
+                        checkInAt: new Date().toISOString()
+                    };
+                    try { visits.push(visit); localStorage.setItem('dyna_visits', JSON.stringify(visits)); } catch(_){}
+                    alert('✅ Walk-in client checked in. You can start the check-up when ready.');
+                }
+            } catch (e) { console.warn('Appointment/visit creation step skipped:', e); }
             
             if (confirm('Print form?')) {
                 window.print();
@@ -12992,13 +13013,16 @@
         function setStaffCommFilter(filter, evt) {
             if (evt && typeof evt.preventDefault === 'function') evt.preventDefault();
             staffCommFilter = filter;
-            const section = document.getElementById('dispenserStaffSection');
-            if (section) {
+            const containers = [
+                document.getElementById('dispenserCommunicationSection'),
+                document.getElementById('dispenserStaffSection')
+            ].filter(Boolean);
+            containers.forEach(section => {
                 section.querySelectorAll('.staff-comm-filter-btn').forEach(btn => {
                     const btnFilter = btn.dataset ? btn.dataset.filter : btn.getAttribute('data-filter');
                     btn.classList.toggle('active', btnFilter === filter);
                 });
-            }
+            });
             renderStaffCommunications();
         }
 
@@ -16636,6 +16660,14 @@
             const display = document.getElementById('preferredDateDisplay');
             const timeInput = document.getElementById('preferredTime');
             const branchSelect = document.getElementById('preferredBranchSelect');
+            const visitTypeEl = document.getElementById('visitType');
+            const visitType = visitTypeEl ? (visitTypeEl.value || '') : '';
+
+            // For walk-ins, skip calendar/time init (no calendar needed)
+            if (visitType === 'walkin') {
+                if (timeInput) timeInput.value = '';
+                return;
+            }
 
             const today = new Date();
             const todayIso = today.toISOString().split('T')[0];
@@ -16651,8 +16683,18 @@
                 }
             }
 
+            // Suggest next available time if empty
             if (timeInput && !timeInput.value) {
-                timeInput.value = '09:00';
+                try {
+                    const branchId = (branchSelect && branchSelect.value) || currentBranch || (function(){
+                        const cs = document.getElementById('checkupBranchSelect');
+                        return cs ? cs.value : '';
+                    })();
+                    const suggested = getNextAvailableTime(branchId, defaultDate);
+                    timeInput.value = suggested || '09:00';
+                } catch(_) {
+                    timeInput.value = '09:00';
+                }
             }
 
             preferredCalendarDate = new Date(defaultDate + 'T00:00:00');
@@ -16686,6 +16728,11 @@
                         if (checkSel && checkSel.value !== e.target.value) {
                             checkSel.value = e.target.value;
                         }
+                        // Recompute suggested time on branch change
+                        try {
+                             const suggested = getNextAvailableTime(e.target.value, selectedPreferredDate);
+                             if (timeInput && suggested) timeInput.value = suggested;
+                        } catch(_){ }
                     }
                 };
 
@@ -16787,6 +16834,61 @@
             }
 
             renderPreferredDateCalendar(preferredCalendarDate);
+            // Update suggested time when date changes (only for appointment bookings)
+            try {
+                const visitType = document.getElementById('visitType')?.value || '';
+                if (visitType !== 'walkin') {
+                    const branchId = (document.getElementById('preferredBranchSelect')?.value) || currentBranch || (function(){
+                        const cs = document.getElementById('checkupBranchSelect');
+                        return cs ? cs.value : '';
+                    })();
+                    const suggested = getNextAvailableTime(branchId, dateStr);
+                    if (document.getElementById('preferredTime') && suggested) {
+                        document.getElementById('preferredTime').value = suggested;
+                    }
+                }
+            } catch(_){ }
+        }
+
+        // Helpers: find next available time slot for a branch/date
+        function getNextAvailableTime(branchId, dateStr) {
+            try {
+                if (!dateStr) return '';
+                const usedTimes = (appointments || []).filter(function(a){ return a && a.branch === branchId && a.date === dateStr; })
+                    .map(function(a){ return a.time; });
+                const slots = generateDailyTimeSlots();
+                for (var i = 0; i < slots.length; i++) {
+                    if (usedTimes.indexOf(slots[i]) === -1) return slots[i];
+                }
+                return slots[0] || '';
+            } catch(_){ return ''; }
+        }
+
+        function generateDailyTimeSlots() {
+            var slots = [];
+            try {
+                var windows = timeSlots || {};
+                var ranges = [windows.morning, windows.afternoon].filter(Boolean);
+                ranges.forEach(function(range){
+                    var start = range.start;
+                    var end = range.end;
+                    var interval = Number(range.interval || 30);
+                    var cursor = start;
+                    while (cursor <= end) {
+                        slots.push(cursor);
+                        // increment HH:MM by interval minutes
+                        var parts = cursor.split(':');
+                        var h = parseInt(parts[0], 10);
+                        var m = parseInt(parts[1], 10) + interval;
+                        while (m >= 60) { h += 1; m -= 60; }
+                        var hh = String(h).padStart(2, '0');
+                        var mm = String(m).padStart(2, '0');
+                        cursor = hh + ':' + mm;
+                        if (hh + ':' + mm > end) break;
+                    }
+                });
+            } catch(_){ }
+            return slots;
         }
 
         function openClientReg(type) {
