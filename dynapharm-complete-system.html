@@ -26632,6 +26632,14 @@ This sale appears in the Dispenser Portal sales reports.
         }
 
         function filterProductPhotos() { loadProductPhotos(); }
+        
+        // Refresh UI on cloud sync updates (near real-time for shop and photos)
+        try {
+            window.addEventListener('cloud-sync:updated', () => {
+                try { loadProductPhotos(); } catch(_) {}
+                try { if (typeof loadShopProducts === 'function') loadShopProducts(); } catch(_) {}
+            });
+        } catch(_) {}
 
         function removeProductPhoto(productName) {
             const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');

@@ -643,6 +643,8 @@
                 }
             });
             setInterval(() => { refreshData(); }, 20000);
+            // Cloud sync updates from other devices
+            try { window.addEventListener('cloud-sync:updated', () => refreshData()); } catch(_) {}
         }
 
         function renderWorkflowStatus() {
