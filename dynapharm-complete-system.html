@@ -75,6 +75,120 @@
             border-radius: 5px;
         }
 
+        // ========== Branch Online Orders ==========
+        async function fetchAllOrders(){
+            try {
+                if (typeof apiRequest === 'function') {
+                    const res = await apiRequest('/orders', 'GET');
+                    if (Array.isArray(res)) return res;
+                }
+            } catch(_) {}
+            try {
+                const endpoints = ['/api/orders', 'http://localhost:8001/api/orders'];
+                for (let i=0;i<endpoints.length;i++){
+                    try {
+                        const r = await fetch(endpoints[i]);
+                        if (r.ok) { const j = await r.json(); if (Array.isArray(j)) return j; }
+                    } catch (_) {}
+                }
+            } catch (_) {}
+            try { return JSON.parse(localStorage.getItem('dyna_online_orders')||'[]'); } catch(_) { return []; }
+        }
+
+        async function displayBranchOnlineOrders(){
+            const recvEl = document.getElementById('branchOnlineOrdersReceiving');
+            const dispEl = document.getElementById('branchOnlineOrdersDispensing');
+            if (!recvEl || !dispEl) return;
+            recvEl.innerHTML = '<p style="color:#7f8c8d;">Loading...</p>';
+            dispEl.innerHTML = '';
+            const branchId = (window.currentUser && window.currentUser.branch) || '';
+            const all = await fetchAllOrders();
+            const mine = all.filter(o => (o.branch||'').toString().toLowerCase() === (branchId||'').toString().toLowerCase());
+            const pending = mine.filter(o => (o.status||'pending') === 'pending' || (o.status||'')==='received');
+            const ready = mine.filter(o => (o.status||'')==='paid' || (o.status||'')==='ready');
+
+            const renderCard = (o, area) => `
+                <div style="border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; gap:10px;">
+                        <div>
+                            <div style="font-weight:700; color:#2c3e50;">${o.customerName||'Unknown'} <span style="color:#7f8c8d; font-weight:400;">(${o.customerType||'customer'})</span></div>
+                            <div style="color:#7f8c8d; font-size:12px;">${o.id} • ${new Date(o.date||Date.now()).toLocaleString()}</div>
+                            <div style="color:#2c3e50; margin-top:6px;">N$ ${(Number(o.total||0)).toFixed(2)}</div>
+                            <div style="color:#7f8c8d; font-size:12px;">Items: ${(o.items||[]).map(i=>`${i.name} x${i.quantity||1}`).join(', ')}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="margin-bottom:8px;"><span style="background:#f1f5f9; padding:4px 8px; border-radius:999px; font-size:12px;">${o.status||'pending'}</span></div>
+                            ${area==='recv' ? `
+                                <button class="btn btn-info" onclick="markOrderReceived('${o.id}')">📥 Receive</button>
+                                <button class="btn btn-success" style="margin-left:6px;" onclick="markOrderPaid('${o.id}')">✅ Mark Paid</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="dispenseOnlineOrder('${o.id}')">📦 Dispense</button>
+                            `}
+                        </div>
+                    </div>
+                </div>`;
+
+            recvEl.innerHTML = pending.length ? pending.map(o=>renderCard(o,'recv')).join('') : '<p style="color:#7f8c8d;">No pending online orders.</p>';
+            dispEl.innerHTML = ready.length ? ready.map(o=>renderCard(o,'disp')).join('') : '<p style="color:#7f8c8d;">No paid online orders.</p>';
+        }
+
+        async function updateOrderOnServer(order){
+            try {
+                if (typeof apiRequest === 'function') {
+                    const res = await apiRequest('/orders', 'PUT', order);
+                    return res;
+                }
+            } catch(_) {}
+            try {
+                const r = await fetch('/api/orders', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(order)});
+                if (r.ok) return await r.json();
+            } catch(_) {}
+            try {
+                const r = await fetch('http://localhost:8001/api/orders', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(order)});
+                if (r.ok) return await r.json();
+            } catch(_) {}
+            return { success: false };
+        }
+
+        async function markOrderReceived(orderId){
+            const all = await fetchAllOrders();
+            const o = all.find(x=>x.id===orderId);
+            if (!o) { alert('Order not found'); return; }
+            o.status = 'received';
+            o.receivedAt = new Date().toISOString();
+            o.receivedBy = (window.currentUser && window.currentUser.fullName) || 'system';
+            const res = await updateOrderOnServer(o);
+            if (res && res.success) { displayBranchOnlineOrders(); } else { alert('Failed to update order'); }
+        }
+
+        async function markOrderPaid(orderId){
+            const all = await fetchAllOrders();
+            const o = all.find(x=>x.id===orderId);
+            if (!o) { alert('Order not found'); return; }
+            o.status = 'paid';
+            o.payment = Object.assign({}, o.payment||{}, { verified: true, provider: o.payment?.provider||'manual', verifiedAt: new Date().toISOString(), verifiedBy: (window.currentUser && window.currentUser.fullName)||'system' });
+            const res = await updateOrderOnServer(o);
+            if (res && res.success) { displayBranchOnlineOrders(); } else { alert('Failed to mark paid'); }
+        }
+
+        async function dispenseOnlineOrder(orderId){
+            const all = await fetchAllOrders();
+            const o = all.find(x=>x.id===orderId);
+            if (!o) { alert('Order not found'); return; }
+            // Deduct inventory
+            const inv = reduceInventoryForProducts(o.items||[], (window.currentUser && window.currentUser.fullName)||'system', o.id);
+            if (!inv.success) {
+                if (!confirm('Stock issues detected:\n' + inv.errors.join('\n') + '\n\nDispense anyway?')) return;
+            }
+            o.status = 'dispensed';
+            o.dispensedAt = new Date().toISOString();
+            o.dispensedBy = (window.currentUser && window.currentUser.fullName) || 'system';
+            const res = await updateOrderOnServer(o);
+            try { recordDepartmentEvent && recordDepartmentEvent('online_sale', o); } catch(_) {}
+            if (res && res.success) { alert('Order dispensed'); displayBranchOnlineOrders(); }
+            else { alert('Failed to update order after dispense'); }
+        }
+
         .branch-selector select {
             padding: 10px;
             font-size: 1rem;
@@ -6261,8 +6375,9 @@
             const todayEvents = events.filter(e => e.createdAt.startsWith(today));
             const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]').filter(s => s.timestamp && s.timestamp.startsWith(today));
             const dispensedPrescriptions = (reports || []).filter(r => r.dispensed && r.dispensedAt && r.dispensedAt.startsWith(today));
+            const onlineOrdersLocal = JSON.parse(localStorage.getItem('dyna_online_orders') || '[]').filter(o => (o.dispensedAt && o.dispensedAt.startsWith(today)) || ((o.date||'').startsWith(today) && (o.status==='paid' || o.status==='dispensed')));
             const allClients = clients || [];
-            const totalSalesAmount = walkInSales.reduce((sum, s) => sum + (s.total || 0), 0) + dispensedPrescriptions.reduce((sum, r) => sum + (r.medicines || []).reduce((medsum, m) => medsum + (m.amountPaid || 0), 0), 0);
+            const totalSalesAmount = walkInSales.reduce((sum, s) => sum + (s.total || 0), 0) + dispensedPrescriptions.reduce((sum, r) => sum + (r.medicines || []).reduce((medsum, m) => medsum + (m.amountPaid || 0), 0), 0) + onlineOrdersLocal.reduce((sum, o) => sum + (o.total || 0), 0);
 
             const reportHTML = `
                 <!DOCTYPE html>
@@ -6302,6 +6417,10 @@
                         <div class="kpi-card">
                             <h3>Walk-in Sales</h3>
                             <div class="value">${walkInSales.length}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Online Sales</h3>
+                            <div class="value">${onlineOrdersLocal.length}</div>
                         </div>
                         <div class="kpi-card">
                             <h3>Prescriptions Dispensed</h3>
@@ -13204,14 +13323,14 @@ async function reverseLastPrescriptionPayment(reportId){
 
         function showDispenserTab(tab) {
             // Hide all sections
-            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserBonusSection', 'dispenserCommunicationSection', 'dispenserStaffSection'];
+            const sections = ['dispenserWalkInSection', 'dispenserPrescriptionSection', 'dispenserStockSection', 'dispenserBankingSection', 'dispenserPaymentsSection', 'dispenserOnlineOrdersSection', 'dispenserBonusSection', 'dispenserCommunicationSection', 'dispenserStaffSection'];
             sections.forEach(sec => {
                 const el = document.getElementById(sec);
                 if (el) el.style.display = 'none';
             });
             
             // Reset all tab buttons
-            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'bonusTab', 'communicationTab', 'staffTab'];
+            const tabs = ['walkInTab', 'prescriptionTab', 'stockTab', 'bankingTab', 'paymentsTab', 'onlineOrdersTab', 'bonusTab', 'communicationTab', 'staffTab'];
             tabs.forEach(tabBtn => {
                 const el = document.getElementById(tabBtn);
                 if (el) {
@@ -13255,6 +13374,12 @@ async function reverseLastPrescriptionPayment(reportId){
                     activeTab = 'paymentsTab';
                     gradient = 'linear-gradient(135deg, #9b59b6, #8e44ad)';
                     displayPaymentHistory();
+                    break;
+                case 'onlineOrders':
+                    activeSection = 'dispenserOnlineOrdersSection';
+                    activeTab = 'onlineOrdersTab';
+                    gradient = 'linear-gradient(135deg, #6c5ce7, #5f27cd)';
+                    displayBranchOnlineOrders();
                     break;
                 case 'bonus':
                     activeSection = 'dispenserBonusSection';
