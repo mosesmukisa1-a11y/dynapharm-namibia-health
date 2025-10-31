@@ -30,6 +30,9 @@
       "maxDuration": 10
     }
   },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+  ],
   "redirects": [
     { "source": "/", "destination": "/dynapharm-complete-system.html", "permanent": false },
     { "source": "/dynapharm-complete-system", "destination": "/dynapharm-complete-system.html", "permanent": false },
