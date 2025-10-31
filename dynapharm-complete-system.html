@@ -27130,6 +27130,13 @@ This sale appears in the Dispenser Portal sales reports.
             });
         } catch(_) {}
 
+        // HR: refresh employee list when employees sync arrives
+        try {
+            window.addEventListener('cloud-sync:employees', () => {
+                try { if (typeof loadEmployees === 'function') loadEmployees(); } catch(_) {}
+            });
+        } catch(_) {}
+
         function removeProductPhoto(productName) {
             const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
             if (photoMap[productName]) {

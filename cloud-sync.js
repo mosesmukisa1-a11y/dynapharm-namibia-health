@@ -95,6 +95,8 @@ class CloudStorage {
                 const list = await r.json();
                 if (Array.isArray(list)) {
                     localStorage.setItem('dyna_employees', JSON.stringify(list));
+                    // Keep HR portal compatibility
+                    try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
                     console.log(`✅ Synced ${list.length} employees from employees_data.json`);
                     try {
                         if (typeof window !== 'undefined') {
