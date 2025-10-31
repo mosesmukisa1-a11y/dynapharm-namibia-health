@@ -1846,6 +1846,36 @@
                     </div>
                 </div>
 
+                <!-- Appointment Preferences -->
+                <div class="form-section appointment-preferences">
+                    <h3>Appointment Preferences</h3>
+                    <p style="color: #666; margin-bottom: 12px;">Select your preferred branch, date, and time for the appointment.</p>
+                    <input type="hidden" name="preferredDate" id="preferredDate">
+                    <div id="preferredCalendarWrapper">
+                        <div class="calendar-header">
+                            <button type="button" class="btn btn-sm" id="preferredPrevMonth" style="background:#1f2937;color:#ffffff;">◀ Previous</button>
+                            <h4 id="preferredCalendarLabel">Month YYYY</h4>
+                            <button type="button" class="btn btn-sm" id="preferredNextMonth" style="background:#1f2937;color:#ffffff;">Next ▶</button>
+                        </div>
+                        <div class="preferred-calendar-grid" id="preferredCalendarGrid"></div>
+                    </div>
+                    <div style="margin-bottom: 15px; font-weight:600; color:#1f2937;">
+                        Selected Date: <span id="preferredDateDisplay">—</span>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="required">Preferred Time *</label>
+                            <input type="time" name="preferredTime" id="preferredTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">Preferred Branch *</label>
+                            <select name="preferredBranch" id="preferredBranchSelect" required>
+                                <option value="">Select Branch</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Health History -->
                 <div class="form-section">
                     <h3>Health History</h3>
