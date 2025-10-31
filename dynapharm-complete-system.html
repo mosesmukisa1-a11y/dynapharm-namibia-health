@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6728,12 +6728,12 @@
                 if (clientMembershipStatus === 'member') {
                         packageFullPrice = { 
                             dp: packagePricing.packageTotal.dp * quantity, 
-                            cp: packagePricing.packageTotal.dp * quantity, 
+                            cp: packagePricing.packageTotal.cp * quantity, 
                             bv: packagePricing.packageTotal.bv * quantity 
                         };
                         packageDispensedPrice = { 
                             dp: packagePricing.dp * quantity, 
-                            cp: packagePricing.dp * quantity, 
+                            cp: packagePricing.cp * quantity, 
                             bv: packagePricing.bv * quantity 
                         };
                     } else {
@@ -7959,8 +7959,24 @@
         }
 
         function calculateReportTotal(report) {
-            if (!report.medicines || report.medicines.length === 0) return 0;
-            
+            if (!report || !report.medicines || report.medicines.length === 0) return 0;
+
+            try {
+                // Derive client membership status if available
+                let membership = report.clientInfo?.membershipStatus;
+                if (!membership && typeof clients !== 'undefined' && Array.isArray(clients)) {
+                    const clientRef = report.clientId || report.clientInfo?.referenceNumber || report.clientInfo?.nbNumber;
+                    const client = clients.find(c => c.referenceNumber === clientRef);
+                    membership = client?.membershipStatus;
+                }
+
+                if (membership === 'member' || membership === 'referred') {
+                    const totals = calculatePrescriptionTotals(report.medicines, membership);
+                    return membership === 'member' ? (totals.total?.dp || 0) : (totals.total?.cp || 0);
+                }
+            } catch (e) {}
+
+            // Fallback: sum CP from currentPrice when membership is unknown
             return report.medicines.reduce((total, med) => {
                 if (med.currentPrice) {
                     const quantity = med.quantity || 1;

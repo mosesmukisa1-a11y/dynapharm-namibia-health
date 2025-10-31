@@ -327,7 +327,8 @@
                 <div><button id="csvCloseBtn" class="btn">Close</button></div>
             </div>
             <div style="padding:12px 14px; display:grid; gap:10px;">
-                <div class="muted">Required headers: cartonNo, description, batchNo, expiryDate (YYYY-MM), quantity, totalCtns</div>
+                <div class="muted">Required headers (aliases allowed):
+                    cartonNo / Cartons No., description, batchNo, expiryDate / Expired Date, quantity / Qty, totalCtns / Total (CTNS). Expiry like "Aug-2027" is accepted.</div>
                 <input type="file" id="csvFileInput" accept=".csv" class="input" />
                 <div id="csvPreview" class="muted" style="font-size:12px; max-height:180px; overflow:auto; border:1px dashed #223154; border-radius:8px; padding:8px; display:none;"></div>
                 <div style="text-align:right;">
@@ -1021,21 +1022,69 @@
             reader.onload = function(ev){
                 const text = ev.target.result;
                 const { headers, rows } = parseCSV(text);
-                const required = ['cartonNo','description','batchNo','expiryDate','quantity','totalCtns'];
-                const missing = required.filter(k => !headers.includes(k));
-                if (missing.length){
+
+                // Build flexible header mapping (normalize by removing non-alphanumerics and lowercasing)
+                function norm(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+                const headerIndex = Object.fromEntries(headers.map((h,i)=>[norm(h), i]));
+                const candidates = {
+                    cartonNo: ['cartonno','cartonsno','cartonnumber','cartonno','cartonsno.','cartons','carton'],
+                    description: ['description','desc','product','item'],
+                    batchNo: ['batchno','batchnumber','batch'],
+                    expiryDate: ['expirydate','expireddate','expiry','expdate'],
+                    quantity: ['quantity','qty','qtybag','qtybox'],
+                    totalCtns: ['totalctns','total','ctns','totalcartons','totalcarton']
+                };
+                const mapped = {};
+                Object.keys(candidates).forEach(key => {
+                    const found = candidates[key].find(alias => headerIndex.hasOwnProperty(alias));
+                    if (found) mapped[key] = headers[headerIndex[found]];
+                });
+
+                const missingCanon = Object.keys(candidates).filter(k => !mapped[k]);
+                if (missingCanon.length){
                     csvPreview.style.display = 'block';
-                    csvPreview.textContent = 'Missing required headers: ' + missing.join(', ');
+                    csvPreview.textContent = 'Missing required headers: ' + missingCanon.join(', ');
                     csvImportBtn.disabled = true;
                     csvParsedRows = [];
                     return;
                 }
+
+                function parseExpiry(val){
+                    const s = String(val||'').trim();
+                    if (/^\d{4}-\d{2}$/.test(s)) return s; // already YYYY-MM
+                    // Accept Aug-2027, Aug/2027, Aug 2027, 2027/08, 2027.08, 2027-08-15
+                    const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12};
+                    const m1 = s.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[^0-9]*?(\d{4})$/i);
+                    if (m1){ const mm = String(months[m1[1].toLowerCase()]).padStart(2,'0'); return `${m1[2]}-${mm}`; }
+                    const m2 = s.match(/^(\d{4})[^0-9]*?(\d{1,2})/);
+                    if (m2){ return `${m2[1]}-${String(m2[2]).padStart(2,'0')}`; }
+                    const m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (m3){ return `${m3[1]}-${m3[2]}`; }
+                    return '';
+                }
+
+                function parseIntSafe(v){
+                    const s = String(v||'').replace(/[^0-9-]/g,'').replace(/\s+/g,'');
+                    const n = parseInt(s,10);
+                    return Number.isFinite(n) ? n : NaN;
+                }
+
+                // Transform rows into canonical shape
+                const transformed = rows.map(r => ({
+                    cartonNo: r[mapped.cartonNo],
+                    description: r[mapped.description],
+                    batchNo: r[mapped.batchNo],
+                    expiryDate: parseExpiry(r[mapped.expiryDate]),
+                    quantity: parseIntSafe(r[mapped.quantity]),
+                    totalCtns: parseIntSafe(r[mapped.totalCtns])
+                }));
+
                 // Preview first 5 rows
-                const previewLines = rows.slice(0,5).map((r,i) => `${i+1}) ${r.cartonNo}, ${r.description}, ${r.batchNo}, ${r.expiryDate}, ${r.quantity}, ${r.totalCtns}`);
+                const previewLines = transformed.slice(0,5).map((r,i) => `${i+1}) ${r.cartonNo}, ${r.description}, ${r.batchNo}, ${r.expiryDate}, ${r.quantity}, ${r.totalCtns}`);
                 csvPreview.style.display = 'block';
-                csvPreview.textContent = 'Rows detected: ' + rows.length + '\n' + previewLines.join('\n');
-                csvParsedRows = rows;
-                csvImportBtn.disabled = rows.length === 0;
+                csvPreview.textContent = 'Rows detected: ' + transformed.length + '\n' + previewLines.join('\n');
+                csvParsedRows = transformed;
+                csvImportBtn.disabled = transformed.length === 0;
             };
             reader.readAsText(file);
         });
