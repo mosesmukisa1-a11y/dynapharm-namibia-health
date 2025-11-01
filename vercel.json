@@ -20,9 +20,7 @@
       "maxDuration": 10
     }
   },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
+  
   "redirects": [
     { "source": "/", "destination": "/dynapharm-complete-system.html", "permanent": false },
     { "source": "/dynapharm-complete-system", "destination": "/dynapharm-complete-system.html", "permanent": false },
