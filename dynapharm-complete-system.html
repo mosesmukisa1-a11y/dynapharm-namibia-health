@@ -136,6 +136,7 @@
     <!-- Optional: Backend API base override (set this in deployments) -->
     <!-- Example: <meta name="api-base" content="https://dynapharm-backend-production.up.railway.app/api"> -->
     <meta name="api-base" content="">
+    <meta name="rt-base" content="">
     <title>Dynapharm International Namibia - v2.0</title>
     <!-- FullCalendar.js -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
@@ -27329,8 +27330,29 @@ This sale appears in the Dispenser Portal sales reports.
         // --- Realtime updates via SSE (Upstash Redis) ---
         (function setupRealtime() {
             try {
+                const meta = document.querySelector('meta[name="rt-base"]');
+                const rtBase = (meta && meta.content && meta.content.trim()) || '';
+                if (rtBase && 'WebSocket' in window) {
+                    const url = rtBase.replace(/\/$/, '') + '/ws';
+                    const connectWS = () => {
+                        try {
+                            const wsUrl = url.replace(/^http/i, 'ws');
+                            const ws = new WebSocket(wsUrl);
+                            ws.onmessage = () => {
+                                try { if (typeof loadData === 'function') loadData(); } catch(_) {}
+                                try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
+                                try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
+                                try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
+                            };
+                            ws.onclose = () => setTimeout(connectWS, 3000);
+                            ws.onerror = () => { try { ws.close(); } catch(_) {}; };
+                        } catch(_) {}
+                    };
+                    connectWS();
+                    return;
+                }
                 if (!('EventSource' in window)) return;
-                const connect = () => {
+                const connectSSE = () => {
                     try {
                         const es = new EventSource('/api/realtime_stream?channel=reports');
                         es.onmessage = () => {
@@ -27339,10 +27361,10 @@ This sale appears in the Dispenser Portal sales reports.
                             try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
                             try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
                         };
-                        es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+                        es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
                     } catch (_) { /* ignore */ }
                 };
-                connect();
+                connectSSE();
             } catch (_) {}
         })();
 

@@ -1,3 +1,17 @@
+## Realtime Gateway (Railway)
+
+Deploy the WebSocket gateway in `realtime-gateway/` to Railway to enable instant cross-location updates without serverless limits.
+
+Steps:
+1. railway login
+2. railway init (or railway link if project exists)
+3. cd realtime-gateway
+4. railway up
+5. Note the public URL, e.g. https://your-service.up.railway.app
+6. In the main app HTML, set `<meta name="rt-base" content="https://your-service.up.railway.app">`
+
+The app will connect to `wss://your-service.up.railway.app/ws` and broadcast events on report save/dispense.
+
 # Dynapharm Namibia Health Management System
 
 ## Live URL
