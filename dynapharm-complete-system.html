@@ -12060,6 +12060,16 @@
                     try { window.dispatchEvent(new CustomEvent('reports:updated', { detail: { id: validatedReport.id, action: isEditing ? 'updated' : 'created' } })); } catch(_) {}
                     // Global notify (best-effort)
                     try { fetch('/api/realtime_publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: 'reports', event: { id: validatedReport.id, action: isEditing ? 'updated' : 'created', ts: Date.now() } }) }); } catch(_) {}
+                    try {
+                        const m = document.querySelector('meta[name="rt-base"]');
+                        const rtBase = m && m.content && m.content.trim();
+                        if (rtBase) {
+                            fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ event: { id: validatedReport.id, action: isEditing ? 'updated' : 'created', ts: Date.now() } })
+                            });
+                        }
+                    } catch(_) {}
                     // Refresh consultant and dispenser views
                     await refreshConsultantData();
                     try { if (typeof displayPrescriptions === 'function') await displayPrescriptions(); } catch(_) {}
@@ -17675,6 +17685,16 @@ async function reverseLastPrescriptionPayment(reportId){
                         try { localStorage.setItem('dyna_reports', JSON.stringify(reports)); } catch(_) {}
                         try { window.dispatchEvent(new CustomEvent('reports:updated', { detail: { id: report.id, action: 'dispensed' } })); } catch(_) {}
                         try { fetch('/api/realtime_publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: 'reports', event: { id: report.id, action: 'dispensed', ts: Date.now() } }) }); } catch(_) {}
+                        try {
+                            const m = document.querySelector('meta[name="rt-base"]');
+                            const rtBase = m && m.content && m.content.trim();
+                            if (rtBase) {
+                                fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ event: { id: report.id, action: 'dispensed', ts: Date.now() } })
+                                });
+                            }
+                        } catch(_) {}
                         displayPrescriptions();
                         try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
                     } else {
