@@ -11,17 +11,7 @@
     { "src": "reports_data.json", "use": "@vercel/static" },
     { "src": "web-modules/*.js", "use": "@vercel/static" },
     { "src": "assets/*", "use": "@vercel/static" },
-    { "src": "api/health.js", "use": "@vercel/node" },
-    { "src": "api/clients.js", "use": "@vercel/node" },
-    { "src": "api/users.js", "use": "@vercel/node" },
-    { "src": "api/orders.js", "use": "@vercel/node" },
-    { "src": "api/branches.js", "use": "@vercel/node" },
-    { "src": "api/notifications.js", "use": "@vercel/node" },
-    { "src": "api/reports.js", "use": "@vercel/node" },
-    { "src": "api/attendance.js", "use": "@vercel/node" },
-    { "src": "api/leave.js", "use": "@vercel/node" },
-    { "src": "api/employees.js", "use": "@vercel/node" },
-    { "src": "api/stock-movements.js", "use": "@vercel/node" }
+    { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "functions": {
     "api/*.js": {
