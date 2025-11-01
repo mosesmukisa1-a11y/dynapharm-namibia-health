@@ -12902,7 +12902,10 @@
         }
     } catch(_){ /* ignore filter errors */ }
             
-            if (pendingReports.length === 0) {
+    // Sort by latest first (prefer lastModified then timestamp)
+    pendingReports.sort((a, b) => new Date(b.lastModified || b.timestamp) - new Date(a.lastModified || a.timestamp));
+
+    if (pendingReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>💊 No prescriptions to dispense</h3><p>Prescriptions will appear here once consultants create reports.</p></div>';
                 return;
             }
@@ -13315,7 +13318,7 @@
             }
             
             const pendingReports = reports.filter(r => !r.dispensed && r.prescription);
-            const filteredReports = pendingReports.filter(report => {
+            let filteredReports = pendingReports.filter(report => {
                 const client = clients.find(c => c.referenceNumber === report.clientId);
                 return (
                     report.id.toLowerCase().includes(searchTerm) ||
@@ -13324,6 +13327,8 @@
                     report.prescription.toLowerCase().includes(searchTerm)
                 );
             });
+            // Latest first
+            filteredReports.sort((a, b) => new Date(b.lastModified || b.timestamp) - new Date(a.lastModified || a.timestamp));
             
             if (filteredReports.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>🔍 No prescriptions found</h3><p>Try a different search term.</p></div>';
