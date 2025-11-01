@@ -27091,12 +27091,14 @@ This sale appears in the Dispenser Portal sales reports.
                     </select>
                 </label>
                 <button id="runPhotoMigrationBtn" class="btn btn-secondary">Optimize existing photos</button>
+                <button id="recoverPhotosBtn" class="btn btn-info">Recover missing photos</button>
             `;
             fileInput.parentElement?.appendChild(wrap);
             const range = document.getElementById('photoQualityInput');
             const label = document.getElementById('photoQualityLabel');
             range?.addEventListener('input', () => { if (label) label.textContent = `${range.value}%`; });
             document.getElementById('runPhotoMigrationBtn')?.addEventListener('click', () => migrateLegacyPhotosToVariants(true));
+            document.getElementById('recoverPhotosBtn')?.addEventListener('click', () => recoverMissingProductPhotos());
         }
 
         function getPhotoOptimizationSettings() {
@@ -27105,6 +27107,57 @@ This sale appears in the Dispenser Portal sales reports.
             const quality = qEl ? Math.min(0.95, Math.max(0.5, Number(qEl.value || 85) / 100)) : 0.85;
             const maxDimension = dEl ? Number(dEl.value || 1200) : 1200;
             return { quality, maxDimension };
+        }
+
+        // Generate a branded placeholder SVG for a product
+        function generateProductPlaceholderSVG(productName = 'Product', width = 600, height = 400) {
+            const safeName = String(productName).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const bg = '#c41e3a';
+            const fg = '#ffffff';
+            const sub = '#ffd7df';
+            const svg = `
+                <svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'>
+                    <defs>
+                        <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+                            <stop offset='0%' stop-color='${bg}' stop-opacity='0.95'/>
+                            <stop offset='100%' stop-color='#8b0000' stop-opacity='0.95'/>
+                        </linearGradient>
+                    </defs>
+                    <rect width='100%' height='100%' fill='url(#g)'/>
+                    <g fill='none' stroke='${sub}' stroke-opacity='0.25'>
+                        <circle cx='${width/2}' cy='${height/2}' r='${Math.min(width,height)/3}' />
+                        <circle cx='${width/2}' cy='${height/2}' r='${Math.min(width,height)/2.2}' />
+                    </g>
+                    <text x='50%' y='45%' text-anchor='middle' fill='${fg}' font-family='Arial, Helvetica, sans-serif' font-size='28' font-weight='700'>Dynapharm Namibia</text>
+                    <text x='50%' y='60%' text-anchor='middle' fill='${fg}' font-family='Arial, Helvetica, sans-serif' font-size='22' font-weight='600'>${safeName}</text>
+                </svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
+        // Recover missing product photos with branded placeholders
+        function recoverMissingProductPhotos() {
+            try {
+                const photoMap = JSON.parse(localStorage.getItem('dyna_product_photos') || '{}');
+                let created = 0;
+                if (Array.isArray(PRICE_LIST)) {
+                    PRICE_LIST.forEach(p => {
+                        const key = p.description;
+                        let list = photoMap[key];
+                        if (!list || (Array.isArray(list) && list.length === 0)) {
+                            const img = generateProductPlaceholderSVG(key, 1200, 800);
+                            photoMap[key] = [img];
+                            created++;
+                        }
+                    });
+                }
+                localStorage.setItem('dyna_product_photos', JSON.stringify(photoMap));
+                loadShopProducts();
+                try { loadProductPhotos(); } catch(_) {}
+                alert(`✅ Recovered ${created} product photo(s).`);
+            } catch (e) {
+                console.error('Recovery failed:', e);
+                alert('❌ Failed to recover photos.');
+            }
         }
 
         // One-time migration: convert data-URL strings to variant objects
