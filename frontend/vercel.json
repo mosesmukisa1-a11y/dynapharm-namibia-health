@@ -5,9 +5,19 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
-    }
+    },
+    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "cloud-data/*", "use": "@vercel/static" }
   ],
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs18.x",
+      "memory": 256,
+      "maxDuration": 10
+    }
+  },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     {
       "src": "/",
       "dest": "/index.html"
@@ -22,6 +32,12 @@
     }
   ],
   "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
