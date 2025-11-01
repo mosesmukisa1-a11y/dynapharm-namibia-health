@@ -16,20 +16,11 @@
       "maxDuration": 10
     }
   },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    {
-      "src": "/",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/dynapharm",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/dynapharm", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/$1" }
   ],
   "headers": [
     {
