@@ -12054,8 +12054,12 @@
                     // Clear medicine selections
                     document.querySelectorAll('#medicineGrid input:checked').forEach(cb => cb.checked = false);
                     
-                    // Refresh consultant data
+                    // Persist and notify other sections
+                    try { localStorage.setItem('dyna_reports', JSON.stringify(reports)); } catch(_) {}
+                    try { window.dispatchEvent(new CustomEvent('reports:updated', { detail: { id: validatedReport.id, action: isEditing ? 'updated' : 'created' } })); } catch(_) {}
+                    // Refresh consultant and dispenser views
                     await refreshConsultantData();
+                    try { if (typeof displayPrescriptions === 'function') await displayPrescriptions(); } catch(_) {}
                 } else {
                     alert('Error saving report: ' + result.message);
                 }
@@ -17660,7 +17664,10 @@ async function reverseLastPrescriptionPayment(reportId){
                     const result = await apiRequest('/reports', 'PUT', report);
                     if (result.success) {
                         alert('✅ Prescription marked as dispensed');
-                displayPrescriptions();
+                        try { localStorage.setItem('dyna_reports', JSON.stringify(reports)); } catch(_) {}
+                        try { window.dispatchEvent(new CustomEvent('reports:updated', { detail: { id: report.id, action: 'dispensed' } })); } catch(_) {}
+                        displayPrescriptions();
+                        try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
                     } else {
                         alert('Error updating prescription: ' + result.message);
                     }
@@ -27215,6 +27222,15 @@ This sale appears in the Dispenser Portal sales reports.
             window.addEventListener('cloud-sync:updated', () => {
                 try { loadProductPhotos(); } catch(_) {}
                 try { if (typeof loadShopProducts === 'function') loadShopProducts(); } catch(_) {}
+            });
+        } catch(_) {}
+
+        // Refresh consultant/dispenser views when reports change in-memory
+        try {
+            window.addEventListener('reports:updated', () => {
+                try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
+                try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
+                try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
             });
         } catch(_) {}
 
