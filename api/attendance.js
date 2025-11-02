@@ -175,12 +175,12 @@ function generateSampleAttendanceData() {
 
 function writeAudit(event, details){
     try {
-        ensureDataDir();
-        const fp = path.join(process.cwd(),'cloud-data','hr_audit.json');
-        const list = fs.existsSync(fp) ? JSON.parse(fs.readFileSync(fp,'utf8')) : [];
-        list.push({ id:`AUD-${Date.now()}`, event, details, at:new Date().toISOString() });
-        fs.writeFileSync(fp, JSON.stringify(list, null, 2));
-    } catch(e){}
+        // In Vercel serverless, file system is read-only
+        // Audit logging is skipped in serverless environment
+        console.log(`📝 Audit: ${event}`, details);
+    } catch(e){
+        console.error('❌ Error in audit logging:', e);
+    }
 }
 
 function ensureDataDir(){
