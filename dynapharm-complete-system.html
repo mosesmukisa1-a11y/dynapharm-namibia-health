@@ -8471,6 +8471,23 @@
             if (tabName === 'mis' && currentUser && currentUser.role === 'mis') {
                 initializeMISPortal();
             }
+            
+            // HR Portal - ensure data is loaded when tab is opened
+            if (tabName === 'hr-portal') {
+                // Reload employees when HR portal is opened to ensure fresh data
+                if (typeof initHRPortal === 'function') {
+                    initHRPortal();
+                }
+                // Also ensure employee list is loaded if employee-management tab is visible
+                setTimeout(() => {
+                    const empTab = document.querySelector('[onclick*="employee-management"]');
+                    if (empTab && empTab.classList.contains('active')) {
+                        if (typeof loadEmployees === 'function') {
+                            loadEmployees();
+                        }
+                    }
+                }, 100);
+            }
         }
 
         // Ensure openTab is accessible from inline onclick handlers
@@ -24619,6 +24636,7 @@ async function reverseLastPrescriptionPayment(reportId){
             
             // Load data based on which tab is opened
             if (tabName === 'employee-management') {
+                // Always reload employees when tab is opened to ensure data is fresh
                 loadEmployees();
             } else if (tabName === 'leave-management') {
                 loadLeaveRequests();
@@ -24637,9 +24655,21 @@ async function reverseLastPrescriptionPayment(reportId){
         
         // Employee Management Functions
         function loadEmployees() {
-            const employeesData = localStorage.getItem('hr_employees');
-            employees = employeesData ? JSON.parse(employeesData) : [];
-            displayEmployees();
+            try {
+                const employeesData = localStorage.getItem('hr_employees');
+                if (employeesData) {
+                    employees = JSON.parse(employeesData);
+                    console.log(`✅ Loaded ${employees.length} employees from localStorage`);
+                } else {
+                    employees = [];
+                    console.log('⚠️ No employees found in localStorage, starting with empty array');
+                }
+                displayEmployees();
+            } catch (error) {
+                console.error('❌ Error loading employees:', error);
+                employees = [];
+                displayEmployees();
+            }
         }
         
         function displayEmployees() {
@@ -25308,17 +25338,40 @@ async function reverseLastPrescriptionPayment(reportId){
                     notes: document.getElementById('employeeNotes').value
                 };
                 
+                // Ensure employees array exists
+                if (!employees || !Array.isArray(employees)) {
+                    employees = [];
+                }
+                
                 const existingIndex = employees.findIndex(e => e.employeeId === formData.employeeId);
                 if (existingIndex >= 0) {
                     employees[existingIndex] = formData;
+                    console.log(`✅ Updated employee: ${formData.name} (${formData.employeeId})`);
                 } else {
                     employees.push(formData);
+                    console.log(`✅ Added new employee: ${formData.name} (${formData.employeeId})`);
                 }
                 
-                localStorage.setItem('hr_employees', JSON.stringify(employees));
-                closeModal('addEmployeeModal');
-                displayEmployees();
-                alert('Employee saved successfully!');
+                // Save to localStorage immediately
+                try {
+                    localStorage.setItem('hr_employees', JSON.stringify(employees));
+                    console.log(`✅ Saved ${employees.length} employees to localStorage`);
+                    
+                    // Verify save was successful
+                    const verifyData = localStorage.getItem('hr_employees');
+                    if (!verifyData) {
+                        console.error('❌ Save verification failed - localStorage is empty!');
+                        alert('⚠️ Warning: Employee may not have been saved properly. Please try again.');
+                        return;
+                    }
+                    
+                    closeModal('addEmployeeModal');
+                    displayEmployees();
+                    alert(`✅ Employee saved successfully! Total employees: ${employees.length}`);
+                } catch (error) {
+                    console.error('❌ Error saving employee to localStorage:', error);
+                    alert('❌ Error saving employee: ' + error.message);
+                }
                 // Try to save to cloud via serverless API
                 (async () => {
                     try {
