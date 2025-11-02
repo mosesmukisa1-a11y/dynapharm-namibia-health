@@ -21244,6 +21244,26 @@ async function reverseLastPrescriptionPayment(reportId){
             }
             
             saveStockData();
+            
+            // Broadcast stock update event for real-time sync
+            try {
+                window.dispatchEvent(new CustomEvent('stock:updated', { 
+                    detail: { branch: 'windhoek', products: [{ name: productName, quantity }], user: (currentUser?.fullName || 'system'), reference: 'TRANSFER-WINDHOEK-' + Date.now() } 
+                }));
+                const m = document.querySelector('meta[name="rt-base"]');
+                const rtBase = m && m.content && m.content.trim();
+                if (rtBase) {
+                    fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: { type: 'stock:updated', branch: 'windhoek', products: [{ name: productName, quantity }], action: 'transferred', source, ts: Date.now() } })
+                    }).catch(_ => {});
+                }
+                fetch('/api/realtime_publish', { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ channel: 'stock', event: { branch: 'windhoek', products: [{ name: productName, quantity }], action: 'transferred', source, ts: Date.now() } }) 
+                }).catch(_ => {});
+            } catch (_) {}
+            
             displayCountryStock();
             displayWindhoekStock();
             displayOndangwaStock();
@@ -21342,6 +21362,26 @@ async function reverseLastPrescriptionPayment(reportId){
             }
             
             saveStockData();
+            
+            // Broadcast stock update event for real-time sync
+            try {
+                window.dispatchEvent(new CustomEvent('stock:updated', { 
+                    detail: { branch: 'ondangwa', products: [{ name: productName, quantity }], user: (currentUser?.fullName || 'system'), reference: 'TRANSFER-ONDANGWA-' + Date.now() } 
+                }));
+                const m = document.querySelector('meta[name="rt-base"]');
+                const rtBase = m && m.content && m.content.trim();
+                if (rtBase) {
+                    fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: { type: 'stock:updated', branch: 'ondangwa', products: [{ name: productName, quantity }], action: 'transferred', source, ts: Date.now() } })
+                    }).catch(_ => {});
+                }
+                fetch('/api/realtime_publish', { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ channel: 'stock', event: { branch: 'ondangwa', products: [{ name: productName, quantity }], action: 'transferred', source, ts: Date.now() } }) 
+                }).catch(_ => {});
+            } catch (_) {}
+            
             displayCountryStock();
             displayWindhoekStock();
             displayOndangwaStock();
@@ -21652,6 +21692,26 @@ async function reverseLastPrescriptionPayment(reportId){
             
             distributionHistory.unshift(distribution);
             saveStockData();
+            
+            // Broadcast stock update event for real-time sync
+            try {
+                window.dispatchEvent(new CustomEvent('stock:updated', { 
+                    detail: { branch: branch, products: [{ name: productName, quantity }], user: (currentUser?.fullName || 'system'), reference: dispatchNumber } 
+                }));
+                const m = document.querySelector('meta[name="rt-base"]');
+                const rtBase = m && m.content && m.content.trim();
+                if (rtBase) {
+                    fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: { type: 'stock:updated', branch: branch, products: [{ name: productName, quantity }], action: 'distributed', warehouse, dispatchNumber, ts: Date.now() } })
+                    }).catch(_ => {});
+                }
+                fetch('/api/realtime_publish', { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ channel: 'stock', event: { branch: branch, products: [{ name: productName, quantity }], action: 'distributed', warehouse, dispatchNumber, ts: Date.now() } }) 
+                }).catch(_ => {});
+            } catch (_) {}
+            
             displayWindhoekStock();
             displayOndangwaStock();
             displayDistributionHistory();
@@ -21664,76 +21724,88 @@ async function reverseLastPrescriptionPayment(reportId){
             const container = document.getElementById('countryStockList');
             if (!container) return;
             
-            loadStockData();
+            // Show loading indicator
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">⏳ Loading stock data...</p>';
             
-            // Load barcode stock from storage
-            let barcodeStock = [];
             try {
-                const stored = localStorage.getItem('dyna_barcode_stock');
-                if (stored) {
-                    const batches = JSON.parse(stored);
-                    // Convert barcode stock to displayable format
-                    barcodeStock = batches
-                        .filter(b => b.location === 'country_stock' && b.status === 'available')
-                        .map(batch => ({
-                            productName: batch.description,
-                            productCode: batch.barcode,
-                            category: 'Imported Stock',
-                            quantity: batch.remainingQuantity,
-                            unit: 'units',
-                            batchNumber: batch.batchNo,
-                            expiryDate: batch.expiryDate,
-                            supplier: batch.cartonNo || 'N/A',
-                            cost: 0,
-                            receivedDate: batch.importDate,
-                            barcode: batch.barcode,
-                            id: batch.id,
-                            isBarcodeStock: true
-                        }));
+                loadStockData();
+                
+                // Load barcode stock from storage
+                let barcodeStock = [];
+                try {
+                    const stored = localStorage.getItem('dyna_barcode_stock');
+                    if (stored) {
+                        const batches = JSON.parse(stored);
+                        // Convert barcode stock to displayable format
+                        barcodeStock = batches
+                            .filter(b => b.location === 'country_stock' && b.status === 'available')
+                            .map(batch => ({
+                                productName: batch.description,
+                                productCode: batch.barcode,
+                                category: 'Imported Stock',
+                                quantity: batch.remainingQuantity,
+                                unit: 'units',
+                                batchNumber: batch.batchNo,
+                                expiryDate: batch.expiryDate,
+                                supplier: batch.cartonNo || 'N/A',
+                                cost: 0,
+                                receivedDate: batch.importDate,
+                                barcode: batch.barcode,
+                                id: batch.id,
+                                isBarcodeStock: true
+                            }));
+                    }
+                } catch (error) {
+                    console.error('Error loading barcode stock:', error);
                 }
-            } catch (error) {
-                console.error('Error loading barcode stock:', error);
-            }
-            
-            // Combine both sources
-            const allStock = [...countryStock, ...barcodeStock];
-            
-            if (allStock.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock received yet.</p>';
-                return;
-            }
-            
-            container.innerHTML = allStock.map(item => `
-                <div class="client-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <h4>${item.productName}</h4>
-                            <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
-                            <p><strong>Quantity:</strong> ${item.quantity} ${item.unit} | <strong>Batch:</strong> ${item.batchNumber}</p>
-                            <p><strong>Expiry:</strong> ${item.expiryDate} | <strong>Supplier:</strong> ${item.supplier}</p>
-                            <p><strong>Cost:</strong> N$ ${item.cost.toFixed(2)} per unit</p>
-                            <p><strong>Received:</strong> ${new Date(item.receivedDate).toLocaleString()}</p>
-                            ${item.barcode ? `<p><strong>Barcode:</strong> ${item.barcode}</p>` : ''}
-                            ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                
+                // Combine both sources
+                const allStock = [...countryStock, ...barcodeStock];
+                
+                if (allStock.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock received yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = allStock.map(item => `
+                    <div class="client-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h4>${item.productName}</h4>
+                                <p><strong>Code:</strong> ${item.productCode} | <strong>Category:</strong> ${item.category}</p>
+                                <p><strong>Quantity:</strong> ${item.quantity} ${item.unit} | <strong>Batch:</strong> ${item.batchNumber}</p>
+                                <p><strong>Expiry:</strong> ${item.expiryDate} | <strong>Supplier:</strong> ${item.supplier}</p>
+                                <p><strong>Cost:</strong> N$ ${item.cost.toFixed(2)} per unit</p>
+                                <p><strong>Received:</strong> ${new Date(item.receivedDate).toLocaleString()}</p>
+                                ${item.barcode ? `<p><strong>Barcode:</strong> ${item.barcode}</p>` : ''}
+                                ${item.notes ? `<p><em>${item.notes}</em></p>` : ''}
+                            </div>
+                            <button class="btn btn-success" onclick="transferToWarehouse('${item.id}', 'country')">Transfer</button>
                         </div>
-                        <button class="btn btn-success" onclick="transferToWarehouse('${item.id}', 'country')">Transfer</button>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch (error) {
+                console.error('Error displaying country stock:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #d32f2f;">❌ Error loading stock data. Please refresh the page.</p>';
+            }
         }
         
         function displayWindhoekStock() {
             const container = document.getElementById('windhoekStockList');
             if (!container) return;
             
-            loadStockData();
+            // Show loading indicator
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">⏳ Loading stock data...</p>';
             
-            if (windhoekStock.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Windhoek Warehouse.</p>';
-                return;
-            }
-            
-            container.innerHTML = windhoekStock.map(item => `
+            try {
+                loadStockData();
+                
+                if (windhoekStock.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Windhoek Warehouse.</p>';
+                    return;
+                }
+                
+                container.innerHTML = windhoekStock.map(item => `
                 <div class="client-card ${item.quantity < 10 ? 'low-stock' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
@@ -21747,20 +21819,28 @@ async function reverseLastPrescriptionPayment(reportId){
                     </div>
                 </div>
             `).join('');
+            } catch (error) {
+                console.error('Error displaying Windhoek stock:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #d32f2f;">❌ Error loading stock data. Please refresh the page.</p>';
+            }
         }
         
         function displayOndangwaStock() {
             const container = document.getElementById('ondangwaStockList');
             if (!container) return;
             
-            loadStockData();
+            // Show loading indicator
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">⏳ Loading stock data...</p>';
             
-            if (ondangwaStock.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Ondangwa Warehouse.</p>';
-                return;
-            }
-            
-            container.innerHTML = ondangwaStock.map(item => `
+            try {
+                loadStockData();
+                
+                if (ondangwaStock.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No stock in Ondangwa Warehouse.</p>';
+                    return;
+                }
+                
+                container.innerHTML = ondangwaStock.map(item => `
                 <div class="client-card ${item.quantity < 10 ? 'low-stock' : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
@@ -21774,20 +21854,28 @@ async function reverseLastPrescriptionPayment(reportId){
                     </div>
                 </div>
             `).join('');
+            } catch (error) {
+                console.error('Error displaying Ondangwa stock:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #d32f2f;">❌ Error loading stock data. Please refresh the page.</p>';
+            }
         }
         
         function displayDistributionHistory() {
             const container = document.getElementById('distributionHistoryList');
             if (!container) return;
             
-            loadStockData();
+            // Show loading indicator
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">⏳ Loading distribution history...</p>';
             
-            if (distributionHistory.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No distribution history.</p>';
-                return;
-            }
-            
-            container.innerHTML = distributionHistory.map(dist => {
+            try {
+                loadStockData();
+                
+                if (distributionHistory.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No distribution history.</p>';
+                    return;
+                }
+                
+                container.innerHTML = distributionHistory.map(dist => {
                 const branchName = branches.find(b => b.id === dist.branch)?.name || dist.branch;
                 return `
                 <div class="client-card">
@@ -21802,6 +21890,10 @@ async function reverseLastPrescriptionPayment(reportId){
                 </div>
             `;
             }).join('');
+            } catch (error) {
+                console.error('Error displaying distribution history:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #d32f2f;">❌ Error loading distribution history. Please refresh the page.</p>';
+            }
         }
         
         // Show stock tab
@@ -22425,6 +22517,31 @@ async function reverseLastPrescriptionPayment(reportId){
             }
             
             alert(`✅ Imported ${successCount} items successfully${failCount > 0 ? ' (Failed: ' + failCount + ')' : ''}`);
+            
+            // Broadcast stock update event for real-time sync
+            if (successCount > 0) {
+                try {
+                    const products = items.filter((_, idx) => idx < successCount).map(item => ({ 
+                        name: item.description || item.productName || 'Unknown', 
+                        quantity: parseInt(item.quantity || 0) 
+                    }));
+                    window.dispatchEvent(new CustomEvent('stock:updated', { 
+                        detail: { branch: 'country_stock', products, user: (currentUser?.fullName || 'system'), reference: 'IMPORT-' + Date.now() } 
+                    }));
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'stock:updated', branch: 'country_stock', products, action: 'imported', ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'stock', event: { branch: 'country_stock', products, action: 'imported', ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
+            }
             
             // Clear form and refresh display
             clearStockImportForm();
