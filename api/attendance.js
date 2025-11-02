@@ -132,9 +132,10 @@ export default function handler(req, res) {
 
 function saveAttendanceToFile() {
     try {
-        ensureDataDir();
-        const attendanceFilePath = path.join(process.cwd(), 'cloud-data', 'attendance_data.json');
-        fs.writeFileSync(attendanceFilePath, JSON.stringify(global.attendance, null, 2));
+        // In Vercel serverless, file system is read-only, skip saving
+        // Data persists in global.attendance for the function lifetime
+        console.log('💡 Attendance data updated (in-memory only in serverless environment)');
+        return;
     } catch (error) {
         console.error('❌ Error saving attendance:', error);
     }
@@ -183,8 +184,10 @@ function writeAudit(event, details){
 }
 
 function ensureDataDir(){
+    // In Vercel serverless, file system is read-only
+    // Only check if directory exists, don't try to create
     const dir = path.join(process.cwd(), 'cloud-data');
-    if (!fs.existsSync(dir)) { try { fs.mkdirSync(dir); } catch(e){} }
+    return fs.existsSync(dir);
 }
 function isHR(req){
     const role = req.headers['x-role'] || req.headers['x-user-role'];
