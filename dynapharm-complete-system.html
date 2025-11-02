@@ -9284,13 +9284,26 @@
             try {
                 const result = await apiRequest('/clients', 'POST', client);
                 if (result.success) {
-            clients.push(client);
+                    // Add to clients array
+                    clients.push(client);
+                    
+                    // IMPORTANT: Save to localStorage immediately for persistence
+                    // This ensures data persists even if API fails later or on refresh
+                    try {
+                        localStorage.setItem('dyna_clients', JSON.stringify(clients));
+                        console.log(`✅ Client saved to localStorage: ${referenceNumber}`);
+                    } catch (storageError) {
+                        console.error('❌ Error saving client to localStorage:', storageError);
+                        // Continue anyway - API save was successful
+                    }
             
-            const refEl = document.getElementById('clientRefNumber');
-            refEl.textContent = 'Reference Number: ' + referenceNumber;
-            refEl.style.display = 'block';
+                    const refEl = document.getElementById('clientRefNumber');
+                    if (refEl) {
+                        refEl.textContent = 'Reference Number: ' + referenceNumber;
+                        refEl.style.display = 'block';
+                    }
             
-            alert(`Client saved!\n\nReference: ${referenceNumber}\nReferred by: ${client.referralName}\n\nSave this reference number for future visits.`);
+                    alert(`✅ Client saved successfully!\n\nReference: ${referenceNumber}\n${client.referralName ? `Referred by: ${client.referralName}\n\n` : ''}Save this reference number for future visits.`);
 
             // Create appointment or visit depending on visit type
             try {
@@ -9368,11 +9381,35 @@
                 window.print();
                     }
                 } else {
-                    alert('Error saving client: ' + result.message);
+                    alert('❌ Error saving client: ' + (result.message || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Error saving client:', error);
-                alert('Error saving client. Please try again.');
+                console.error('❌ Error saving client:', error);
+                
+                // Fallback: Save directly to localStorage if API fails
+                try {
+                    clients.push(client);
+                    localStorage.setItem('dyna_clients', JSON.stringify(clients));
+                    
+                    const refEl = document.getElementById('clientRefNumber');
+                    if (refEl) {
+                        refEl.textContent = 'Reference Number: ' + referenceNumber;
+                        refEl.style.display = 'block';
+                    }
+                    
+                    alert(`⚠️ API unavailable, but client saved locally!\n\nReference: ${referenceNumber}\n${client.referralName ? `Referred by: ${client.referralName}\n\n` : ''}Save this reference number. Data will sync when API is available.`);
+                    
+                    // Broadcast client update event for real-time sync
+                    try {
+                        window.dispatchEvent(new CustomEvent('clients:updated', { 
+                            detail: { client: referenceNumber, action: 'created', ts: Date.now() } 
+                        }));
+                    } catch(_) {}
+                    
+                } catch (fallbackError) {
+                    console.error('❌ Critical: Failed to save client even to localStorage:', fallbackError);
+                    alert('❌ Critical Error: Failed to save client. Please contact support. Error: ' + fallbackError.message);
+                }
             }
         });
 
@@ -12213,7 +12250,12 @@
                     document.querySelectorAll('#medicineGrid input:checked').forEach(cb => cb.checked = false);
                     
                     // Persist and notify other sections
-                    try { localStorage.setItem('dyna_reports', JSON.stringify(reports)); } catch(_) {}
+                    try { 
+                        localStorage.setItem('dyna_reports', JSON.stringify(reports));
+                        console.log(`✅ Report saved to localStorage: ${validatedReport.id} for client ${validatedReport.clientId}`);
+                    } catch(storageError) {
+                        console.error('❌ Error saving report to localStorage:', storageError);
+                    }
                     try { window.dispatchEvent(new CustomEvent('reports:updated', { detail: { id: validatedReport.id, action: isEditing ? 'updated' : 'created' } })); } catch(_) {}
                     // Global notify (best-effort)
                     try { fetch('/api/realtime_publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel: 'reports', event: { id: validatedReport.id, action: isEditing ? 'updated' : 'created', ts: Date.now() } }) }); } catch(_) {}
@@ -13034,8 +13076,36 @@
         }
 
         async function displayPrescriptions() {
-            // Refresh data from API
+            // Refresh data from API and localStorage to ensure fresh data
             await loadData();
+            
+            // Verify clients are loaded
+            if (!clients || clients.length === 0) {
+                console.warn('⚠️ No clients found when displaying prescriptions. Reloading...');
+                try {
+                    const clientsData = localStorage.getItem('dyna_clients');
+                    if (clientsData) {
+                        clients = JSON.parse(clientsData);
+                        console.log(`✅ Loaded ${clients.length} clients from localStorage for prescriptions`);
+                    }
+                } catch(error) {
+                    console.error('❌ Error loading clients for prescriptions:', error);
+                }
+            }
+            
+            // Verify reports are loaded
+            if (!reports || reports.length === 0) {
+                console.warn('⚠️ No reports found when displaying prescriptions. Reloading...');
+                try {
+                    const reportsData = localStorage.getItem('dyna_reports');
+                    if (reportsData) {
+                        reports = JSON.parse(reportsData);
+                        console.log(`✅ Loaded ${reports.length} reports from localStorage for prescriptions`);
+                    }
+                } catch(error) {
+                    console.error('❌ Error loading reports for prescriptions:', error);
+                }
+            }
             
             const list = document.getElementById('prescriptionList');
             // Filter only actual reports (with id field) that have prescriptions
@@ -13884,7 +13954,11 @@ async function reverseLastPrescriptionPayment(reportId){
                     activeSection = 'dispenserPrescriptionSection';
                     activeTab = 'prescriptionTab';
                     gradient = 'linear-gradient(135deg, #27ae60, #229954)';
-                displayPrescriptions();
+                    // Ensure data is loaded before displaying prescriptions
+                    (async () => {
+                        await loadData();
+                        await displayPrescriptions();
+                    })();
                     break;
                 case 'stock':
                     activeSection = 'dispenserStockSection';
