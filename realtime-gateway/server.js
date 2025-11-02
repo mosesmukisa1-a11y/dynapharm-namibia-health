@@ -25,6 +25,8 @@ wss.on('connection', (ws) => {
   try { ws.send(JSON.stringify({ type: 'hello', ts: Date.now() })); } catch(_) {}
 });
 
+app.get('/', (req, res) => res.json({ service: 'dynapharm-realtime-gateway', status: 'running', endpoints: ['/health', '/publish', '/ws'] }));
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/publish', (req, res) => {
