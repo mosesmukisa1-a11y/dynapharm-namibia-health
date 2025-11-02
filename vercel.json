@@ -1,6 +1,9 @@
 {
   "version": 2,
   "name": "dynapharm-namibia-health",
+  "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" }
+  ],
   "functions": {
     "api/*.js": {
       "memory": 256,
