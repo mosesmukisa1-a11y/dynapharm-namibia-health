@@ -7848,7 +7848,7 @@
                     if (!response.ok) {
                         // Don't try to parse HTML error pages as JSON
                         if (response.status === 404) {
-                            throw new Error(`API endpoint ${endpoint} not found (404)`);
+                            throw new Error(`404_NOT_FOUND`);
                         }
                         const errorText = await response.text();
                         throw new Error(`API error ${response.status}: ${errorText.substring(0, 100)}`);
@@ -7857,6 +7857,10 @@
                     // Check if response is actually JSON
                     const contentType = response.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
+                        // If 404, don't parse as JSON
+                        if (response.status === 404) {
+                            throw new Error(`404_NOT_FOUND`);
+                        }
                         const text = await response.text();
                         throw new Error(`Expected JSON but got ${contentType}`);
                     }
@@ -7892,10 +7896,18 @@
                     }
                 }
             } catch (error) {
-                // Only log errors that aren't 404s to reduce console spam
-                if (!error.message || !error.message.includes('404')) {
+                // Silently handle 404s (expected when APIs aren't deployed)
+                const is404 = error.message && (
+                    error.message.includes('404') || 
+                    error.message.includes('404_NOT_FOUND') ||
+                    (error.message.includes('Unexpected token') && error.message.includes('The page c'))
+                );
+                
+                if (!is404) {
+                    // Only log non-404 errors in debug mode
                     console.debug('API Error:', error.message || error);
                 }
+                
                 updateRealtimeStatus('offline');
                 // Fallback to localStorage if API is not available
                 return await fallbackToLocalStorage(endpoint, method, data);
