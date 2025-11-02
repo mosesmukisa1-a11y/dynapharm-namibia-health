@@ -28014,8 +28014,11 @@ This sale appears in the Dispenser Portal sales reports.
                         const es = new EventSource('/api/realtime_stream?channel=reports');
                         es.onmessage = () => {
                             try { if (typeof loadData === 'function') loadData(); } catch(_) {}
-                            try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
-                            try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
+                            // Only call user-specific functions if user is logged in
+                            if (typeof currentUser !== 'undefined' && currentUser && currentUser.fullName) {
+                                try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(e) { console.debug('displayMyReports error:', e); }
+                                try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(e) { console.debug('displayFollowUps error:', e); }
+                            }
                             try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
                             try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
                             try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
