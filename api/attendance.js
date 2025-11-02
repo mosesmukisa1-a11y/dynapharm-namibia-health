@@ -42,7 +42,7 @@ export default function handler(req, res) {
                 // Generate sample data if file not found
                 try {
                     global.attendance = generateSampleAttendanceData();
-                    console.log('⚠️ No attendance file found, using sample data');
+                    console.log(`⚠️ No attendance file found, using ${global.attendance.length} sample records`);
                 } catch (sampleError) {
                     console.error('❌ Error generating sample attendance data:', sampleError);
                     global.attendance = [];
@@ -55,9 +55,16 @@ export default function handler(req, res) {
         }
     }
     
-    // Ensure attendance is always an array
-    if (!Array.isArray(global.attendance)) {
-        global.attendance = [];
+    // Ensure attendance is always an array (critical for GET handler)
+    if (!global.attendance || !Array.isArray(global.attendance)) {
+        try {
+            // Last resort: try to generate sample data
+            global.attendance = generateSampleAttendanceData();
+            console.log(`⚠️ Attendance was not an array, generated ${global.attendance.length} sample records`);
+        } catch (e) {
+            console.error('❌ Failed to generate sample attendance data:', e);
+            global.attendance = [];
+        }
     }
     
     if (req.method === 'GET') {
@@ -156,7 +163,7 @@ function generateSampleAttendanceData() {
             for (let staffNum = 1; staffNum <= 5; staffNum++) {
                 const status = Math.random() > 0.1 ? 'present' : (Math.random() > 0.5 ? 'absent' : 'late');
                 attendance.push({
-                    id: `ATT-${Date.now()}-${staffNum}`,
+                    id: `ATT-${Date.now()}-${i}-${staffNum}`,
                     userId: `STAFF-${branch.toUpperCase()}-${staffNum}`,
                     fullName: `Staff Member ${staffNum} - ${branch}`,
                     branch: branch,
