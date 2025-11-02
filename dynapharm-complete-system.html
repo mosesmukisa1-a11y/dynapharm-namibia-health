@@ -8869,6 +8869,49 @@
             document.getElementById('mh_na').checked = true;
         }
 
+        // Toggle diet options visibility based on user selection
+        function toggleDietOptions() {
+            try {
+                const dietYes = document.getElementById('dietYes');
+                const dietNo = document.getElementById('dietNo');
+                const dietOptions = document.getElementById('dietOptions');
+                const dietOther = document.querySelector('input[name="dietOther"]');
+                
+                if (!dietOptions) {
+                    console.warn('⚠️ Diet options element not found');
+                    return;
+                }
+                
+                // Show diet options if "Yes" is selected, hide if "No" is selected
+                if (dietYes && dietYes.checked) {
+                    dietOptions.style.display = 'block';
+                    if (dietOther) {
+                        dietOther.style.display = 'block';
+                        dietOther.style.marginTop = '10px';
+                    }
+                    // Make selection required when visible
+                    dietOptions.setAttribute('required', 'required');
+                } else if (dietNo && dietNo.checked) {
+                    dietOptions.style.display = 'none';
+                    if (dietOther) {
+                        dietOther.style.display = 'none';
+                        dietOther.value = '';
+                    }
+                    // Clear selections when hidden
+                    const options = dietOptions.querySelectorAll('option');
+                    options.forEach(opt => opt.selected = false);
+                    dietOptions.removeAttribute('required');
+                }
+            } catch (error) {
+                console.error('❌ Error in toggleDietOptions:', error);
+            }
+        }
+        
+        // Make function globally accessible for inline event handlers
+        if (typeof window !== 'undefined') {
+            window.toggleDietOptions = toggleDietOptions;
+        }
+
         // Enhanced signature with camera support
         function signDocument() {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
