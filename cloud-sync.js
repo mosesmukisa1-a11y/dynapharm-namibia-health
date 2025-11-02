@@ -101,14 +101,28 @@ class CloudStorage {
                     const r = await fetch(empCandidates[i], { cache: 'no-store' });
                     if (!r.ok) continue;
                     const list = await r.json();
-                    if (Array.isArray(list)) {
+                    if (Array.isArray(list) && list.length > 0) {
+                        // Only overwrite localStorage if we have actual data
                         localStorage.setItem('dyna_employees', JSON.stringify(list));
                         // Keep HR portal compatibility
                         try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
                         console.log(`✅ Synced ${list.length} employees from employees_data.json`);
+                    } else if (Array.isArray(list) && list.length === 0) {
+                        // Don't overwrite localStorage with empty array - preserve existing data
+                        const existing = localStorage.getItem('dyna_employees');
+                        if (!existing || existing === '[]') {
+                            console.log(`⚠️ No employees in cloud data, keeping existing localStorage data`);
+                        } else {
+                            try {
+                                const existingCount = JSON.parse(existing).length;
+                                console.log(`✅ Synced 0 employees from employees_data.json (preserving ${existingCount} existing)`);
+                            } catch(_) {
+                                console.log(`✅ Synced 0 employees from employees_data.json (preserving existing data)`);
+                            }
+                        }
                         try {
                             if (typeof window !== 'undefined') {
-                                const evt = new CustomEvent('cloud-sync:employees', { detail: { count: list.length } });
+                                const evt = new CustomEvent('cloud-sync:employees', { detail: { count: 0, preserved: true } });
                                 window.dispatchEvent(evt);
                             }
                         } catch(_) {}
