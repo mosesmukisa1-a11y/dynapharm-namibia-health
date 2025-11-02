@@ -7843,6 +7843,24 @@
                 // Try primary API
                 try {
                     const response = await fetch(`${API_BASE}${endpoint}`, options);
+                    
+                    // Check if response is OK before parsing JSON
+                    if (!response.ok) {
+                        // Don't try to parse HTML error pages as JSON
+                        if (response.status === 404) {
+                            throw new Error(`API endpoint ${endpoint} not found (404)`);
+                        }
+                        const errorText = await response.text();
+                        throw new Error(`API error ${response.status}: ${errorText.substring(0, 100)}`);
+                    }
+                    
+                    // Check if response is actually JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        throw new Error(`Expected JSON but got ${contentType}`);
+                    }
+                    
                     const result = await response.json();
                     updateRealtimeStatus('online');
                     return result;
@@ -7851,6 +7869,16 @@
                     if (API_BASE_LOCAL !== API_BASE) {
                         try {
                             const response = await fetch(`${API_BASE_LOCAL}${endpoint}`, options);
+                            
+                            if (!response.ok) {
+                                throw new Error(`Secondary API returned ${response.status}`);
+                            }
+                            
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error(`Secondary API returned non-JSON`);
+                            }
+                            
                             const result = await response.json();
                             updateRealtimeStatus('online');
                             console.log('Using secondary local API as fallback');
@@ -7864,7 +7892,10 @@
                     }
                 }
             } catch (error) {
-                console.error('API Error:', error);
+                // Only log errors that aren't 404s to reduce console spam
+                if (!error.message || !error.message.includes('404')) {
+                    console.debug('API Error:', error.message || error);
+                }
                 updateRealtimeStatus('offline');
                 // Fallback to localStorage if API is not available
                 return await fallbackToLocalStorage(endpoint, method, data);
@@ -8210,14 +8241,20 @@
                 clearInterval(autoRefreshInterval);
             }
             
-            // Refresh every 5 seconds when user is logged in for better real-time sync
+            // Refresh every 30 seconds when user is logged in (reduced from 5s to prevent API spam)
+            // Real-time updates should come from WebSocket/SSE, not polling
             autoRefreshInterval = setInterval(async () => {
                 if (currentUser) {
-                    await refreshAllData();
+                    try {
+                        await refreshAllData();
+                    } catch (error) {
+                        // Silently handle errors to prevent console spam
+                        console.debug('Auto-refresh error (using localStorage):', error.message);
+                    }
                 }
-            }, 5000);
+            }, 30000); // 30 seconds instead of 5 seconds
             
-            console.log('🔄 Auto-refresh started (5 second intervals)');
+            console.log('🔄 Auto-refresh started (30 second intervals)');
         }
 
         function stopAutoRefresh() {
