@@ -6497,6 +6497,27 @@
             });
             try {
                 localStorage.setItem('dynapharm_inventory', JSON.stringify(inventory));
+                // Broadcast stock update event for real-time sync across portals
+                try {
+                    const branchId = (currentUser && currentUser.branch) || 'unknown';
+                    window.dispatchEvent(new CustomEvent('stock:updated', { 
+                        detail: { branch: branchId, products: products, user: userFullName, reference } 
+                    }));
+                    // Publish to Railway gateway
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'stock:updated', branch: branchId, products, ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    // Also publish to Vercel SSE
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'stock', event: { branch: branchId, products, ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
             } catch (e) {
                 console.warn('Inventory persistence warning:', e);
             }
@@ -6591,6 +6612,28 @@
                 }
             } catch (e) {
                 errors.push('FEFO dispense error: ' + (e && e.message ? e.message : String(e)));
+            }
+            // Broadcast stock update event for real-time sync across portals
+            if (products.length > 0) {
+                try {
+                    window.dispatchEvent(new CustomEvent('stock:updated', { 
+                        detail: { branch: branchId, products: products.map(p => ({ name: p.name || p.productName, quantity: p.quantity || 1 })), user: userFullName, reference } 
+                    }));
+                    // Publish to Railway gateway
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'stock:updated', branch: branchId, products: products.map(p => ({ name: p.name || p.productName, quantity: p.quantity || 1 })), ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    // Also publish to Vercel SSE
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'stock', event: { branch: branchId, products: products.map(p => ({ name: p.name || p.productName, quantity: p.quantity || 1 })), ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
             }
             return { success: errors.length === 0, errors, successes };
         }
@@ -17786,6 +17829,24 @@ async function reverseLastPrescriptionPayment(reportId){
                 if (result.success) {
             users.push(newUser);
             try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
+                    // Broadcast user update event for real-time sync
+                    try {
+                        window.dispatchEvent(new CustomEvent('users:updated', { detail: { user: newUser, action: 'created' } }));
+                        // Publish to Railway gateway
+                        const m = document.querySelector('meta[name="rt-base"]');
+                        const rtBase = m && m.content && m.content.trim();
+                        if (rtBase) {
+                            fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ event: { type: 'users:updated', user: newUser, action: 'created', ts: Date.now() } })
+                            }).catch(_ => {});
+                        }
+                        // Publish to Vercel SSE
+                        fetch('/api/realtime_publish', { 
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                            body: JSON.stringify({ channel: 'users', event: { user: newUser, action: 'created', ts: Date.now() } }) 
+                        }).catch(_ => {});
+                    } catch (_) {}
                     alert('✅ User created successfully');
             closeModal('addUserModal');
             this.reset();
@@ -17829,11 +17890,28 @@ async function reverseLastPrescriptionPayment(reportId){
 
         async function deleteUser(userId) {
             if (confirm('Delete user?')) {
+                const deletedUser = users.find(u => u.id === userId);
                 try {
                     const result = await apiRequest(`/users?id=${userId}`, 'DELETE');
                     if (result.success) {
                 users = users.filter(u => u.id !== userId);
                 try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
+                        // Broadcast user update event for real-time sync
+                        try {
+                            window.dispatchEvent(new CustomEvent('users:updated', { detail: { user: deletedUser, action: 'deleted' } }));
+                            const m = document.querySelector('meta[name="rt-base"]');
+                            const rtBase = m && m.content && m.content.trim();
+                            if (rtBase) {
+                                fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ event: { type: 'users:updated', user: deletedUser, action: 'deleted', ts: Date.now() } })
+                                }).catch(_ => {});
+                            }
+                            fetch('/api/realtime_publish', { 
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                                body: JSON.stringify({ channel: 'users', event: { user: deletedUser, action: 'deleted', ts: Date.now() } }) 
+                            }).catch(_ => {});
+                        } catch (_) {}
                         alert('✅ User deleted successfully');
                         await refreshAllData();
                     } else {
@@ -17941,7 +18019,23 @@ async function reverseLastPrescriptionPayment(reportId){
                     if (userIndex !== -1) {
                         users[userIndex] = updatedUser;
                     }
-                    
+                    try { localStorage.setItem('dyna_users', JSON.stringify(users)); } catch (e) {}
+                    // Broadcast user update event for real-time sync
+                    try {
+                        window.dispatchEvent(new CustomEvent('users:updated', { detail: { user: updatedUser, action: 'updated' } }));
+                        const m = document.querySelector('meta[name="rt-base"]');
+                        const rtBase = m && m.content && m.content.trim();
+                        if (rtBase) {
+                            fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ event: { type: 'users:updated', user: updatedUser, action: 'updated', ts: Date.now() } })
+                            }).catch(_ => {});
+                        }
+                        fetch('/api/realtime_publish', { 
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                            body: JSON.stringify({ channel: 'users', event: { user: updatedUser, action: 'updated', ts: Date.now() } }) 
+                        }).catch(_ => {});
+                    } catch (_) {}
                     alert('✅ User branches updated successfully');
                     closeModal('editBranchesModal');
                 loadUserList();
@@ -19186,6 +19280,38 @@ async function reverseLastPrescriptionPayment(reportId){
 
             // Record department event
             recordDepartmentEvent('walkin_sale', sale);
+            
+            // Broadcast stock update event for real-time sync
+            try {
+                const branchId = (currentUser && currentUser.branch) || 'unknown';
+                window.dispatchEvent(new CustomEvent('stock:updated', { 
+                    detail: { branch: branchId, products: walkInCart, user: (currentUser && currentUser.fullName) || 'system', reference: sale.id } 
+                }));
+                // Also broadcast sale event for Finance/MIS portals
+                window.dispatchEvent(new CustomEvent('sale:updated', { detail: { sale, type: 'walkin' } }));
+                // Publish to Railway gateway
+                const m = document.querySelector('meta[name="rt-base"]');
+                const rtBase = m && m.content && m.content.trim();
+                if (rtBase) {
+                    fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: { type: 'stock:updated', branch: branchId, products: walkInCart, sale: sale.id, ts: Date.now() } })
+                    }).catch(_ => {});
+                    fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: { type: 'sale:updated', sale, type: 'walkin', ts: Date.now() } })
+                    }).catch(_ => {});
+                }
+                // Publish to Vercel SSE
+                fetch('/api/realtime_publish', { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ channel: 'stock', event: { branch: branchId, products: walkInCart, ts: Date.now() } }) 
+                }).catch(_ => {});
+                fetch('/api/realtime_publish', { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ channel: 'sales', event: { sale, type: 'walkin', ts: Date.now() } }) 
+                }).catch(_ => {});
+            } catch (_) {}
 
             // Save sale to localStorage - save to both keys for compatibility
             walkInSales.push(sale);
@@ -27314,6 +27440,40 @@ This sale appears in the Dispenser Portal sales reports.
                 try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
                 try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
             });
+            // Finance portal: refresh on reports, sales, and stock updates
+            window.addEventListener('reports:updated', () => {
+                try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
+                try { if (typeof refreshExpenses === 'function') refreshExpenses(); } catch(_) {}
+            });
+            window.addEventListener('sale:updated', () => {
+                try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
+                try { if (typeof refreshExpenses === 'function') refreshExpenses(); } catch(_) {}
+            });
+            window.addEventListener('stock:updated', () => {
+                try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
+            });
+            // MIS portal: refresh on reports and sales updates
+            window.addEventListener('reports:updated', () => {
+                try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
+                try { if (typeof refreshMISData === 'function') refreshMISData(); } catch(_) {}
+            });
+            window.addEventListener('sale:updated', () => {
+                try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
+                try { if (typeof refreshMISData === 'function') refreshMISData(); } catch(_) {}
+            });
+            // Stock portal: refresh on stock updates
+            window.addEventListener('stock:updated', () => {
+                try { if (typeof loadStockData === 'function') loadStockData(); } catch(_) {}
+                try { if (typeof renderInventoryBreakdown === 'function') {
+                    const branchId = document.getElementById('misBranchSelect')?.value || 'all';
+                    renderInventoryBreakdown('misInventoryBreakdown', branchId);
+                } } catch(_) {}
+            });
+            // User updates: refresh all portals when users change
+            window.addEventListener('users:updated', () => {
+                try { if (typeof loadData === 'function') loadData(); } catch(_) {}
+                try { if (typeof loadUserList === 'function') loadUserList(); } catch(_) {}
+            });
         } catch(_) {}
 
         // HR: refresh employee list when employees sync arrives
@@ -27363,6 +27523,9 @@ This sale appears in the Dispenser Portal sales reports.
                                 try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
                                 try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
                                 try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
+                                try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
+                                try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
+                                try { if (typeof loadStockData === 'function') loadStockData(); } catch(_) {}
                             };
                             ws.onclose = () => setTimeout(connectWS, 3000);
                             ws.onerror = () => { try { ws.close(); } catch(_) {}; };
@@ -27380,6 +27543,9 @@ This sale appears in the Dispenser Portal sales reports.
                             try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
                             try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
                             try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
+                            try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
+                            try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
+                            try { if (typeof loadStockData === 'function') loadStockData(); } catch(_) {}
                         };
                         es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
                     } catch (_) { /* ignore */ }
