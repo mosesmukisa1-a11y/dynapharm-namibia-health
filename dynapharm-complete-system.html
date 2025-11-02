@@ -7855,17 +7855,26 @@
                     }
                     
                     // Check if response is actually JSON
-                    const contentType = response.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        // If 404, don't parse as JSON
-                        if (response.status === 404) {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        // If 404 or HTML response, don't parse as JSON
+                        if (response.status === 404 || contentType.includes('text/html')) {
                             throw new Error(`404_NOT_FOUND`);
                         }
                         const text = await response.text();
-                        throw new Error(`Expected JSON but got ${contentType}`);
+                        throw new Error(`Expected JSON but got ${contentType || 'unknown'}`);
                     }
                     
-                    const result = await response.json();
+                    // Safely parse JSON with error handling
+                    let result;
+                    try {
+                        const text = await response.text();
+                        result = JSON.parse(text);
+                    } catch (parseError) {
+                        // If JSON parse fails, it's likely HTML or invalid response
+                        throw new Error(`404_NOT_FOUND`);
+                    }
+                    
                     updateRealtimeStatus('online');
                     return result;
                 } catch (primaryError) {
