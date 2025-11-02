@@ -10903,48 +10903,55 @@
                     const client = clients.find(c => c.referenceNumber === report.clientId);
                     if (!client) return;
 
-                const followUpDate = new Date(report.followUpDate);
-                const today = new Date();
-                const daysUntil = Math.ceil((followUpDate - today) / (1000 * 60 * 60 * 24));
-                
-                let statusClass = '';
-                let statusText = '';
-                if (daysUntil < 0) {
-                    statusClass = 'overdue';
-                    statusText = `Overdue by ${Math.abs(daysUntil)} days`;
-                } else if (daysUntil === 0) {
-                    statusClass = 'today';
-                    statusText = 'Today';
-                } else if (daysUntil <= 7) {
-                    statusClass = 'upcoming';
-                    statusText = `In ${daysUntil} days`;
-                } else {
-                    statusClass = 'future';
-                    statusText = `In ${daysUntil} days`;
-                }
+                    const followUpDate = new Date(report.followUpDate);
+                    const today = new Date();
+                    const daysUntil = Math.ceil((followUpDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    let statusClass = '';
+                    let statusText = '';
+                    if (daysUntil < 0) {
+                        statusClass = 'overdue';
+                        statusText = `Overdue by ${Math.abs(daysUntil)} days`;
+                    } else if (daysUntil === 0) {
+                        statusClass = 'today';
+                        statusText = 'Today';
+                    } else if (daysUntil <= 7) {
+                        statusClass = 'upcoming';
+                        statusText = `In ${daysUntil} days`;
+                    } else {
+                        statusClass = 'future';
+                        statusText = `In ${daysUntil} days`;
+                    }
 
-                const card = document.createElement('div');
-                card.className = `client-card follow-up-card ${statusClass}`;
-                card.innerHTML = `
-                    <div class="follow-up-header">
-                        <h4>${client.fullName}</h4>
-                        <span class="follow-up-status ${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="follow-up-details">
-                        <p><strong>Follow-up Date:</strong> ${followUpDate.toLocaleDateString('en-GB')}</p>
-                        <p><strong>Client:</strong> ${client.fullName} (${client.referenceNumber})</p>
-                        <p><strong>Phone:</strong> ${client.phone}</p>
-                        <p><strong>Last Visit:</strong> ${new Date(report.timestamp).toLocaleDateString('en-GB')}</p>
-                        ${report.followUpNotes ? `<p><strong>Notes:</strong> ${report.followUpNotes}</p>` : ''}
-                        <p><strong>Prescription:</strong> ${report.prescription || 'No prescription'}</p>
-                    </div>
-                    <div class="follow-up-actions">
-                        <button class="btn btn-primary" onclick="viewClientDetails('${client.referenceNumber}')">View Client</button>
-                        <button class="btn btn-success" onclick="createReport('${client.referenceNumber}')">Create New Report</button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
+                    const card = document.createElement('div');
+                    card.className = `client-card follow-up-card ${statusClass}`;
+                    card.innerHTML = `
+                        <div class="follow-up-header">
+                            <h4>${client.fullName}</h4>
+                            <span class="follow-up-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="follow-up-details">
+                            <p><strong>Follow-up Date:</strong> ${followUpDate.toLocaleDateString('en-GB')}</p>
+                            <p><strong>Client:</strong> ${client.fullName} (${client.referenceNumber})</p>
+                            <p><strong>Phone:</strong> ${client.phone}</p>
+                            <p><strong>Last Visit:</strong> ${new Date(report.timestamp).toLocaleDateString('en-GB')}</p>
+                            ${report.followUpNotes ? `<p><strong>Notes:</strong> ${report.followUpNotes}</p>` : ''}
+                            <p><strong>Prescription:</strong> ${report.prescription || 'No prescription'}</p>
+                        </div>
+                        <div class="follow-up-actions">
+                            <button class="btn btn-primary" onclick="viewClientDetails('${client.referenceNumber}')">View Client</button>
+                            <button class="btn btn-success" onclick="createReport('${client.referenceNumber}')">Create New Report</button>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (error) {
+                console.error('❌ Error in displayFollowUps:', error);
+                const list = document.getElementById('followUpList');
+                if (list) {
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #e74c3c;">Error loading follow-ups. Please try again.</p>';
+                }
+            }
         }
 
         function filterFollowUps() {
