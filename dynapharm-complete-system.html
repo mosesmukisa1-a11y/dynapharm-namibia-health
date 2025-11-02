@@ -245,7 +245,25 @@
             o.receivedAt = new Date().toISOString();
             o.receivedBy = (window.currentUser && window.currentUser.fullName) || 'system';
             const res = await updateOrderOnServer(o);
-            if (res && res.success) { displayBranchOnlineOrders(); } else { alert('Failed to update order'); }
+            if (res && res.success) {
+                // Broadcast order update for real-time sync
+                try {
+                    window.dispatchEvent(new CustomEvent('orders:updated', { detail: { order: o, action: 'received' } }));
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'orders:updated', order: o, action: 'received', ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'orders', event: { order: o, action: 'received', ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
+                displayBranchOnlineOrders();
+            } else { alert('Failed to update order'); }
         }
 
         async function markOrderPaid(orderId){
@@ -255,7 +273,25 @@
             o.status = 'paid';
             o.payment = Object.assign({}, o.payment||{}, { verified: true, provider: o.payment?.provider||'manual', verifiedAt: new Date().toISOString(), verifiedBy: (window.currentUser && window.currentUser.fullName)||'system' });
             const res = await updateOrderOnServer(o);
-            if (res && res.success) { displayBranchOnlineOrders(); } else { alert('Failed to mark paid'); }
+            if (res && res.success) {
+                // Broadcast order update for real-time sync
+                try {
+                    window.dispatchEvent(new CustomEvent('orders:updated', { detail: { order: o, action: 'paid' } }));
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'orders:updated', order: o, action: 'paid', ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'orders', event: { order: o, action: 'paid', ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
+                displayBranchOnlineOrders();
+            } else { alert('Failed to mark paid'); }
         }
 
         async function dispenseOnlineOrder(orderId){
@@ -280,7 +316,31 @@
             o.dispensedBy = (window.currentUser && window.currentUser.fullName) || 'system';
             const res = await updateOrderOnServer(o);
             try { recordDepartmentEvent && recordDepartmentEvent('online_sale', o); } catch(_) {}
-            if (res && res.success) { alert('Order dispensed'); displayBranchOnlineOrders(); }
+            if (res && res.success) {
+                // Broadcast order update for real-time sync
+                try {
+                    window.dispatchEvent(new CustomEvent('orders:updated', { detail: { order: o, action: 'dispensed' } }));
+                    window.dispatchEvent(new CustomEvent('sale:updated', { detail: { sale: o, type: 'online' } }));
+                    const m = document.querySelector('meta[name="rt-base"]');
+                    const rtBase = m && m.content && m.content.trim();
+                    if (rtBase) {
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'orders:updated', order: o, action: 'dispensed', ts: Date.now() } })
+                        }).catch(_ => {});
+                        fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event: { type: 'sale:updated', sale: o, type: 'online', ts: Date.now() } })
+                        }).catch(_ => {});
+                    }
+                    fetch('/api/realtime_publish', { 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ channel: 'orders', event: { order: o, action: 'dispensed', ts: Date.now() } }) 
+                    }).catch(_ => {});
+                } catch (_) {}
+                alert('Order dispensed');
+                displayBranchOnlineOrders();
+            }
             else { alert('Failed to update order after dispense'); }
         }
     </script>
@@ -26300,6 +26360,22 @@ async function reverseLastPrescriptionPayment(reportId){
                     try {
                         onlineOrders.push(order);
                         localStorage.setItem('dyna_online_orders', JSON.stringify(onlineOrders));
+                        // Broadcast new order for real-time sync
+                        try {
+                            window.dispatchEvent(new CustomEvent('orders:updated', { detail: { order: order, action: 'created' } }));
+                            const m = document.querySelector('meta[name="rt-base"]');
+                            const rtBase = m && m.content && m.content.trim();
+                            if (rtBase) {
+                                fetch(rtBase.replace(/\/$/, '') + '/publish', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ event: { type: 'orders:updated', order: order, action: 'created', ts: Date.now() } })
+                                }).catch(_ => {});
+                            }
+                            fetch('/api/realtime_publish', { 
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                                body: JSON.stringify({ channel: 'orders', event: { order: order, action: 'created', ts: Date.now() } }) 
+                            }).catch(_ => {});
+                        } catch (_) {}
                     } catch (e) {}
                 }
                 try { recordDepartmentEvent && recordDepartmentEvent('online_order_placed', order); } catch (_) {}
@@ -27474,6 +27550,39 @@ This sale appears in the Dispenser Portal sales reports.
                 try { if (typeof loadData === 'function') loadData(); } catch(_) {}
                 try { if (typeof loadUserList === 'function') loadUserList(); } catch(_) {}
             });
+            // Front Desk Portal: refresh orders on order updates
+            window.addEventListener('orders:updated', () => {
+                try { 
+                    if (typeof fetchAllOrders === 'function') {
+                        fetchAllOrders().then(() => {
+                            if (typeof displayBranchOnlineOrders === 'function') displayBranchOnlineOrders();
+                            if (typeof refreshPendingOrders === 'function') refreshPendingOrders();
+                            if (typeof refreshProcessingOrders === 'function') refreshProcessingOrders();
+                            if (typeof refreshShippedOrders === 'function') refreshShippedOrders();
+                            if (typeof refreshDeliveredOrders === 'function') refreshDeliveredOrders();
+                            if (typeof refreshAllOrders === 'function') refreshAllOrders();
+                        });
+                    }
+                } catch(_) {}
+            });
+            // GM Portal: refresh dashboard on reports/sales updates
+            window.addEventListener('reports:updated', () => {
+                try { if (typeof refreshGMData === 'function') refreshGMData(); } catch(_) {}
+                try { if (typeof calculateGMMetrics === 'function') calculateGMMetrics(); } catch(_) {}
+            });
+            window.addEventListener('sale:updated', () => {
+                try { if (typeof refreshGMData === 'function') refreshGMData(); } catch(_) {}
+                try { if (typeof calculateGMMetrics === 'function') calculateGMMetrics(); } catch(_) {}
+            });
+            // Director Portal: refresh dashboard on reports/sales updates
+            window.addEventListener('reports:updated', () => {
+                try { if (typeof refreshDirectorData === 'function') refreshDirectorData(); } catch(_) {}
+                try { if (typeof calculateDirectorMetrics === 'function') calculateDirectorMetrics(); } catch(_) {}
+            });
+            window.addEventListener('sale:updated', () => {
+                try { if (typeof refreshDirectorData === 'function') refreshDirectorData(); } catch(_) {}
+                try { if (typeof calculateDirectorMetrics === 'function') calculateDirectorMetrics(); } catch(_) {}
+            });
         } catch(_) {}
 
         // HR: refresh employee list when employees sync arrives
@@ -27526,6 +27635,9 @@ This sale appears in the Dispenser Portal sales reports.
                                 try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
                                 try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
                                 try { if (typeof loadStockData === 'function') loadStockData(); } catch(_) {}
+                                try { if (typeof fetchAllOrders === 'function') fetchAllOrders().then(() => { if (typeof displayBranchOnlineOrders === 'function') displayBranchOnlineOrders(); }); } catch(_) {}
+                                try { if (typeof refreshGMData === 'function') refreshGMData(); } catch(_) {}
+                                try { if (typeof refreshDirectorData === 'function') refreshDirectorData(); } catch(_) {}
                             };
                             ws.onclose = () => setTimeout(connectWS, 3000);
                             ws.onerror = () => { try { ws.close(); } catch(_) {}; };
@@ -27546,6 +27658,9 @@ This sale appears in the Dispenser Portal sales reports.
                             try { if (typeof refreshFinancialOverview === 'function') refreshFinancialOverview(); } catch(_) {}
                             try { if (typeof displayMISReports === 'function') displayMISReports(); } catch(_) {}
                             try { if (typeof loadStockData === 'function') loadStockData(); } catch(_) {}
+                            try { if (typeof fetchAllOrders === 'function') fetchAllOrders().then(() => { if (typeof displayBranchOnlineOrders === 'function') displayBranchOnlineOrders(); }); } catch(_) {}
+                            try { if (typeof refreshGMData === 'function') refreshGMData(); } catch(_) {}
+                            try { if (typeof refreshDirectorData === 'function') refreshDirectorData(); } catch(_) {}
                         };
                         es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
                     } catch (_) { /* ignore */ }
