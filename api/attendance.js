@@ -40,14 +40,24 @@ export default function handler(req, res) {
             
             if (!loaded) {
                 // Generate sample data if file not found
-                global.attendance = generateSampleAttendanceData();
-                console.log('⚠️ No attendance file found, using sample data');
+                try {
+                    global.attendance = generateSampleAttendanceData();
+                    console.log('⚠️ No attendance file found, using sample data');
+                } catch (sampleError) {
+                    console.error('❌ Error generating sample attendance data:', sampleError);
+                    global.attendance = [];
+                }
             }
         } catch (error) {
             console.error('❌ Error loading attendance:', error);
             // Return empty array on error instead of crashing
             global.attendance = [];
         }
+    }
+    
+    // Ensure attendance is always an array
+    if (!Array.isArray(global.attendance)) {
+        global.attendance = [];
     }
     
     if (req.method === 'GET') {

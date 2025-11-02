@@ -10851,6 +10851,13 @@
             const list = document.getElementById('followUpList');
             if (!list) return;
 
+            // Safety check for currentUser
+            if (!currentUser || !currentUser.fullName) {
+                console.warn('⚠️ currentUser not set, cannot display follow-ups');
+                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
+                return;
+            }
+
             // Get all reports with follow-up dates
             const reportsWithFollowUp = reports.filter(r => r.followUpDate && r.consultant === currentUser.fullName);
             
