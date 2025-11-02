@@ -15,41 +15,65 @@ export default function handler(req, res) {
     // Load attendance data from file
     if (!global.attendance || global.attendance.length === 0) {
         try {
-            ensureDataDir();
-            const attendanceFilePath = path.join(process.cwd(), 'cloud-data', 'attendance_data.json');
-            if (fs.existsSync(attendanceFilePath)) {
-                const fileData = fs.readFileSync(attendanceFilePath, 'utf8');
-                global.attendance = JSON.parse(fileData);
-                console.log(`✅ Loaded ${global.attendance.length} attendance records`);
-            } else {
-                // Generate sample data
+            // Try multiple possible paths for Vercel serverless environment
+            const possiblePaths = [
+                path.join(process.cwd(), 'cloud-data', 'attendance_data.json'),
+                path.join('/var/task', 'cloud-data', 'attendance_data.json'),
+                path.join(process.cwd(), 'attendance_data.json')
+            ];
+            
+            let loaded = false;
+            for (const attendanceFilePath of possiblePaths) {
+                try {
+                    if (fs.existsSync(attendanceFilePath)) {
+                        const fileData = fs.readFileSync(attendanceFilePath, 'utf8');
+                        global.attendance = JSON.parse(fileData);
+                        console.log(`✅ Loaded ${global.attendance.length} attendance records from ${attendanceFilePath}`);
+                        loaded = true;
+                        break;
+                    }
+                } catch (fileError) {
+                    // Try next path
+                    continue;
+                }
+            }
+            
+            if (!loaded) {
+                // Generate sample data if file not found
                 global.attendance = generateSampleAttendanceData();
                 console.log('⚠️ No attendance file found, using sample data');
             }
         } catch (error) {
             console.error('❌ Error loading attendance:', error);
-            global.attendance = generateSampleAttendanceData();
+            // Return empty array on error instead of crashing
+            global.attendance = [];
         }
     }
     
     if (req.method === 'GET') {
-        const { branch, userId, date, startDate, endDate } = req.query;
-        let filtered = [...global.attendance];
-        
-        if (branch) {
-            filtered = filtered.filter(a => a.branch === branch);
+        try {
+            const { branch, userId, date, startDate, endDate } = req.query;
+            let filtered = Array.isArray(global.attendance) ? [...global.attendance] : [];
+            
+            if (branch) {
+                filtered = filtered.filter(a => a && a.branch === branch);
+            }
+            if (userId) {
+                filtered = filtered.filter(a => a && a.userId === userId);
+            }
+            if (date) {
+                filtered = filtered.filter(a => a && a.date === date);
+            }
+            if (startDate && endDate) {
+                filtered = filtered.filter(a => a && a.date && a.date >= startDate && a.date <= endDate);
+            }
+            
+            res.status(200).json(filtered);
+        } catch (error) {
+            console.error('❌ Error in GET /attendance:', error);
+            res.status(500).json({ error: 'Internal server error', message: error.message });
         }
-        if (userId) {
-            filtered = filtered.filter(a => a.userId === userId);
-        }
-        if (date) {
-            filtered = filtered.filter(a => a.date === date);
-        }
-        if (startDate && endDate) {
-            filtered = filtered.filter(a => a.date >= startDate && a.date <= endDate);
-        }
-        
-        res.status(200).json(filtered);
+        return;
     } else if (req.method === 'POST') {
         if (!isHR(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
         const body = req.body || {};

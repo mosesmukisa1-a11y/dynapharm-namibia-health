@@ -10577,9 +10577,16 @@
             const list = document.getElementById('myReportsList');
             if (!list) return;
             
+            // Safety check for currentUser
+            if (!currentUser || !currentUser.fullName) {
+                console.warn('⚠️ currentUser not set, cannot display reports');
+                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
+                return;
+            }
+            
             console.log('🔍 Displaying reports for:', currentUser.fullName);
             console.log('📊 Total reports available:', reports.length);
-            console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r.consultant))]);
+            console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r.consultant).filter(Boolean))]);
             
             // Get all reports created by this consultant
             const myReports = reports.filter(r => r.id && r.consultant === currentUser.fullName);
