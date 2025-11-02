@@ -7343,9 +7343,13 @@
                 }
             }
             
-            // Log if product not found for debugging
-            if (!product) {
-                console.warn(`Product not found in price list: "${productName}"`);
+            // Log if product not found for debugging (only once per product name)
+            if (!product && typeof window !== 'undefined') {
+                if (!window._missingProducts) window._missingProducts = new Set();
+                if (!window._missingProducts.has(productName)) {
+                    window._missingProducts.add(productName);
+                    console.debug(`Product not found in price list: "${productName}"`);
+                }
             }
             
             return product || {description: productName, dp: 0, cp: 0, bv: 0};
@@ -10572,94 +10576,103 @@
         }
 
         async function displayMyReports() {
-            await loadData();
-            
-            const list = document.getElementById('myReportsList');
-            if (!list) return;
-            
-            // Safety check for currentUser
-            if (!currentUser || !currentUser.fullName) {
-                console.warn('⚠️ currentUser not set, cannot display reports');
-                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
-                return;
-            }
-            
-            console.log('🔍 Displaying reports for:', currentUser.fullName);
-            console.log('📊 Total reports available:', reports.length);
-            console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r.consultant).filter(Boolean))]);
-            
-            // Get all reports created by this consultant
-            // Double-check currentUser hasn't become null (race condition protection)
-            if (!currentUser || !currentUser.fullName) {
-                console.warn('⚠️ currentUser became null during execution');
-                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
-                return;
-            }
-            const userFullName = currentUser.fullName; // Capture to prevent race conditions
-            const myReports = reports.filter(r => r && r.id && r.consultant === userFullName);
-            
-            console.log('✅ Reports found for', currentUser.fullName + ':', myReports.length);
-            
-            if (myReports.length === 0) {
-                list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📋 No reports created yet</h3><p>Reports you create will appear here for review and editing.</p></div>';
-                return;
-            }
-            
-            // Sort by timestamp - latest first
-            myReports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
-            list.innerHTML = '';
-            console.log('📋 Displaying', myReports.length, 'reports');
-            console.log('👥 Available clients:', clients.length);
-            
-            myReports.forEach(report => {
-                const client = clients.find(c => c.referenceNumber === report.clientId);
-                if (!client) {
-                    console.warn('⚠️ No client found for report:', report.id, 'clientId:', report.clientId);
+            try {
+                await loadData();
+                
+                const list = document.getElementById('myReportsList');
+                if (!list) return;
+                
+                // Safety check for currentUser
+                if (!currentUser || !currentUser.fullName) {
+                    console.warn('⚠️ currentUser not set, cannot display reports');
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
                     return;
                 }
                 
-                const dispensedCount = report.medicines ? report.medicines.filter(m => m.dispensed).length : 0;
-                const totalMedicines = report.medicines ? report.medicines.length : 0;
-                const isFullyDispensed = dispensedCount === totalMedicines && totalMedicines > 0;
+                // Capture to prevent race conditions
+                const userFullName = currentUser.fullName;
+                if (!userFullName) {
+                    console.warn('⚠️ currentUser.fullName is empty');
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
+                    return;
+                }
                 
-                const card = document.createElement('div');
-                card.className = 'client-card';
-                card.style.borderLeft = isFullyDispensed ? '5px solid #27ae60' : '5px solid #f39c12';
+                console.log('🔍 Displaying reports for:', userFullName);
+                console.log('📊 Total reports available:', reports.length);
+                console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r && r.consultant).filter(Boolean))]);
                 
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <div>
-                            <h4 style="color: #c41e3a; margin-bottom: 5px;">${client.fullName}</h4>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">Report ID: ${report.id}</p>
+                // Get all reports created by this consultant
+                const myReports = reports.filter(r => r && r.id && r.consultant === userFullName);
+                
+                console.log('✅ Reports found for', userFullName + ':', myReports.length);
+                
+                if (myReports.length === 0) {
+                    list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📋 No reports created yet</h3><p>Reports you create will appear here for review and editing.</p></div>';
+                    return;
+                }
+                
+                // Sort by timestamp - latest first
+                myReports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                list.innerHTML = '';
+                console.log('📋 Displaying', myReports.length, 'reports');
+                console.log('👥 Available clients:', clients.length);
+                
+                myReports.forEach(report => {
+                    const client = clients.find(c => c.referenceNumber === report.clientId);
+                    if (!client) {
+                        console.warn('⚠️ No client found for report:', report.id, 'clientId:', report.clientId);
+                        return;
+                    }
+                    
+                    const dispensedCount = report.medicines ? report.medicines.filter(m => m.dispensed).length : 0;
+                    const totalMedicines = report.medicines ? report.medicines.length : 0;
+                    const isFullyDispensed = dispensedCount === totalMedicines && totalMedicines > 0;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'client-card';
+                    card.style.borderLeft = isFullyDispensed ? '5px solid #27ae60' : '5px solid #f39c12';
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h4 style="color: #c41e3a; margin-bottom: 5px;">${client.fullName}</h4>
+                                <p style="color: #7f8c8d; font-size: 0.9rem;">Report ID: ${report.id}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="background: ${isFullyDispensed ? '#e8f5e9' : '#fff3cd'}; color: ${isFullyDispensed ? '#27ae60' : '#f39c12'}; padding: 4px 8px; border-radius: 3px; font-size: 0.8rem;">
+                                    ${isFullyDispensed ? '✅ Fully Dispensed' : `⏳ ${dispensedCount}/${totalMedicines} Dispensed`}
+                                </span>
+                            </div>
                         </div>
-                        <div style="text-align: right;">
-                            <span style="background: ${isFullyDispensed ? '#e8f5e9' : '#fff3cd'}; color: ${isFullyDispensed ? '#27ae60' : '#f39c12'}; padding: 4px 8px; border-radius: 3px; font-size: 0.8rem;">
-                                ${isFullyDispensed ? '✅ Fully Dispensed' : `⏳ ${dispensedCount}/${totalMedicines} Dispensed`}
-                            </span>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <p><strong>📅 Created:</strong> ${new Date(report.timestamp).toLocaleDateString()}</p>
+                            <p><strong>📞 Client Phone:</strong> ${client.phone}</p>
+                            <p><strong>💊 Medicines:</strong> ${totalMedicines} items</p>
+                            ${report.followUpDate ? `<p><strong>📅 Follow-up:</strong> ${new Date(report.followUpDate).toLocaleDateString()}</p>` : ''}
                         </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                        <p><strong>📅 Created:</strong> ${new Date(report.timestamp).toLocaleDateString()}</p>
-                        <p><strong>📞 Client Phone:</strong> ${client.phone}</p>
-                        <p><strong>💊 Medicines:</strong> ${totalMedicines} items</p>
-                        ${report.followUpDate ? `<p><strong>📅 Follow-up:</strong> ${new Date(report.followUpDate).toLocaleDateString()}</p>` : ''}
-                    </div>
-                    ${report.notes ? `
-                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 3px solid #f39c12;">
-                        <p style="font-size: 0.9rem;"><strong>📝 Notes:</strong> ${report.notes.substring(0, 100)}${report.notes.length > 100 ? '...' : ''}</p>
-                    </div>
-                    ` : ''}
-                    <div style="text-align: center;">
-                        <button class="btn btn-warning" onclick="editReport('${report.id}')" ${isFullyDispensed ? 'disabled title="Cannot edit fully dispensed report"' : ''}>
-                            ✏️ Edit Report
-                        </button>
-                        <button class="btn btn-info" onclick="viewReportDetails('${report.id}')">👁️ View Details</button>
-                        <button class="btn" onclick="printReportById('${report.id}')">🖨️ Print</button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
+                        ${report.notes ? `
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 3px solid #f39c12;">
+                            <p style="font-size: 0.9rem;"><strong>📝 Notes:</strong> ${report.notes.substring(0, 100)}${report.notes.length > 100 ? '...' : ''}</p>
+                        </div>
+                        ` : ''}
+                        <div style="text-align: center;">
+                            <button class="btn btn-warning" onclick="editReport('${report.id}')" ${isFullyDispensed ? 'disabled title="Cannot edit fully dispensed report"' : ''}>
+                                ✏️ Edit Report
+                            </button>
+                            <button class="btn btn-info" onclick="viewReportDetails('${report.id}')">👁️ View Details</button>
+                            <button class="btn" onclick="printReportById('${report.id}')">🖨️ Print</button>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (error) {
+                console.error('❌ Error in displayMyReports:', error);
+                const list = document.getElementById('myReportsList');
+                if (list) {
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #e74c3c;">Error loading reports. Please try again.</p>';
+                }
+            }
         }
 
         function searchMyReports() {
@@ -10855,38 +10868,40 @@
         }
 
         async function displayFollowUps() {
-            const list = document.getElementById('followUpList');
-            if (!list) return;
+            try {
+                const list = document.getElementById('followUpList');
+                if (!list) return;
 
-            // Safety check for currentUser
-            if (!currentUser || !currentUser.fullName) {
-                console.warn('⚠️ currentUser not set, cannot display follow-ups');
-                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
-                return;
-            }
+                // Safety check for currentUser
+                if (!currentUser || !currentUser.fullName) {
+                    console.warn('⚠️ currentUser not set, cannot display follow-ups');
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
+                    return;
+                }
 
-            // Get all reports with follow-up dates
-            // Double-check currentUser hasn't become null (race condition protection)
-            if (!currentUser || !currentUser.fullName) {
-                console.warn('⚠️ currentUser became null during execution');
-                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
-                return;
-            }
-            const userFullName = currentUser.fullName; // Capture to prevent race conditions
-            const reportsWithFollowUp = reports.filter(r => r && r.followUpDate && r.consultant === userFullName);
-            
-            if (reportsWithFollowUp.length === 0) {
-                list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📅 No follow-ups scheduled</h3><p>Follow-ups will appear here once you create reports with follow-up dates.</p></div>';
-                return;
-            }
+                // Capture to prevent race conditions
+                const userFullName = currentUser.fullName;
+                if (!userFullName) {
+                    console.warn('⚠️ currentUser.fullName is empty');
+                    list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
+                    return;
+                }
 
-            // Sort by follow-up date
-            reportsWithFollowUp.sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
+                // Get all reports with follow-up dates
+                const reportsWithFollowUp = reports.filter(r => r && r.followUpDate && r.consultant === userFullName);
+                
+                if (reportsWithFollowUp.length === 0) {
+                    list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📅 No follow-ups scheduled</h3><p>Follow-ups will appear here once you create reports with follow-up dates.</p></div>';
+                    return;
+                }
 
-            list.innerHTML = '';
-            reportsWithFollowUp.forEach(report => {
-                const client = clients.find(c => c.referenceNumber === report.clientId);
-                if (!client) return;
+                // Sort by follow-up date
+                reportsWithFollowUp.sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
+
+                list.innerHTML = '';
+                reportsWithFollowUp.forEach(report => {
+                    const client = clients.find(c => c.referenceNumber === report.clientId);
+                    if (!client) return;
 
                 const followUpDate = new Date(report.followUpDate);
                 const today = new Date();
