@@ -2,7 +2,7 @@
   "version": 2,
   "name": "dynapharm-namibia-health",
   "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "api/*.js", "use": "@vercel/node" },
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
@@ -13,7 +13,7 @@
     { "src": "assets/**", "use": "@vercel/static" }
   ],
   "functions": {
-    "api/**/*.js": {
+    "api/*.js": {
       "memory": 256,
       "maxDuration": 10
     }
