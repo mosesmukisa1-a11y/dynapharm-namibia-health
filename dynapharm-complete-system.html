@@ -10589,7 +10589,14 @@
             console.log('👥 Consultants in reports:', [...new Set(reports.map(r => r.consultant).filter(Boolean))]);
             
             // Get all reports created by this consultant
-            const myReports = reports.filter(r => r.id && r.consultant === currentUser.fullName);
+            // Double-check currentUser hasn't become null (race condition protection)
+            if (!currentUser || !currentUser.fullName) {
+                console.warn('⚠️ currentUser became null during execution');
+                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view your reports.</p>';
+                return;
+            }
+            const userFullName = currentUser.fullName; // Capture to prevent race conditions
+            const myReports = reports.filter(r => r && r.id && r.consultant === userFullName);
             
             console.log('✅ Reports found for', currentUser.fullName + ':', myReports.length);
             
@@ -10859,7 +10866,14 @@
             }
 
             // Get all reports with follow-up dates
-            const reportsWithFollowUp = reports.filter(r => r.followUpDate && r.consultant === currentUser.fullName);
+            // Double-check currentUser hasn't become null (race condition protection)
+            if (!currentUser || !currentUser.fullName) {
+                console.warn('⚠️ currentUser became null during execution');
+                list.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Please log in to view follow-ups.</p>';
+                return;
+            }
+            const userFullName = currentUser.fullName; // Capture to prevent race conditions
+            const reportsWithFollowUp = reports.filter(r => r && r.followUpDate && r.consultant === userFullName);
             
             if (reportsWithFollowUp.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 40px; color: #7f8c8d;"><h3>📅 No follow-ups scheduled</h3><p>Follow-ups will appear here once you create reports with follow-up dates.</p></div>';
@@ -18005,7 +18019,9 @@ async function reverseLastPrescriptionPayment(reportId){
                             }
                         } catch(_) {}
                         displayPrescriptions();
-                        try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
+                        if (typeof currentUser !== 'undefined' && currentUser && currentUser.fullName) {
+                            try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(e) { console.debug('displayMyReports error:', e); }
+                        }
                     } else {
                         alert('Error updating prescription: ' + result.message);
                     }
@@ -27871,8 +27887,11 @@ This sale appears in the Dispenser Portal sales reports.
         // Refresh consultant/dispenser views when reports change in-memory
         try {
             window.addEventListener('reports:updated', () => {
-                try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(_) {}
-                try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(_) {}
+                // Only call user-specific functions if user is logged in
+                if (typeof currentUser !== 'undefined' && currentUser && currentUser.fullName) {
+                    try { if (typeof displayMyReports === 'function') displayMyReports(); } catch(e) { console.debug('displayMyReports error:', e); }
+                    try { if (typeof displayFollowUps === 'function') displayFollowUps(); } catch(e) { console.debug('displayFollowUps error:', e); }
+                }
                 try { if (typeof displayPrescriptions === 'function') displayPrescriptions(); } catch(_) {}
             });
             // Finance portal: refresh on reports, sales, and stock updates
