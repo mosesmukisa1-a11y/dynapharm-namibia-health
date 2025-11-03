@@ -24852,13 +24852,23 @@ async function reverseLastPrescriptionPayment(reportId){
         // Employee Management Functions
         function loadEmployees() {
             try {
-                const employeesData = localStorage.getItem('hr_employees');
-                if (employeesData) {
-                    employees = JSON.parse(employeesData);
-                    console.log(`✅ Loaded ${employees.length} employees from localStorage`);
+                // Prefer HR key, but fall back to dyna_employees if present
+                const hrDataRaw = localStorage.getItem('hr_employees');
+                const dynaDataRaw = localStorage.getItem('dyna_employees');
+                const hrList = hrDataRaw ? JSON.parse(hrDataRaw) : null;
+                const dynaList = dynaDataRaw ? JSON.parse(dynaDataRaw) : null;
+
+                if (Array.isArray(hrList) && hrList.length > 0) {
+                    employees = hrList;
+                    console.log(`✅ Loaded ${employees.length} employees from localStorage (hr_employees)`);
+                } else if (Array.isArray(dynaList) && dynaList.length > 0) {
+                    employees = dynaList;
+                    // Heal hr_employees from dyna_employees for HR portal compatibility
+                    try { localStorage.setItem('hr_employees', JSON.stringify(dynaList)); } catch(_) {}
+                    console.log(`✅ Loaded ${employees.length} employees from localStorage (dyna_employees fallback)`);
                 } else {
                     employees = [];
-                    console.log('⚠️ No employees found in localStorage, starting with empty array');
+                    console.log('⚠️ No employees found in localStorage (hr_employees/dyna_employees empty)');
                 }
                 displayEmployees();
             } catch (error) {
