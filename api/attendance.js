@@ -163,6 +163,11 @@ export default function handler(req, res) {
     } else {
         res.status(405).json({ error: 'Method not allowed' });
     }
+    } catch (handlerError) {
+        // Catch-all error handler - ensures we never return a 500 without response
+        console.error('❌ Unhandled error in attendance API:', handlerError);
+        res.status(200).json([]);
+    }
 }
 
 function saveAttendanceToFile() {
@@ -227,10 +232,4 @@ function ensureDataDir(){
 function isHR(req){
     const role = req.headers['x-role'] || req.headers['x-user-role'];
     return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase());
-    }
-    } catch (handlerError) {
-        // Catch-all error handler - ensures we never return a 500 without response
-        console.error('❌ Unhandled error in attendance API:', handlerError);
-        res.status(200).json([]);
-    }
 }
