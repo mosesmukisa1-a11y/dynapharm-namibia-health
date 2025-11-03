@@ -10064,7 +10064,13 @@
         }
 
         function calculateConsultantAnalytics(timeframe) {
-            const myReports = reports.filter(r => r.consultant === currentUser.fullName);
+            // Safety check for currentUser
+            if (!currentUser || !currentUser.fullName) {
+                console.warn('⚠️ currentUser not set, cannot calculate consultant analytics');
+                return { totalReports: 0, totalClients: 0, totalRevenue: 0 };
+            }
+            const userFullName = currentUser.fullName; // Capture to prevent race conditions
+            const myReports = reports.filter(r => r && r.consultant === userFullName);
             const myClients = clients.filter(c => {
                 return myReports.some(r => r.clientId === c.referenceNumber);
             });
