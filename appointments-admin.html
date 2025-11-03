@@ -56,7 +56,9 @@
                             <span class="pill">${a.type||'Consultation'} • ${a.branch}</span>
                         </div>
                         <div class="muted" style="margin-top:6px;">${a.date} at ${a.time} • ${a.phone||a.email||''}</div>
+                        ${a.clientReference?`<div class="muted" style="margin-top:4px;">Ref: ${a.clientReference}</div>`:''}
                         ${a.notes?`<div style="margin-top:6px;">${a.notes.replace(/[<>]/g,'')}</div>`:''}
+                        ${a.clientForm?`<div style="margin-top:6px;"><button class="btn" style="background:#fff3cd;color:#856404;padding:4px 8px;font-size:11px;" onclick="viewClientForm('${a.id}')">📋 View Full Body Checkup Form</button></div>`:''}
                         <div class="row" style="margin-top:8px;">
                             <button class="btn primary" onclick="markCompleted('${a.id}')">Mark completed (prescription/report created)</button>
                             <span class="right muted">Created ${new Date(a.createdAt).toLocaleString()}</span>
@@ -64,6 +66,46 @@
                     </div>
                 `).join('');
             }
+            
+            window.viewClientForm = function(id){
+                const list = load();
+                const appt = list.find(x=>x.id===id);
+                if(!appt || !appt.clientForm){
+                    alert('Client form data not available');
+                    return;
+                }
+                const cf = appt.clientForm;
+                const popup = document.createElement('div');
+                popup.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9999;overflow-y:auto;padding:40px 20px;';
+                popup.innerHTML = `
+                    <div style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:24px;max-width:800px;margin:0 auto;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                            <h2 style="margin:0;color:#e5e7eb;">Full Body Checkup Form</h2>
+                            <button onclick="this.parentElement.parentElement.remove()" style="background:transparent;border:none;color:#e5e7eb;font-size:24px;cursor:pointer;">&times;</button>
+                        </div>
+                        <div style="color:#e5e7eb;line-height:1.8;">
+                            <div style="margin-bottom:16px;"><strong>Client Reference:</strong> ${appt.clientReference||'N/A'}</div>
+                            <div style="margin-bottom:16px;"><strong>Name:</strong> ${cf.fullName||''}</div>
+                            <div style="margin-bottom:16px;"><strong>Phone:</strong> ${cf.phone||''}</div>
+                            <div style="margin-bottom:16px;"><strong>Email:</strong> ${cf.email||''}</div>
+                            ${cf.gender?`<div style="margin-bottom:16px;"><strong>Gender:</strong> ${cf.gender}</div>`:''}
+                            ${cf.dob?`<div style="margin-bottom:16px;"><strong>Date of Birth:</strong> ${cf.dob}</div>`:''}
+                            ${cf.age?`<div style="margin-bottom:16px;"><strong>Age:</strong> ${cf.age}</div>`:''}
+                            ${cf.primaryReason?`<div style="margin-bottom:16px;"><strong>Primary Reason:</strong> ${cf.primaryReason}</div>`:''}
+                            ${cf.medicalHistory&&cf.medicalHistory.length?`<div style="margin-bottom:16px;"><strong>Medical History:</strong> ${cf.medicalHistory.join(', ')}</div>`:''}
+                            ${cf.currentMedications?`<div style="margin-bottom:16px;"><strong>Current Medications:</strong> ${cf.currentMedications}</div>`:''}
+                            ${cf.supplements?`<div style="margin-bottom:16px;"><strong>Supplements:</strong> ${cf.supplements}</div>`:''}
+                            ${cf.exerciseFreq?`<div style="margin-bottom:16px;"><strong>Exercise Frequency:</strong> ${cf.exerciseFreq}</div>`:''}
+                            ${cf.sleepHours?`<div style="margin-bottom:16px;"><strong>Sleep Hours:</strong> ${cf.sleepHours}</div>`:''}
+                            ${cf.waterIntake?`<div style="margin-bottom:16px;"><strong>Water Intake:</strong> ${cf.waterIntake}</div>`:''}
+                        </div>
+                        <div style="margin-top:24px;text-align:center;">
+                            <button onclick="this.closest('div[style*=\"position:fixed\"]').remove()" class="btn ghost">Close</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(popup);
+            };
 
             window.addEventListener('DOMContentLoaded', function(){
                 if(!ensureStaff()) { document.body.innerHTML='<div class="wrap"><p>Access denied.</p></div>'; return; }
