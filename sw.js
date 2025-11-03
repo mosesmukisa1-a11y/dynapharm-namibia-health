@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dynapharm-v2.5';
+const CACHE_NAME = 'dynapharm-v2.7';
 const urlsToCache = [
   './',
   './dynapharm-complete-system.html',
@@ -22,6 +22,20 @@ self.addEventListener('install', (event) => {
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  let url;
+  try { url = new URL(req.url); } catch(_) {}
+
+  // Always bypass cache for API and cross-origin data/CDNs
+  if (url) {
+    const isSameOrigin = url.origin === self.location.origin;
+    const isApi = isSameOrigin && url.pathname.startsWith('/api/');
+    const isExternalData = url.hostname === 'raw.githubusercontent.com';
+    const isCdn = /(?:cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com)/.test(url.hostname);
+    if (isApi || isExternalData || isCdn) {
+      event.respondWith(fetch(req));
+      return;
+    }
+  }
 
   // Auto-fix: if a browser tries to import a script from /api/*.js,
   // rewrite to /web-modules/*.js when available to avoid Vercel serverless path
