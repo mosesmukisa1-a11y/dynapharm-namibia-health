@@ -25548,17 +25548,25 @@ async function reverseLastPrescriptionPayment(reportId){
                     console.log(`✅ Added new employee: ${formData.name} (${formData.employeeId})`);
                 }
                 
-                // Save to localStorage immediately
+                // Save to localStorage immediately (both hr_employees and dyna_employees for consistency)
                 try {
                     localStorage.setItem('hr_employees', JSON.stringify(employees));
-                    console.log(`✅ Saved ${employees.length} employees to localStorage`);
+                    localStorage.setItem('dyna_employees', JSON.stringify(employees));
+                    console.log(`✅ Saved ${employees.length} employees to localStorage (both hr_employees and dyna_employees)`);
                     
                     // Verify save was successful
-                    const verifyData = localStorage.getItem('hr_employees');
-                    if (!verifyData) {
-                        console.error('❌ Save verification failed - localStorage is empty!');
+                    const verifyHR = localStorage.getItem('hr_employees');
+                    const verifyDyna = localStorage.getItem('dyna_employees');
+                    if (!verifyHR || !verifyDyna) {
+                        console.error('❌ Save verification failed - localStorage save incomplete!');
                         alert('⚠️ Warning: Employee may not have been saved properly. Please try again.');
                         return;
+                    }
+                    
+                    // Set a flag to prevent cloud-sync from overwriting for the next few seconds
+                    if (typeof window !== 'undefined') {
+                        window._employeeJustSaved = Date.now();
+                        console.log('🛡️ Set protection flag against cloud-sync overwrite');
                     }
                     
                     closeModal('addEmployeeModal');

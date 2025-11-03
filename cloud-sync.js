@@ -101,12 +101,31 @@ class CloudStorage {
                     const r = await fetch(empCandidates[i], { cache: 'no-store' });
                     if (!r.ok) continue;
                     const list = await r.json();
+                    
+                    // Check if employee was just saved locally (within last 10 seconds)
+                    const justSaved = typeof window !== 'undefined' && window._employeeJustSaved && 
+                                      (Date.now() - window._employeeJustSaved) < 10000;
+                    
                     if (Array.isArray(list) && list.length > 0) {
-                        // Only overwrite localStorage if we have actual data
-                        localStorage.setItem('dyna_employees', JSON.stringify(list));
-                        // Keep HR portal compatibility
-                        try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
-                        console.log(`✅ Synced ${list.length} employees from employees_data.json`);
+                        // Only overwrite if we didn't just save locally, or if cloud has more employees
+                        const existingHR = localStorage.getItem('hr_employees');
+                        const existingDyna = localStorage.getItem('dyna_employees');
+                        const existingCount = existingHR ? JSON.parse(existingHR).length : (existingDyna ? JSON.parse(existingDyna).length : 0);
+                        
+                        if (justSaved) {
+                            console.log(`🛡️ Skipping cloud-sync overwrite (employee just saved ${Math.round((Date.now() - window._employeeJustSaved) / 1000)}s ago)`);
+                            break;
+                        }
+                        
+                        // Only overwrite if cloud has same or more employees, or if local is empty
+                        if (list.length >= existingCount || existingCount === 0) {
+                            localStorage.setItem('dyna_employees', JSON.stringify(list));
+                            // Keep HR portal compatibility
+                            try { localStorage.setItem('hr_employees', JSON.stringify(list)); } catch(_) {}
+                            console.log(`✅ Synced ${list.length} employees from employees_data.json (had ${existingCount})`);
+                        } else {
+                            console.log(`⚠️ Skipping cloud-sync - local has ${existingCount} employees, cloud has ${list.length} (local is newer)`);
+                        }
                     } else if (Array.isArray(list) && list.length === 0) {
                         // Don't overwrite localStorage with empty array - preserve existing data
                         const existing = localStorage.getItem('dyna_employees');
