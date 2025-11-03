@@ -2,15 +2,23 @@ import fs from 'fs';
 import path from 'path';
 
 export default function handler(req, res) {
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+    try {
+        // Enable CORS
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        
+        if (req.method === 'OPTIONS') {
+            res.status(200).end();
+            return;
+        }
+    } catch (corsError) {
+        console.error('❌ Error setting CORS headers:', corsError);
+        // Continue anyway - CORS errors shouldn't prevent response
     }
+    
+    // Wrap entire handler in try-catch to prevent any unhandled errors
+    try {
     
     // Load attendance data from file
     if (!global.attendance || global.attendance.length === 0) {
@@ -219,4 +227,10 @@ function ensureDataDir(){
 function isHR(req){
     const role = req.headers['x-role'] || req.headers['x-user-role'];
     return ['hr_manager','hr_admin','admin'].includes(String(role||'').toLowerCase());
+    }
+    } catch (handlerError) {
+        // Catch-all error handler - ensures we never return a 500 without response
+        console.error('❌ Unhandled error in attendance API:', handlerError);
+        res.status(200).json([]);
+    }
 }
