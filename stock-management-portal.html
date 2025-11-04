@@ -332,6 +332,11 @@
             <div style="padding:12px 14px; display:grid; gap:10px;">
                 <div class="muted">Required headers (aliases allowed):
                     cartonNo / Cartons No., description, batchNo, expiryDate / Expired Date, quantity / Qty, totalCtns / Total (CTNS). Expiry like "Aug-2027" is accepted.</div>
+                <select id="csvImportLocation" class="select">
+                    <option value="country_stock">Country Stock (Default)</option>
+                    <option value="warehouse-windhoek">Warehouse Windhoek</option>
+                    <option value="warehouse-ondangwa">Warehouse Ondangwa</option>
+                </select>
                 <input type="file" id="csvFileInput" accept=".csv" class="input" />
                 <div id="csvPreview" class="muted" style="font-size:12px; max-height:180px; overflow:auto; border:1px dashed #223154; border-radius:8px; padding:8px; display:none;"></div>
                 <div style="text-align:right;">
@@ -795,13 +800,31 @@
         // Real-time: listen to localStorage updates and poll every 20s as fallback
         function setupRealtime() {
             window.addEventListener('storage', (e) => {
-                if (['dyna_stock_requests','dyna_stock_transfers','dyna_barcode_stock','dyna_warehouse_stock'].includes(e.key)) {
-                    refreshData();
+                if (['dyna_stock_requests','dyna_stock_transfers','dyna_barcode_stock','dyna_warehouse_stock','dyna_barcode_inventory'].includes(e.key)) {
+                    // Immediate refresh when stock data changes
+                    setTimeout(() => {
+                        refreshData();
+                        renderWarehouseSnapshot();
+                    }, 100);
                 }
             });
+            
+            // Also listen for custom events from same-window updates
+            window.addEventListener('stock-updated', () => {
+                setTimeout(() => {
+                    refreshData();
+                    renderWarehouseSnapshot();
+                }, 100);
+            });
+            
             setInterval(() => { refreshData(); }, 20000);
             // Cloud sync updates from other devices
-            try { window.addEventListener('cloud-sync:updated', () => refreshData()); } catch(_) {}
+            try { window.addEventListener('cloud-sync:updated', () => {
+                setTimeout(() => {
+                    refreshData();
+                    renderWarehouseSnapshot();
+                }, 100);
+            }); } catch(_) {}
         }
 
         function renderWorkflowStatus() {
@@ -1098,7 +1121,9 @@
             preview.style.display = 'none';
             preview.textContent = '';
             document.getElementById('csvFileInput').value = '';
+            document.getElementById('csvImportLocation').value = 'country_stock';
             document.getElementById('csvImportBtn').disabled = true;
+            csvParsedRows = [];
             document.getElementById('csvModal').style.display = 'flex';
         });
         const qaViewAudit = document.getElementById('qaViewAudit');
@@ -1260,6 +1285,7 @@
 
         if (csvImportBtn) csvImportBtn.addEventListener('click', () => {
             if (!csvParsedRows || csvParsedRows.length === 0){ showToast('No rows to import','error'); return; }
+            const importLocation = document.getElementById('csvImportLocation').value || 'country_stock';
             let ok = 0, fail = 0;
             csvParsedRows.forEach(r => {
                 const qty = parseInt(r.quantity, 10);
@@ -1268,10 +1294,20 @@
                 if (!r.cartonNo || !r.description || !r.batchNo || !dateOk || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(ctns) || ctns <= 0){
                     fail++; return;
                 }
-                const res = importStockWithBarcode({ cartonNo:r.cartonNo, description:r.description, batchNo:r.batchNo, expiryDate:r.expiryDate, quantity:qty, totalCtns:ctns });
+                // Import with location specified
+                const importData = { 
+                    cartonNo:r.cartonNo, 
+                    description:r.description, 
+                    batchNo:r.batchNo, 
+                    expiryDate:r.expiryDate, 
+                    quantity:qty, 
+                    totalCtns:ctns,
+                    sourceWarehouseId: importLocation !== 'country_stock' ? importLocation : null
+                };
+                const res = importStockWithBarcode(importData);
                 if (res && res.success) ok++; else fail++;
             });
-            showToast(`Import done: ${ok} ok, ${fail} failed`, fail ? 'error' : 'success');
+            showToast(`Import done: ${ok} ok, ${fail} failed. Stock imported to ${importLocation}`, fail ? 'error' : 'success');
             document.getElementById('csvModal').style.display = 'none';
             // Immediately refresh to show imported stock
             setTimeout(() => {
