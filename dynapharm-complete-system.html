@@ -17,6 +17,59 @@
     <script src="./cloud-sync.js"></script>
     <script src="./inventory-reporting.js"></script>
     <script>
+        // Suppress console noise from expected image 404 errors
+        // Note: Product images may not exist for all products, 404s are expected and handled gracefully
+        (function() {
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            // Filter console.error calls
+            console.error = function(...args) {
+                // Filter out image 404 errors to reduce console noise
+                const message = args.join(' ');
+                if (message.includes('404') && (message.includes('wp-content/uploads/products') || message.includes('.jpg') || message.includes('.png') || message.includes('dynapharm.net/ph/wp-content'))) {
+                    // Silently ignore expected image 404 errors - they're handled by onerror handlers
+                    return;
+                }
+                // Filter 507 (Insufficient Storage) errors for images
+                if (message.includes('507') && (message.includes('wp-content/uploads/products') || message.includes('.jpg') || message.includes('.png') || message.includes('dynapharm.net/ph/wp-content'))) {
+                    return;
+                }
+                originalError.apply(console, args);
+            };
+            
+            // Filter console.warn calls
+            console.warn = function(...args) {
+                const message = args.join(' ');
+                if (message.includes('404') && (message.includes('wp-content/uploads/products') || message.includes('.jpg') || message.includes('.png') || message.includes('dynapharm.net/ph/wp-content'))) {
+                    return;
+                }
+                originalWarn.apply(console, args);
+            };
+            
+            // Intercept network errors using global error handler
+            window.addEventListener('error', function(event) {
+                // Check if it's an image loading error
+                if (event.target && event.target.tagName === 'IMG') {
+                    const src = event.target.src || '';
+                    if (src.includes('wp-content/uploads/products') || src.includes('dynapharm.net/ph/wp-content')) {
+                        // Suppress the error - it's already handled by onerror handlers
+                        event.preventDefault();
+                        return false;
+                    }
+                }
+                // Allow other errors through
+            }, true); // Use capture phase to catch before default handlers
+            
+            // Intercept unhandled promise rejections from image loading
+            window.addEventListener('unhandledrejection', function(event) {
+                const reason = event.reason?.message || event.reason?.toString() || '';
+                if (reason.includes('404') || reason.includes('wp-content/uploads/products') || reason.includes('dynapharm.net/ph/wp-content')) {
+                    event.preventDefault();
+                }
+            });
+        })();
+        
         // Collect local data (localStorage + IndexedDB) and upload to /api/collect
         async function collectAndUploadSnapshot(providedToken) {
             try {
@@ -138,7 +191,8 @@
     
     <!-- Optional: Backend API base override (set this in deployments) -->
     <!-- Example: <meta name="api-base" content="https://dynapharm-backend-production.up.railway.app/api"> -->
-    <meta name="api-base" content="">
+    <!-- For local development with PostgreSQL backend: -->
+    <meta name="api-base" content="http://localhost:8001/api">
     <meta name="rt-base" content="https://web-production-f9aa.up.railway.app">
     <title>Dynapharm International Namibia - v2.0</title>
     <!-- FullCalendar.js -->
@@ -1663,7 +1717,10 @@
         };
         function getEffectiveRole(){
             try {
-                if (window.currentUser && currentUser.role) return String(currentUser.role).toLowerCase();
+                if (window.currentUser && window.currentUser.role) return String(window.currentUser.role).toLowerCase();
+            } catch(_){ }
+            try {
+                if (currentUser && currentUser.role) return String(currentUser.role).toLowerCase();
             } catch(_){ }
             try { return String(getCurrentUserRole()).toLowerCase(); } catch(_){ return 'guest'; }
         }
@@ -1771,7 +1828,7 @@
         });
     </script>
     <!-- SheetJS library for Excel parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha256-1YXtO1u7cYHWxO/cMC4B3A6Oq3S4/3vm8PwF3u1w+RA=" crossorigin="anonymous" onerror="console.warn('⚠️ xlsx library failed to load, Excel export may not work')"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" crossorigin="anonymous" onerror="console.warn('⚠️ xlsx library failed to load, Excel export may not work')"></script>
     <!-- Chart.js for interactive charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- D3.js for advanced visualizations -->
@@ -2157,12 +2214,28 @@
             <div class="tabs" style="margin-bottom: 20px;">
                 <button class="tab-button active" onclick="showDistributorTab('shop')">🛒 Shop</button>
                 <button class="tab-button" onclick="showDistributorTab('checkup')">🏥 Full Body Check Up</button>
+                <a href="distributor-portal.html" target="_blank" class="tab-button" style="text-decoration: none; display: inline-block; background: #c41e3a; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    📊 Distributor Dashboard
+                </a>
             </div>
             
             <!-- Shop Tab -->
             <div id="distributor-shop-tab" class="distributor-subtab active">
                 <h2>🛒 Online Shop</h2>
                 <p style="margin-bottom: 20px; color: #666;">Browse our complete range of health products</p>
+                
+                <!-- Distributor Dashboard Link -->
+                <div style="background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h3 style="margin: 0 0 8px; font-size: 20px; color: white;">📊 Distributor Dashboard</h3>
+                            <p style="margin: 0; opacity: 0.95; font-size: 14px;">View your referred clients, earnings, BVs, bonuses, and company communications</p>
+                        </div>
+                        <a href="distributor-portal.html" target="_blank" class="btn" style="background: white; color: #c41e3a; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; white-space: nowrap;">
+                            Open Dashboard →
+                        </a>
+                    </div>
+                </div>
                 
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
@@ -5973,6 +6046,7 @@
             <span class="close" onclick="closeModal('changePasswordModal')">&times;</span>
             <h2>Change Password</h2>
             <form id="changePasswordForm">
+                <input type="text" name="username" autocomplete="username" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;" aria-hidden="true" tabindex="-1">
                 <div class="form-group">
                     <input type="password" name="currentPassword" placeholder="Current Password" required autocomplete="current-password">
                 </div>
@@ -8685,6 +8759,13 @@
         }
 
         function openTab(tabName, event) {
+            // Set currentPortal for portal tabs
+            const portalTabs = ['consultant', 'dispenser', 'admin', 'mis', 'stock', 'gm', 'director', 'finance', 'hr-portal'];
+            if (portalTabs.includes(tabName)) {
+                currentPortal = tabName;
+                window.currentPortal = tabName; // Set global for permission checks
+            }
+            
             // Enforce branch selection for key portals
             try {
                 if ((tabName === 'client' || tabName === 'consultant' || tabName === 'dispenser')) {
@@ -9777,6 +9858,7 @@
 
         function showLogin(portal) {
             currentPortal = portal;
+            window.currentPortal = portal; // Set global for permission checks
             // Update modal title to show which portal
             const modalTitle = document.querySelector('#loginModal h2');
             modalTitle.textContent = `${portal.charAt(0).toUpperCase() + portal.slice(1)} Portal Login`;
@@ -9789,6 +9871,7 @@
         // Auto-login for GM portal
         function autoLoginGM() {
             currentPortal = 'gm';
+            window.currentPortal = 'gm'; // Set global for permission checks
             loadData();
             
             let gmUser = users.find(u => u.role === 'gm' || u.username === 'gm');
@@ -9807,6 +9890,8 @@
             }
             
             currentUser = gmUser;
+            window.currentUser = gmUser; // Set global for permission checks
+            setCurrentUserRole(gmUser.role); // Store role in localStorage
             document.getElementById('gmAuth').style.display = 'none';
             document.getElementById('gmContent').style.display = 'block';
             document.getElementById('gmProfile').innerHTML = `
@@ -9819,6 +9904,7 @@
         // Auto-login for Director portal
         function autoLoginDirector() {
             currentPortal = 'director';
+            window.currentPortal = 'director'; // Set global for permission checks
             loadData();
             
             let directorUser = users.find(u => u.role === 'director' || u.username === 'director');
@@ -9837,6 +9923,8 @@
             }
             
             currentUser = directorUser;
+            window.currentUser = directorUser; // Set global for permission checks
+            setCurrentUserRole(directorUser.role); // Store role in localStorage
             document.getElementById('directorAuth').style.display = 'none';
             document.getElementById('directorContent').style.display = 'block';
             document.getElementById('directorProfile').innerHTML = `
@@ -9849,6 +9937,7 @@
         // Auto-login for stock portal without requiring credentials
         function autoLoginStock() {
             currentPortal = 'stock';
+            window.currentPortal = 'stock'; // Set global for permission checks
             
             // Load users
             loadData();
@@ -9876,6 +9965,8 @@
             
             // Set current user
             currentUser = stockUser;
+            window.currentUser = stockUser; // Set global for permission checks
+            setCurrentUserRole(stockUser.role); // Store role in localStorage
             
             // Show content and hide auth
             document.getElementById('stockAuth').style.display = 'none';
@@ -9987,6 +10078,9 @@
 
             // Login successful
             currentUser = user;
+            window.currentUser = user; // Set global for permission checks
+            window.currentPortal = currentPortal; // Set global for permission checks
+            setCurrentUserRole(user.role); // Store role in localStorage
             closeModal('loginModal');
             
             const authElement = document.getElementById(currentPortal + 'Auth');
@@ -10043,6 +10137,9 @@
 
         function logout() {
             currentUser = null;
+            window.currentUser = null; // Clear global for permission checks
+            window.currentPortal = null; // Clear global
+            setCurrentUserRole('guest'); // Reset role
             stopAutoRefresh();
             hideRealtimeStatus();
             document.getElementById(currentPortal + 'Auth').style.display = 'block';
@@ -13528,9 +13625,16 @@
                 card.className = 'client-card';
                 
                 // Calculate medicine status
-                const pending = report.medicines ? report.medicines.filter(m => !m.dispensed).length : 0;
-                const dispensed = report.medicines ? report.medicines.filter(m => m.dispensed).length : 0;
+                const pending = report.medicines ? report.medicines.filter(m => !m.dispensed).length : 0;                                                       
+                const dispensed = report.medicines ? report.medicines.filter(m => m.dispensed).length : 0;                                                      
                 const total = report.medicines ? report.medicines.length : 0;
+                
+                // Calculate totals and membership status outside IIFE for use in buttons section                                                               
+                const clientMembershipStatus = client ? client.membershipStatus : 'referred';                                                                   
+                // Ensure totals is always defined, even if medicines array is empty or undefined
+                const totals = (report.medicines && report.medicines.length > 0) 
+                    ? calculatePrescriptionTotals(report.medicines, clientMembershipStatus)                                                                     
+                    : { total: { dp: 0, cp: 0, bv: 0 }, dispensed: { dp: 0, cp: 0, bv: 0 }, paid: { dp: 0, cp: 0, bv: 0 }, outstanding: { dp: 0, cp: 0, bv: 0 }, pending: { dp: 0, cp: 0, bv: 0 } };
                 
                                 card.innerHTML = `
                     <div style="background: linear-gradient(135deg, #c41e3a 0%, #a0172e 100%); padding: 16px; border-radius: 8px 8px 0 0; color: white; margin: -15px -15px 15px -15px;">
@@ -13588,8 +13692,6 @@
                         `) : ''}
                     </div>
                     ${report.medicines && report.medicines.length > 0 ? (() => {
-                        const clientMembershipStatus = client ? client.membershipStatus : 'referred';
-                        const totals = calculatePrescriptionTotals(report.medicines, clientMembershipStatus);
                         const consultationFee = clientMembershipStatus === 'member' ? CONSULTATION_FEES.member : CONSULTATION_FEES.referred;
                         return `
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #c41e3a;">
@@ -13810,8 +13912,8 @@
                         <button class="btn btn-info" onclick="viewPrescriptionDetails('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">👁️ View Details</button>                              
                         <button class="btn btn-warning" onclick="printPrescription('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">🖨️ Print Full</button>                                   
                         <button class="btn btn-success" onclick="printThermalReceipt('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">🧾 Thermal Receipt</button>                           
-                        ${pending > 0 ? `<button class="btn" onclick="dispenseAll('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; background: #27ae60; color: white; transition: all 0.3s;">✅ Mark All Dispensed</button>` : ''}
-                        ${totals.outstanding[clientMembershipStatus === 'member' ? 'dp' : 'cp'] > 0 ? `<button class="btn btn-primary" onclick="openPaymentModal('${report.id}')" style="min-width: 160px; padding: 12px 20px; border-radius: 6px; font-weight: 700; font-size: 1.05rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;">💳 Collect Payment</button>` : ''}
+                        ${pending > 0 ? `<button class="btn" onclick="dispenseAll('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; background: #27ae60; color: white; transition: all 0.3s;">✅ Mark All Dispensed</button>` : ''}                                           
+                        ${(totals && totals.outstanding && totals.outstanding[clientMembershipStatus === 'member' ? 'dp' : 'cp'] > 0) ? `<button class="btn btn-primary" onclick="openPaymentModal('${report.id}')" style="min-width: 160px; padding: 12px 20px; border-radius: 6px; font-weight: 700; font-size: 1.05rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;">💳 Collect Payment</button>` : ''}
                         <button class="btn" onclick="viewPrescriptionPaymentHistory('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">📜 Payment History</button>                            
                         <button class="btn btn-warning" onclick="reverseLastPrescriptionPayment('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">↩️ Reverse Payment</button>            
                     </div>
@@ -18662,8 +18764,12 @@ async function reverseLastPrescriptionPayment(reportId){
         }
         });
 
-        function showChangePassword() {
-            document.getElementById('changePasswordModal').style.display = 'block';
+                function showChangePassword() {
+            const usernameField = document.querySelector('#changePasswordForm input[name="username"]');
+            if (usernameField && currentUser) {
+                usernameField.value = currentUser.username || currentUser.id || '';
+            }
+            document.getElementById('changePasswordModal').style.display = 'block';                                                                             
         }
 
         document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {

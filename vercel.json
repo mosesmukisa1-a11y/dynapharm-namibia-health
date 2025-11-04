@@ -4,6 +4,12 @@
   "builds": [
     { "src": "api/*.js", "use": "@vercel/node" }
   ],
+  "routes": [
+    {
+      "src": "/api/transactions.js",
+      "dest": "/web-modules/transactions.js"
+    }
+  ],
   "functions": {
     "api/*.js": {
       "memory": 256,
@@ -29,6 +35,12 @@
       "source": "/api/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/web-modules/(.*)\\.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" }
       ]
     },
     {

@@ -592,10 +592,13 @@
             // Save client (try API first, then local storage)
             apiRequest('/clients', 'POST', clientData).then(() => {
                 alert('Client registered successfully! Reference Number: ' + clientData.referenceNumber);
-                // Clear form
-                document.querySelectorAll('input, select, textarea').forEach(field => {
-                    if (field.type !== 'button') field.value = '';
-                });
+                // Auto-clear form after successful save
+                const clientRegForm = document.querySelector('#client-registration form') || document.querySelector('#client-registration');
+                if (clientRegForm) {
+                    clientRegForm.querySelectorAll('input, select, textarea').forEach(field => {
+                        if (field.type !== 'button' && field.type !== 'submit') field.value = '';
+                    });
+                }
             }).catch(error => {
                 console.error('Failed to save client:', error);
                 // Fallback to local storage
@@ -603,6 +606,13 @@
                 clients.push(clientData);
                 saveLocalData('/clients', clients);
                 alert('Client registered locally! Reference Number: ' + clientData.referenceNumber);
+                // Auto-clear form after local save
+                const clientRegForm = document.querySelector('#client-registration form') || document.querySelector('#client-registration');
+                if (clientRegForm) {
+                    clientRegForm.querySelectorAll('input, select, textarea').forEach(field => {
+                        if (field.type !== 'button' && field.type !== 'submit') field.value = '';
+                    });
+                }
             });
         }
 

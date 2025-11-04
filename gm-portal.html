@@ -453,7 +453,7 @@
         async function loadData() {
             try {
                 // Try to load from API first
-                const { getTransactions } = await import('./api/transactions.js');
+                const { getTransactions } = await import('./web-modules/transactions.js');
                 const data = await getTransactions({
                     dateRange: 'all',
                     status: 'all',
@@ -776,7 +776,7 @@
         // Load branch performance using API helper
         async function loadBranchPerformance() {
             try {
-                const { getBranchPerformance } = await import('./api/transactions.js');
+                const { getBranchPerformance } = await import('./web-modules/transactions.js');
                 const performance = await getBranchPerformance();
                 const tbody = document.getElementById('branchPerformanceBody');
                 if (!performance || !performance.length) {

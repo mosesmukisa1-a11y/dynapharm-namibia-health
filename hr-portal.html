@@ -54,6 +54,7 @@
             <div class="tab" data-tab="approvals" onclick="switchTab('approvals')">Approvals</div>
             <div class="tab" data-tab="reports" onclick="switchTab('reports')">Reports</div>
             <div class="tab" data-tab="documents" onclick="switchTab('documents')">Documents</div>
+            <div class="tab" data-tab="data-collection" onclick="switchTab('data-collection')">Data Collection</div>
         </div>
 
         <div class="section" id="content"></div>
@@ -98,6 +99,7 @@
             if(tab==='approvals') renderApprovals();
             if(tab==='reports') renderReports();
             if(tab==='documents') renderDocuments();
+            if(tab==='data-collection') renderDataCollection();
         }
 
         function formatDate(d){ return new Date(d).toISOString().split('T')[0]; }
@@ -772,6 +774,308 @@
             if(!confirm('Delete this document?')) return;
             await fetch(`/api/documents?id=${encodeURIComponent(id)}`, { method:'DELETE' });
             renderDocuments();
+        }
+
+        async function renderDataCollection(){
+            const container = document.getElementById('content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="title" style="font-size:18px; margin-bottom:16px;">Staff Data Collection Form</div>
+                    <form id="dataCollectionForm" onsubmit="submitDataCollection(event)">
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Personal Information</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Full Name</label><input id="dcFullName" required></div>
+                                <div class="col-4 field"><label>ID / Passport No.</label><input id="dcIdNumber" required></div>
+                                <div class="col-4 field"><label>Date of Birth</label><input type="date" id="dcDob" required></div>
+                                <div class="col-4 field"><label>Nationality</label><input id="dcNationality" required></div>
+                                <div class="col-4 field"><label>Gender</label><select id="dcGender" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+                                <div class="col-4 field"><label>Marital Status</label><select id="dcMaritalStatus" required><option value="">Select</option><option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option></select></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Contact & Address Details</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Mobile Number</label><input id="dcMobile" type="tel" required></div>
+                                <div class="col-4 field"><label>Email Address</label><input id="dcEmail" type="email" required></div>
+                                <div class="col-6 field"><label>Residential Address</label><textarea id="dcResAddress" rows="3" required></textarea></div>
+                                <div class="col-6 field"><label>Postal Address</label><textarea id="dcPostAddress" rows="3" required></textarea></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Educational Background</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Highest Level of Education</label><input id="dcEducation" required></div>
+                                <div class="col-4 field"><label>Institution Attended</label><input id="dcInstitution" required></div>
+                                <div class="col-4 field"><label>Year Completed</label><input id="dcYearCompleted" type="number" min="1950" max="2050" required></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Employment Information</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Branch / DPC Name</label><select id="dcBranch" required><option value="">Select</option><option>townshop</option><option>khomasdal</option><option>swakopmund</option><option>walvisbay</option><option>katima</option></select></div>
+                                <div class="col-4 field"><label>Employment Start Date</label><input type="date" id="dcStartDate" required></div>
+                                <div class="col-4 field"><label>Social Security No.</label><input id="dcSocialSecurity" required></div>
+                                <div class="col-4 field"><label>Position Appointed</label><input id="dcPosition" required></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Banking Information</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Bank Name</label><input id="dcBankName" required></div>
+                                <div class="col-4 field"><label>Account Number</label><input id="dcAccountNumber" required></div>
+                                <div class="col-4 field"><label>Branch Code</label><input id="dcBranchCode" required></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Emergency Contact Information</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Next of Kin Name</label><input id="dcNextOfKin" required></div>
+                                <div class="col-4 field"><label>Relationship</label><input id="dcRelationship" required></div>
+                                <div class="col-4 field"><label>Contact Number</label><input id="dcKinContact" type="tel" required></div>
+                                <div class="col-12 field"><label>Address</label><textarea id="dcKinAddress" rows="3" required></textarea></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Medical & Background Information</div>
+                            <div class="grid">
+                                <div class="col-4 field"><label>Height (cm)</label><input id="dcHeight" type="number" min="0" required></div>
+                                <div class="col-4 field"><label>Weight (kg)</label><input id="dcWeight" type="number" min="0" required></div>
+                                <div class="col-4 field"><label>Chronic Illnesses / Conditions</label><input id="dcChronicIllness"></div>
+                                <div class="col-4 field"><label>Disabilities (if any)</label><input id="dcDisabilities"></div>
+                                <div class="col-4 field"><label>Criminal Record</label><div style="display:flex; gap:16px; margin-top:8px;"><label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="dcCriminal" value="yes" id="dcCriminalYes"> Yes</label><label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="dcCriminal" value="no" id="dcCriminalNo" checked> No</label></div></div>
+                                <div class="col-4 field"><label>If yes, please specify</label><input id="dcCriminalSpecify"></div>
+                                <div class="col-12 field"><label>Allergies / Other Medical Notes</label><textarea id="dcAllergies" rows="3"></textarea></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div style="font-weight:700; color:#dc2626; font-size:14px; margin-bottom:12px; text-transform:uppercase;">Declaration & Signature</div>
+                            <div style="margin-bottom:16px; padding:12px; background:#f8fafc; border-radius:8px;">
+                                <p style="margin:0; line-height:1.6;">I confirm that the information provided above is true, complete, and accurate to the best of my knowledge. I authorize Dynapharm Namibia to verify all submitted information where necessary.</p>
+                            </div>
+                            <div class="grid">
+                                <div class="col-6 field"><label>Employee Signature</label><input id="dcEmpSignature" required></div>
+                                <div class="col-6 field"><label>HR Officer / Manager</label><input id="dcHROfficer" required></div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="row" style="gap:8px;">
+                                <button type="submit" class="btn primary">Submit Data Collection</button>
+                                <button type="button" class="btn" onclick="clearDataCollectionForm()">Clear Form</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e5e7eb; color:#64748b; font-size:12px; text-align:center;">
+                            All information is confidential and handled in accordance with the Social Security Act (Act 34 of 1994).
+                        </div>
+                    </form>
+                </div>
+                <div class="section card">
+                    <div class="title" style="font-size:16px;">Submitted Forms</div>
+                    <div id="dcTable"><div class="muted">Loading...</div></div>
+                </div>
+            `;
+            const currentUser = getCurrentUser();
+            if(currentUser) {
+                const hrField = document.getElementById('dcHROfficer');
+                if(hrField) hrField.value = currentUser.fullName || currentUser.username || '';
+            }
+            await loadDataCollectionList();
+        }
+
+        async function submitDataCollection(event){
+            event.preventDefault();
+            const criminalRecord = document.getElementById('dcCriminalYes').checked ? 'yes' : 'no';
+            const payload = {
+                id: `DC-${Date.now()}`,
+                personalInfo: {
+                    fullName: document.getElementById('dcFullName').value.trim(),
+                    idNumber: document.getElementById('dcIdNumber').value.trim(),
+                    dateOfBirth: document.getElementById('dcDob').value,
+                    nationality: document.getElementById('dcNationality').value.trim(),
+                    gender: document.getElementById('dcGender').value,
+                    maritalStatus: document.getElementById('dcMaritalStatus').value
+                },
+                contactInfo: {
+                    mobile: document.getElementById('dcMobile').value.trim(),
+                    email: document.getElementById('dcEmail').value.trim(),
+                    residentialAddress: document.getElementById('dcResAddress').value.trim(),
+                    postalAddress: document.getElementById('dcPostAddress').value.trim()
+                },
+                education: {
+                    highestLevel: document.getElementById('dcEducation').value.trim(),
+                    institution: document.getElementById('dcInstitution').value.trim(),
+                    yearCompleted: document.getElementById('dcYearCompleted').value
+                },
+                employment: {
+                    branch: document.getElementById('dcBranch').value,
+                    startDate: document.getElementById('dcStartDate').value,
+                    socialSecurity: document.getElementById('dcSocialSecurity').value.trim(),
+                    position: document.getElementById('dcPosition').value.trim()
+                },
+                banking: {
+                    bankName: document.getElementById('dcBankName').value.trim(),
+                    accountNumber: document.getElementById('dcAccountNumber').value.trim(),
+                    branchCode: document.getElementById('dcBranchCode').value.trim()
+                },
+                emergencyContact: {
+                    nextOfKin: document.getElementById('dcNextOfKin').value.trim(),
+                    relationship: document.getElementById('dcRelationship').value.trim(),
+                    contactNumber: document.getElementById('dcKinContact').value.trim(),
+                    address: document.getElementById('dcKinAddress').value.trim()
+                },
+                medical: {
+                    height: document.getElementById('dcHeight').value,
+                    weight: document.getElementById('dcWeight').value,
+                    chronicIllness: document.getElementById('dcChronicIllness').value.trim(),
+                    disabilities: document.getElementById('dcDisabilities').value.trim(),
+                    criminalRecord: criminalRecord,
+                    criminalSpecify: document.getElementById('dcCriminalSpecify').value.trim(),
+                    allergies: document.getElementById('dcAllergies').value.trim()
+                },
+                signatures: {
+                    employeeSignature: document.getElementById('dcEmpSignature').value.trim(),
+                    hrOfficer: document.getElementById('dcHROfficer').value.trim()
+                },
+                submittedAt: new Date().toISOString(),
+                submittedBy: getCurrentUser()?.fullName || getCurrentUser()?.username || 'HR'
+            };
+            try {
+                const employees = await api('/employees');
+                const existing = employees.find(e => e.dataCollection?.personalInfo?.idNumber === payload.personalInfo.idNumber);
+                if(existing) {
+                    await api('/employees', { method:'PUT', body: JSON.stringify({
+                        id: existing.id,
+                        dataCollection: payload,
+                        fullName: payload.personalInfo.fullName,
+                        email: payload.contactInfo.email,
+                        phone: payload.contactInfo.mobile
+                    })});
+                    alert('Data collection form updated successfully!');
+                } else {
+                    await api('/employees', { method:'POST', body: JSON.stringify({
+                        fullName: payload.personalInfo.fullName,
+                        userId: `STAFF-${payload.personalInfo.idNumber.slice(-6)}`,
+                        role: 'consultant',
+                        branch: payload.employment.branch,
+                        hireDate: payload.employment.startDate,
+                        email: payload.contactInfo.email,
+                        phone: payload.contactInfo.mobile,
+                        dataCollection: payload
+                    })});
+                    alert('Data collection form submitted successfully!');
+                }
+                clearDataCollectionForm();
+                await loadDataCollectionList();
+            } catch(e) {
+                alert('Error submitting form: ' + e.message);
+            }
+        }
+
+        function clearDataCollectionForm(){
+            document.getElementById('dataCollectionForm').reset();
+        }
+
+        async function loadDataCollectionList(){
+            try {
+                const employees = await api('/employees');
+                const withData = employees.filter(e => e.dataCollection);
+                const rows = withData.map(e => {
+                    const dc = e.dataCollection;
+                    return `<tr>
+                        <td>${dc.personalInfo.fullName}</td>
+                        <td>${dc.personalInfo.idNumber}</td>
+                        <td>${dc.employment.branch}</td>
+                        <td>${dc.employment.position}</td>
+                        <td>${new Date(dc.submittedAt).toLocaleDateString()}</td>
+                        <td class="row" style="gap:6px;">
+                            <button class="btn" onclick="viewDataCollection('${e.id}')">View</button>
+                            <button class="btn" onclick="exportDataCollection('${e.id}')">Export</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                document.getElementById('dcTable').innerHTML = withData.length ? `
+                    <div style="overflow:auto;">
+                        <table>
+                            <thead><tr><th>Name</th><th>ID Number</th><th>Branch</th><th>Position</th><th>Submitted</th><th>Actions</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                ` : `<div class="empty">No data collection forms submitted yet.</div>`;
+            } catch(e) {
+                document.getElementById('dcTable').innerHTML = `<div class="empty">Error loading data: ${e.message}</div>`;
+            }
+        }
+
+        async function viewDataCollection(empId){
+            const employees = await api('/employees');
+            const emp = employees.find(e => e.id === empId);
+            if(!emp || !emp.dataCollection) { alert('Data not found'); return; }
+            const dc = emp.dataCollection;
+            const details = `
+Personal Information:
+- Full Name: ${dc.personalInfo.fullName}
+- ID/Passport: ${dc.personalInfo.idNumber}
+- Date of Birth: ${dc.personalInfo.dateOfBirth}
+- Nationality: ${dc.personalInfo.nationality}
+- Gender: ${dc.personalInfo.gender}
+- Marital Status: ${dc.personalInfo.maritalStatus}
+
+Contact Information:
+- Mobile: ${dc.contactInfo.mobile}
+- Email: ${dc.contactInfo.email}
+- Residential Address: ${dc.contactInfo.residentialAddress}
+- Postal Address: ${dc.contactInfo.postalAddress}
+
+Education:
+- Level: ${dc.education.highestLevel}
+- Institution: ${dc.education.institution}
+- Year Completed: ${dc.education.yearCompleted}
+
+Employment:
+- Branch: ${dc.employment.branch}
+- Start Date: ${dc.employment.startDate}
+- Social Security: ${dc.employment.socialSecurity}
+- Position: ${dc.employment.position}
+
+Banking:
+- Bank: ${dc.banking.bankName}
+- Account: ${dc.banking.accountNumber}
+- Branch Code: ${dc.banking.branchCode}
+
+Emergency Contact:
+- Next of Kin: ${dc.emergencyContact.nextOfKin}
+- Relationship: ${dc.emergencyContact.relationship}
+- Contact: ${dc.emergencyContact.contactNumber}
+- Address: ${dc.emergencyContact.address}
+
+Medical:
+- Height: ${dc.medical.height} cm
+- Weight: ${dc.medical.weight} kg
+- Chronic Illness: ${dc.medical.chronicIllness || 'None'}
+- Disabilities: ${dc.medical.disabilities || 'None'}
+- Criminal Record: ${dc.medical.criminalRecord}
+${dc.medical.criminalRecord === 'yes' ? `- Details: ${dc.medical.criminalSpecify}` : ''}
+- Allergies: ${dc.medical.allergies || 'None'}
+
+Signatures:
+- Employee: ${dc.signatures.employeeSignature}
+- HR Officer: ${dc.signatures.hrOfficer}
+            `;
+            alert(details);
+        }
+
+        async function exportDataCollection(empId){
+            const employees = await api('/employees');
+            const emp = employees.find(e => e.id === empId);
+            if(!emp || !emp.dataCollection) { alert('Data not found'); return; }
+            const dc = emp.dataCollection;
+            const csv = `Name,ID Number,Date of Birth,Nationality,Gender,Marital Status,Mobile,Email,Residential Address,Postal Address,Education Level,Institution,Year Completed,Branch,Start Date,Social Security,Position,Bank Name,Account Number,Branch Code,Next of Kin,Relationship,Contact,Address,Height,Weight,Chronic Illness,Disabilities,Criminal Record,Criminal Details,Allergies,Employee Signature,HR Officer
+${dc.personalInfo.fullName},${dc.personalInfo.idNumber},${dc.personalInfo.dateOfBirth},${dc.personalInfo.nationality},${dc.personalInfo.gender},${dc.personalInfo.maritalStatus},${dc.contactInfo.mobile},${dc.contactInfo.email},"${dc.contactInfo.residentialAddress}","${dc.contactInfo.postalAddress}",${dc.education.highestLevel},${dc.education.institution},${dc.education.yearCompleted},${dc.employment.branch},${dc.employment.startDate},${dc.employment.socialSecurity},${dc.employment.position},${dc.banking.bankName},${dc.banking.accountNumber},${dc.banking.branchCode},${dc.emergencyContact.nextOfKin},${dc.emergencyContact.relationship},${dc.emergencyContact.contactNumber},"${dc.emergencyContact.address}",${dc.medical.height},${dc.medical.weight},${dc.medical.chronicIllness || ''},${dc.medical.disabilities || ''},${dc.medical.criminalRecord},${dc.medical.criminalSpecify || ''},${dc.medical.allergies || ''},${dc.signatures.employeeSignature},${dc.signatures.hrOfficer}`;
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `data-collection-${emp.dataCollection.personalInfo.fullName.replace(/\s+/g,'-')}-${Date.now()}.csv`;
+            a.click();
         }
 
         window.addEventListener('DOMContentLoaded', () => {
