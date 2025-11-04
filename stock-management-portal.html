@@ -237,15 +237,16 @@
         </section>
 
         <section class="card" style="margin-bottom: 14px;">
-            <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Warehouse Stock Snapshot <button class="btn" data-help="warehouse">Help</button></h3>
+            <h3 style="display:flex; align-items:center; justify-content:space-between; gap:8px;">Warehouse & Country Stock Snapshot <button class="btn" data-help="warehouse">Help</button></h3>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Warehouse</th>
+                        <th>Location</th>
                         <th>Product</th>
-                        <th>Qty</th>
+                        <th>Total Qty</th>
+                        <th>Available to Move</th>
                         <th>Reserved</th>
-                        <th>Reorder</th>
+                        <th>Batch Info</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -486,6 +487,22 @@
         async function renderWarehouseSnapshot() {
             const tbody = document.getElementById('warehouseSnapshot');
             tbody.innerHTML = '';
+            
+            // Get barcode stock data
+            let barcodeStock = [];
+            try {
+                const stored = localStorage.getItem('dyna_barcode_stock');
+                if (stored) {
+                    barcodeStock = JSON.parse(stored);
+                }
+            } catch(e) {
+                console.error('Error loading barcode stock:', e);
+            }
+            
+            // Aggregate stock by location and product
+            const stockMap = new Map();
+            
+            // Process warehouse stock (from stock-requests.js)
             const warehouses = ['warehouse-windhoek','warehouse-ondangwa'];
             warehouses.forEach(w => {
                 const res = getWarehouseStock(w);
@@ -493,21 +510,159 @@
                     const stock = res.data;
                     Object.keys(stock).forEach(pid => {
                         const s = stock[pid];
-                        const status = s.quantity <= s.reorderLevel ? 'LOW' : (s.quantity > s.reorderLevel*10 ? 'OVER' : 'OK');
-                        const color = status==='LOW'?'bad':(status==='OVER'?'warn':'good');
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${w}</td>
-                            <td>${s.productId}</td>
-                            <td>${s.quantity}</td>
-                            <td>${s.reservedQuantity}</td>
-                            <td>${s.reorderLevel}</td>
-                            <td><span class="pill ${color}">${status}</span></td>
-                        `;
-                        tbody.appendChild(tr);
+                        const key = `${w}|||${pid}`;
+                        if (!stockMap.has(key)) {
+                            stockMap.set(key, {
+                                location: w,
+                                product: pid,
+                                totalQty: 0,
+                                availableQty: 0,
+                                reservedQty: s.reservedQuantity || 0,
+                                reorderLevel: s.reorderLevel || 10,
+                                batchInfo: '',
+                                isBarcode: false
+                            });
+                        }
+                        const entry = stockMap.get(key);
+                        entry.totalQty += (s.quantity || 0);
+                        entry.availableQty += (s.quantity || 0) - (s.reservedQuantity || 0);
                     });
                 }
             });
+            
+            // Process country stock (barcode stock with location='country_stock')
+            const countryStockBatches = barcodeStock.filter(b => 
+                b.location === 'country_stock' && 
+                b.status === 'available' && 
+                b.remainingQuantity > 0
+            );
+            
+            // Aggregate country stock by product
+            const countryStockMap = new Map();
+            countryStockBatches.forEach(batch => {
+                const pid = batch.description || batch.productId || 'Unknown';
+                const key = `country_stock|||${pid}`;
+                if (!countryStockMap.has(key)) {
+                    countryStockMap.set(key, {
+                        location: 'Country Stock',
+                        product: pid,
+                        totalQty: 0,
+                        availableQty: 0,
+                        reservedQty: 0,
+                        reorderLevel: 10,
+                        batchInfo: '',
+                        batches: [],
+                        isBarcode: true
+                    });
+                }
+                const entry = countryStockMap.get(key);
+                entry.totalQty += (batch.quantity || 0);
+                entry.availableQty += (batch.remainingQuantity || 0);
+                entry.batches.push({
+                    batchNo: batch.batchNo || '',
+                    expiryDate: batch.expiryDate || '',
+                    remainingQty: batch.remainingQuantity || 0
+                });
+            });
+            
+            // Add country stock to map
+            countryStockMap.forEach((entry, key) => {
+                const batchInfo = entry.batches.length > 0 
+                    ? `${entry.batches.length} batch${entry.batches.length > 1 ? 'es' : ''} (Earliest: ${entry.batches[0].expiryDate})`
+                    : 'No batches';
+                entry.batchInfo = batchInfo;
+                stockMap.set(key, entry);
+            });
+            
+            // Process warehouse barcode stock
+            ['warehouse-windhoek','warehouse-ondangwa'].forEach(wh => {
+                const whBatches = barcodeStock.filter(b => 
+                    b.location === wh && 
+                    b.status === 'available' && 
+                    b.remainingQuantity > 0
+                );
+                
+                // Aggregate by product
+                const whStockMap = new Map();
+                whBatches.forEach(batch => {
+                    const pid = batch.description || batch.productId || 'Unknown';
+                    const key = `${wh}|||${pid}`;
+                    if (!whStockMap.has(key)) {
+                        whStockMap.set(key, {
+                            location: wh,
+                            product: pid,
+                            totalQty: 0,
+                            availableQty: 0,
+                            reservedQty: 0,
+                            reorderLevel: 10,
+                            batchInfo: '',
+                            batches: [],
+                            isBarcode: true
+                        });
+                    }
+                    const entry = whStockMap.get(key);
+                    entry.totalQty += (batch.quantity || 0);
+                    entry.availableQty += (batch.remainingQuantity || 0);
+                    entry.batches.push({
+                        batchNo: batch.batchNo || '',
+                        expiryDate: batch.expiryDate || '',
+                        remainingQty: batch.remainingQuantity || 0
+                    });
+                });
+                
+                // Merge with existing warehouse stock
+                whStockMap.forEach((entry, key) => {
+                    if (stockMap.has(key)) {
+                        const existing = stockMap.get(key);
+                        existing.totalQty += entry.totalQty;
+                        existing.availableQty += entry.availableQty;
+                        if (entry.batches.length > 0) {
+                            existing.batches = (existing.batches || []).concat(entry.batches);
+                            existing.batchInfo = `${existing.batches.length} batch${existing.batches.length > 1 ? 'es' : ''}`;
+                        }
+                    } else {
+                        entry.batchInfo = entry.batches.length > 0 
+                            ? `${entry.batches.length} batch${entry.batches.length > 1 ? 'es' : ''}`
+                            : '';
+                        stockMap.set(key, entry);
+                    }
+                });
+            });
+            
+            // Render all stock entries
+            const sortedEntries = Array.from(stockMap.values()).sort((a, b) => {
+                // Sort by location (country first, then warehouses)
+                if (a.location === 'Country Stock' && b.location !== 'Country Stock') return -1;
+                if (a.location !== 'Country Stock' && b.location === 'Country Stock') return 1;
+                if (a.location < b.location) return -1;
+                if (a.location > b.location) return 1;
+                // Then by product name
+                return (a.product || '').localeCompare(b.product || '');
+            });
+            
+            sortedEntries.forEach(entry => {
+                const status = entry.availableQty <= entry.reorderLevel ? 'LOW' : 
+                              (entry.availableQty > entry.reorderLevel*10 ? 'OVER' : 'OK');
+                const color = status==='LOW'?'bad':(status==='OVER'?'warn':'good');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${entry.location}</td>
+                    <td>${entry.product}</td>
+                    <td>${entry.totalQty}</td>
+                    <td><strong class="accent">${entry.availableQty}</strong></td>
+                    <td>${entry.reservedQty}</td>
+                    <td class="muted" style="font-size:11px;">${entry.batchInfo || '—'}</td>
+                    <td><span class="pill ${color}">${status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Show empty state if no stock
+            if (sortedEntries.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="7" style="text-align:center; color:var(--muted); padding:20px;">No stock data available. Import stock to get started.</td>`;
+                tbody.appendChild(tr);
+            }
         }
 
         function detectSuspicious(m) {
@@ -582,6 +737,8 @@
             renderWarehouseSnapshot();
             renderDailyBranch();
             renderWorkflowStatus();
+            renderPendingRequestsTable();
+            renderActiveTransfersTable();
         }
 
         function summarizeByBranch(items) {
@@ -850,7 +1007,11 @@
                 const role = (window.parent && window.parent.currentUser) ? window.parent.currentUser.role : 'manager';
                 approveStockRequest(id, { approverRole: role, approvedBy: who, approved: true, notes: '' });
                 showToast('Request approved','success');
-                refreshData();
+                // Immediately refresh to show updated stock
+                setTimeout(() => {
+                    refreshData();
+                    renderWarehouseSnapshot();
+                }, 100);
             }));
             tbody.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-reject');
@@ -894,7 +1055,11 @@
                 const user = (window.parent && window.parent.currentUser) ? window.parent.currentUser.fullName : 'User';
                 updateTransferStatus(id, status, { user });
                 showToast('Transfer updated: ' + status, 'success');
-                refreshData();
+                // Immediately refresh to show updated quantities
+                setTimeout(() => {
+                    refreshData();
+                    renderWarehouseSnapshot();
+                }, 100);
             }));
             tbody.querySelectorAll('[data-view-dispatch]').forEach(btn => btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-view-dispatch');
@@ -1108,7 +1273,11 @@
             });
             showToast(`Import done: ${ok} ok, ${fail} failed`, fail ? 'error' : 'success');
             document.getElementById('csvModal').style.display = 'none';
-            refreshData();
+            // Immediately refresh to show imported stock
+            setTimeout(() => {
+                refreshData();
+                renderWarehouseSnapshot();
+            }, 100);
         });
 
 

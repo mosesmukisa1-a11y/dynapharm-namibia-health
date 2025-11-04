@@ -220,4 +220,332 @@ export function exportCsv(filename, headers, rows) {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+// ==================== NEW FUNCTIONS FOR DAILY RECEIPTS AND STOCK SALES ====================
+
+/**
+ * Get all daily receipts from all branches
+ * Aggregates data from reports and walk-in sales
+ */
+export async function getDailyReceipts(date) {
+    try {
+        // Access localStorage directly for reports and sales
+        const reports = JSON.parse(localStorage.getItem('dyna_reports') || '[]');
+        const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+        const dynapharmWalkInSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+        
+        const allReceipts = [];
+        const targetDate = date ? date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+        
+        // Process reports (prescription-based receipts)
+        reports.forEach(report => {
+            if (!report.dispensed || !report.dispensedAt) return;
+            const reportDate = report.dispensedAt.slice(0, 10);
+            if (reportDate !== targetDate) return;
+            
+            // Calculate total from products
+            let totalAmount = 0;
+            const products = report.products || report.medicines || [];
+            products.forEach(p => {
+                const qty = parseFloat(p.quantity || 0);
+                const price = parseFloat(p.price || p.amountPaid || 0);
+                totalAmount += qty * price;
+            });
+            
+            allReceipts.push({
+                id: report.id || `RPT-${Date.now()}`,
+                type: 'prescription',
+                branch: report.branch || 'Unknown',
+                clientName: report.clientName || 'Unknown',
+                clientId: report.clientId || null,
+                date: reportDate,
+                timestamp: report.dispensedAt || report.timestamp,
+                totalAmount: totalAmount,
+                products: products,
+                consultant: report.consultant || '',
+                dispensedBy: report.dispensedBy || '',
+                receiptNumber: report.receiptNumber || `RCP-${report.id}`
+            });
+        });
+        
+        // Process walk-in sales
+        [...walkInSales, ...dynapharmWalkInSales].forEach(sale => {
+            const saleDate = (sale.timestamp || sale.createdAt || sale.date || '').slice(0, 10);
+            if (saleDate !== targetDate) return;
+            
+            allReceipts.push({
+                id: sale.id || `WIN-${Date.now()}`,
+                type: 'walk-in',
+                branch: sale.branch || 'Unknown',
+                clientName: sale.customerName || sale.clientName || 'Walk-in Customer',
+                clientId: sale.clientId || null,
+                date: saleDate,
+                timestamp: sale.timestamp || sale.createdAt || sale.date,
+                totalAmount: parseFloat(sale.total || sale.totalAmount || 0),
+                products: sale.items || sale.products || [],
+                dispensedBy: sale.soldBy || sale.cashier || '',
+                receiptNumber: sale.receiptNumber || sale.id || `RCP-${sale.id}`
+            });
+        });
+        
+        // Sort by timestamp
+        allReceipts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        return allReceipts;
+    } catch (error) {
+        console.error('Error getting daily receipts:', error);
+        return [];
+    }
+}
+
+/**
+ * Get all receipts for a date range
+ */
+export async function getReceiptsByDateRange(startDate, endDate, branchFilter = 'all') {
+    try {
+        // Access localStorage directly for reports and sales
+        const reports = JSON.parse(localStorage.getItem('dyna_reports') || '[]');
+        const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+        const dynapharmWalkInSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+        
+        const allReceipts = [];
+        const start = startDate ? startDate.slice(0, 10) : '';
+        const end = endDate ? endDate.slice(0, 10) + 'T23:59:59' : '';
+        
+        // Process reports
+        reports.forEach(report => {
+            if (!report.dispensed || !report.dispensedAt) return;
+            const reportDate = report.dispensedAt.slice(0, 10);
+            if (start && reportDate < start) return;
+            if (end && reportDate > end.slice(0, 10)) return;
+            if (branchFilter !== 'all' && report.branch !== branchFilter) return;
+            
+            let totalAmount = 0;
+            const products = report.products || report.medicines || [];
+            products.forEach(p => {
+                const qty = parseFloat(p.quantity || 0);
+                const price = parseFloat(p.price || p.amountPaid || 0);
+                totalAmount += qty * price;
+            });
+            
+            allReceipts.push({
+                id: report.id || `RPT-${Date.now()}`,
+                type: 'prescription',
+                branch: report.branch || 'Unknown',
+                clientName: report.clientName || 'Unknown',
+                date: reportDate,
+                timestamp: report.dispensedAt,
+                totalAmount: totalAmount,
+                products: products
+            });
+        });
+        
+        // Process walk-in sales
+        [...walkInSales, ...dynapharmWalkInSales].forEach(sale => {
+            const saleDate = (sale.timestamp || sale.createdAt || sale.date || '').slice(0, 10);
+            if (start && saleDate < start) return;
+            if (end && saleDate > end.slice(0, 10)) return;
+            if (branchFilter !== 'all' && sale.branch !== branchFilter) return;
+            
+            allReceipts.push({
+                id: sale.id || `WIN-${Date.now()}`,
+                type: 'walk-in',
+                branch: sale.branch || 'Unknown',
+                clientName: sale.customerName || sale.clientName || 'Walk-in Customer',
+                date: saleDate,
+                timestamp: sale.timestamp || sale.createdAt || sale.date,
+                totalAmount: parseFloat(sale.total || sale.totalAmount || 0),
+                products: sale.items || sale.products || []
+            });
+        });
+        
+        allReceipts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return allReceipts;
+    } catch (error) {
+        console.error('Error getting receipts by date range:', error);
+        return [];
+    }
+}
+
+/**
+ * Get stock sold data per branch
+ * Aggregates from reports and walk-in sales
+ */
+export async function getStockSoldPerBranch(startDate, endDate, branchFilter = 'all') {
+    try {
+        // Access localStorage directly for reports and sales
+        const reports = JSON.parse(localStorage.getItem('dyna_reports') || '[]');
+        const walkInSales = JSON.parse(localStorage.getItem('dyna_walkin_sales') || '[]');
+        const dynapharmWalkInSales = JSON.parse(localStorage.getItem('dynapharm_walkin_sales') || '[]');
+        
+        const stockSold = new Map(); // Map: branch -> product -> { quantity, amount }
+        const start = startDate ? startDate.slice(0, 10) : '';
+        const end = endDate ? endDate.slice(0, 10) : '';
+        
+        // Process reports
+        reports.forEach(report => {
+            if (!report.dispensed || !report.dispensedAt) return;
+            const reportDate = report.dispensedAt.slice(0, 10);
+            if (start && reportDate < start) return;
+            if (end && reportDate > end) return;
+            
+            const branch = report.branch || 'Unknown';
+            if (branchFilter !== 'all' && branch !== branchFilter) return;
+            
+            const products = report.products || report.medicines || [];
+            products.forEach(p => {
+                const productName = p.name || p.description || p.product || 'Unknown';
+                const qty = parseFloat(p.quantity || 0);
+                const price = parseFloat(p.price || p.amountPaid || 0);
+                const amount = qty * price;
+                
+                if (!stockSold.has(branch)) {
+                    stockSold.set(branch, new Map());
+                }
+                const branchStock = stockSold.get(branch);
+                
+                if (!branchStock.has(productName)) {
+                    branchStock.set(productName, { quantity: 0, amount: 0, productName });
+                }
+                const productData = branchStock.get(productName);
+                productData.quantity += qty;
+                productData.amount += amount;
+            });
+        });
+        
+        // Process walk-in sales
+        [...walkInSales, ...dynapharmWalkInSales].forEach(sale => {
+            const saleDate = (sale.timestamp || sale.createdAt || sale.date || '').slice(0, 10);
+            if (start && saleDate < start) return;
+            if (end && saleDate > end) return;
+            
+            const branch = sale.branch || 'Unknown';
+            if (branchFilter !== 'all' && branch !== branchFilter) return;
+            
+            const items = sale.items || sale.products || [];
+            items.forEach(item => {
+                const productName = item.name || item.description || item.product || 'Unknown';
+                const qty = parseFloat(item.quantity || 0);
+                const price = parseFloat(item.price || item.unitPrice || 0);
+                const amount = qty * price;
+                
+                if (!stockSold.has(branch)) {
+                    stockSold.set(branch, new Map());
+                }
+                const branchStock = stockSold.get(branch);
+                
+                if (!branchStock.has(productName)) {
+                    branchStock.set(productName, { quantity: 0, amount: 0, productName });
+                }
+                const productData = branchStock.get(productName);
+                productData.quantity += qty;
+                productData.amount += amount;
+            });
+        });
+        
+        // Convert to array format
+        const result = [];
+        stockSold.forEach((products, branch) => {
+            products.forEach((data, productName) => {
+                result.push({
+                    branch,
+                    productName,
+                    quantity: data.quantity,
+                    amount: data.amount,
+                    date: start || end || new Date().toISOString().slice(0, 10)
+                });
+            });
+        });
+        
+        return result;
+    } catch (error) {
+        console.error('Error getting stock sold per branch:', error);
+        return [];
+    }
+}
+
+/**
+ * Generate monthly stock sold report
+ */
+export async function getMonthlyStockSoldReport(year, month, branchFilter = 'all') {
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    
+    return await getStockSoldPerBranch(startDate, endDate, branchFilter);
+}
+
+/**
+ * Export stock sold data to Excel format (CSV with proper formatting)
+ */
+export function exportStockSoldToExcel(data, filename = 'stock-sold-report.xlsx') {
+    // Group by branch
+    const byBranch = new Map();
+    data.forEach(item => {
+        if (!byBranch.has(item.branch)) {
+            byBranch.set(item.branch, []);
+        }
+        byBranch.get(item.branch).push(item);
+    });
+    
+    // Create CSV content with multiple sheets simulation (using CSV format)
+    let csvContent = '';
+    
+    // Summary sheet
+    csvContent += 'STOCK SOLD SUMMARY BY BRANCH\n\n';
+    csvContent += 'Branch,Product,Quantity Sold,Total Amount (N$)\n';
+    const summary = new Map();
+    data.forEach(item => {
+        const key = `${item.branch}|${item.productName}`;
+        if (!summary.has(key)) {
+            summary.set(key, { branch: item.branch, product: item.productName, qty: 0, amount: 0 });
+        }
+        const s = summary.get(key);
+        s.qty += item.quantity;
+        s.amount += item.amount;
+    });
+    summary.forEach(s => {
+        csvContent += `"${s.branch}","${s.product}",${s.qty},${s.amount.toFixed(2)}\n`;
+    });
+    
+    // Branch sheets
+    byBranch.forEach((items, branch) => {
+        csvContent += `\n\n=== ${branch} ===\n\n`;
+        csvContent += 'Product,Quantity Sold,Total Amount (N$)\n';
+        items.forEach(item => {
+            csvContent += `"${item.productName}",${item.quantity},${item.amount.toFixed(2)}\n`;
+        });
+    });
+    
+    // Create and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename.replace('.xlsx', '.csv');
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Export daily receipts to Excel format
+ */
+export function exportDailyReceiptsToExcel(receipts, filename = 'daily-receipts.xlsx') {
+    const headers = ['Receipt Number', 'Type', 'Branch', 'Client Name', 'Date', 'Time', 'Total Amount (N$)', 'Product Count'];
+    const rows = receipts.map(r => [
+        r.receiptNumber || r.id,
+        r.type === 'prescription' ? 'Prescription' : 'Walk-in',
+        r.branch,
+        r.clientName,
+        r.date,
+        new Date(r.timestamp).toLocaleTimeString(),
+        r.totalAmount.toFixed(2),
+        (r.products || []).length
+    ]);
+    
+    exportCsv(filename.replace('.xlsx', '.csv'), headers, rows);
+}
+
 

@@ -1771,7 +1771,7 @@
         });
     </script>
     <!-- SheetJS library for Excel parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js" onerror="console.warn('⚠️ xlsx library failed to load, Excel export may not work')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha256-1YXtO1u7cYHWxO/cMC4B3A6Oq3S4/3vm8PwF3u1w+RA=" crossorigin="anonymous" onerror="console.warn('⚠️ xlsx library failed to load, Excel export may not work')"></script>
     <!-- Chart.js for interactive charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- D3.js for advanced visualizations -->
@@ -3723,51 +3723,103 @@
                     </div>
                     <div class="form-section">
                         <h3>🧾 Purchase Orders & Supplier Collaboration</h3>
-                        <div style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-                            <form id="purchaseOrderForm" onsubmit="handlePurchaseOrderSubmit(event)" style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: grid; gap: 10px;">
-                                <div>
-                                    <label>Supplier</label>
-                                    <input type="text" id="poSupplier" placeholder="Supplier name" required>
+                        <p style="margin-bottom: 20px; color: #666;">Purchase orders use the same format as stock import. They are automatically generated from stock movements across all branches.</p>
+                        
+                        <!-- Purchase Order Form with Table Format (identical to Stock Import) -->
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 15px;">📋 Create Purchase Order (Table Format)</h4>
+                            <form id="purchaseOrderForm" onsubmit="handlePurchaseOrderSubmit(event)">
+                                <div style="margin-bottom: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                    <div>
+                                        <label>Supplier</label>
+                                        <input type="text" id="poSupplier" placeholder="Supplier name" required>
+                                    </div>
+                                    <div>
+                                        <label>PO Number</label>
+                                        <input type="text" id="poNumber" placeholder="PO-2025-001" required>
+                                    </div>
+                                    <div>
+                                        <label>Expected Arrival</label>
+                                        <input type="date" id="poEta" required>
+                                    </div>
+                                    <div>
+                                        <label>Total Cost (N$)</label>
+                                        <input type="number" id="poValue" min="0" step="0.01" required>
+                                    </div>
+                                    <div>
+                                        <label>Currency</label>
+                                        <input type="text" id="poCurrency" value="NAD" required>
+                                    </div>
+                                    <div>
+                                        <label>Status</label>
+                                        <select id="poStatus" required>
+                                            <option value="Open">Open</option>
+                                            <option value="Acknowledged">Acknowledged</option>
+                                            <option value="In Transit">In Transit</option>
+                                            <option value="Delivered">Delivered</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label>PO Number</label>
-                                    <input type="text" id="poNumber" placeholder="PO-2025-001" required>
-                                </div>
-                                <div>
-                                    <label>Expected Arrival</label>
-                                    <input type="date" id="poEta" required>
-                                </div>
-                                <div>
-                                    <label>Total Cost (N$)</label>
-                                    <input type="number" id="poValue" min="0" step="0.01" required>
-                                </div>
-                                <div>
-                                    <label>Currency</label>
-                                    <input type="text" id="poCurrency" value="NAD" required>
-                                </div>
-                                <div>
-                                    <label>Line Items</label>
-                                    <textarea id="poItems" rows="3" placeholder="e.g., Immune+, 200 units; Vita-C, 150 units" required></textarea>
-                                </div>
-                                <div>
-                                    <label>Linked Forecast / ASN</label>
-                                    <input type="text" id="poLinked" placeholder="Forecast ref or ASN ID">
-                                </div>
-                                <div>
-                                    <label>Status</label>
-                                    <select id="poStatus" required>
-                                        <option value="Open">Open</option>
-                                        <option value="Acknowledged">Acknowledged</option>
-                                        <option value="In Transit">In Transit</option>
-                                        <option value="Delivered">Delivered</option>
-                                    </select>
-                                </div>
-                                <div>
+                                <div style="margin-bottom: 15px;">
                                     <label>Notes</label>
-                                    <textarea id="poNotes" rows="2" placeholder="Incoterms, lead time commitments..."></textarea>
+                                    <textarea id="poNotes" rows="2" placeholder="Incoterms, lead time commitments..." style="width: 100%; padding: 8px;"></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-success">➕ Create Purchase Order</button>
+                                <div style="overflow-x: auto;">
+                                    <table id="purchaseOrderTable" style="width: 100%; border-collapse: collapse; background: white;">
+                                        <thead>
+                                            <tr style="background: #c41e3a; color: white;">
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Cartons No.</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Description</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Batch No.</th>
+                                                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Expiry Date</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Quantity</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Total (CTNS)</th>
+                                                <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="purchaseOrderTableBody">
+                                            <tr>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="po-carton-no" style="width: 100%; padding: 8px;" placeholder="A1-98" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="po-description" style="width: 100%; padding: 8px;" placeholder="Product description" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="text" class="po-batch-no" style="width: 100%; padding: 8px;" placeholder="DP24265" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="month" class="po-expiry-date" style="width: 100%; padding: 8px;" placeholder="YYYY-MM" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="number" class="po-quantity" style="width: 100%; padding: 8px;" placeholder="Qty" min="1" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <input type="number" class="po-total-ctns" style="width: 100%; padding: 8px;" placeholder="CTNS" min="1" required>
+                                                </td>
+                                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                                    <button type="button" class="btn btn-danger" onclick="removePurchaseOrderRow(this)" style="padding: 5px 10px;">Remove</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="7" style="padding: 10px; border: 1px solid #ddd;">
+                                                    <button type="button" class="btn btn-success" onclick="addPurchaseOrderRow()">➕ Add Row</button>
+                                                    <button type="button" class="btn btn-info" onclick="autoGeneratePurchaseOrdersFromMovements()" style="margin-left: 10px;">🔄 Auto-Generate from Stock Movements</button>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div style="margin-top: 20px; text-align: center;">
+                                    <button type="submit" class="btn btn-success" style="padding: 12px 40px; font-size: 1.1rem;">📥 Create Purchase Order</button>
+                                    <button type="button" class="btn" onclick="clearPurchaseOrderForm()">Clear All</button>
+                                </div>
                             </form>
+                        </div>
+                        
+                        <div style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
                             <div style="background: white; border-radius: 8px; border: 1px solid #e1e5ec; padding: 15px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <h4 style="margin: 0;">Open Orders</h4>
@@ -5723,6 +5775,9 @@
                     <div id="walkInCartList" style="min-height: 100px; max-height: 300px; overflow-y: auto;">
                         <p style="text-align: center; color: #7f8c8d; padding: 20px;">Cart is empty</p>
                     </div>
+                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.85rem; color: #666;">
+                        💡 <strong>Tip:</strong> Click quantity to edit, or click ❌ to remove items
+                    </div>
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #27ae60;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
@@ -5745,11 +5800,99 @@
                     </div>
                 </div>
                 
+                <!-- Payment Method Selection -->
+                <div style="border: 2px solid #f39c12; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">💳 Payment Method *</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button type="button" id="paymentMethodCash" class="payment-method-btn active" onclick="selectWalkInPaymentMethod('cash')" style="padding: 15px; border: 2px solid #27ae60; border-radius: 8px; background: #e8f5e9; cursor: pointer; font-weight: bold;">
+                            💵 Cash
+                        </button>
+                        <button type="button" id="paymentMethodCard" class="payment-method-btn" onclick="selectWalkInPaymentMethod('card')" style="padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                            💳 Card
+                        </button>
+                        <button type="button" id="paymentMethodMobile" class="payment-method-btn" onclick="selectWalkInPaymentMethod('mobile')" style="padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                            📱 Mobile Money
+                        </button>
+                        <button type="button" id="paymentMethodBank" class="payment-method-btn" onclick="selectWalkInPaymentMethod('bank')" style="padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                            🏦 Bank Transfer
+                        </button>
+                    </div>
+                    <input type="hidden" id="walkInPaymentMethod" value="cash">
+                </div>
+                
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn" onclick="closeModal('walkInSaleModal')">Cancel</button>
-                    <button type="button" class="btn btn-warning" onclick="processWalkInPayment()">💳 Process Payment</button>
+                    <button type="button" class="btn btn-success" onclick="showWalkInSaleConfirmation()" id="reviewWalkInSaleBtn">📋 Review & Confirm Sale</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Walk-in Sale Confirmation Modal -->
+    <div class="modal" id="walkInSaleConfirmationModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close" onclick="closeModal('walkInSaleConfirmationModal')">&times;</span>
+            <h2>📋 Confirm Sale Details</h2>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #2c3e50;">Customer Information</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                        <strong>Name:</strong>
+                        <div id="confirmCustomerName" style="color: #666;"></div>
+                    </div>
+                    <div>
+                        <strong>Type:</strong>
+                        <div id="confirmCustomerType" style="color: #666;"></div>
+                    </div>
+                    <div>
+                        <strong>Phone:</strong>
+                        <div id="confirmPhone" style="color: #666;"></div>
+                    </div>
+                    <div>
+                        <strong>Email:</strong>
+                        <div id="confirmEmail" style="color: #666;"></div>
+                    </div>
+                </div>
+                <div id="confirmReferralInfo" style="display: none; padding: 10px; background: white; border-radius: 5px; margin-top: 10px;">
+                    <strong>Referred By:</strong>
+                    <div id="confirmReferral" style="color: #666;"></div>
+                </div>
+            </div>
+
+            <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #856404;">Order Summary</h3>
+                <div id="confirmProductsList" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+                <div style="border-top: 2px solid #f39c12; padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong>Subtotal:</strong>
+                        <span id="confirmSubtotal" style="font-weight: bold;"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong>Total BV:</strong>
+                        <span id="confirmTotalBV" style="color: #c41e3a; font-weight: bold;"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.2rem; padding-top: 10px; border-top: 2px solid #f39c12;">
+                        <strong>Grand Total:</strong>
+                        <span id="confirmGrandTotal" style="color: #c41e3a; font-weight: bold; font-size: 1.3rem;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #27ae60;">Payment Information</h3>
+                <div>
+                    <strong>Payment Method:</strong>
+                    <div id="confirmPaymentMethod" style="color: #666; font-size: 1.1rem; margin-top: 5px;"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn" onclick="closeModal('walkInSaleConfirmationModal')">← Back to Edit</button>
+                <button type="button" class="btn btn-success" onclick="confirmWalkInSale()" style="padding: 12px 30px; font-size: 1.1rem;">
+                    ✅ Confirm & Process Payment
+                </button>
+            </div>
         </div>
     </div>
 
@@ -13389,23 +13532,53 @@
                 const dispensed = report.medicines ? report.medicines.filter(m => m.dispensed).length : 0;
                 const total = report.medicines ? report.medicines.length : 0;
                 
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
-                        <div>
-                            <h4 style="color: #c41e3a; margin-bottom: 5px;">Prescription: ${report.id}</h4>
-                            <p style="color: #7f8c8d; font-size: 0.9rem;">Client: ${client ? client.fullName : 'Unknown'} (${report.clientId})</p>
-                    </div>
-                        <div style="text-align: right;">
-                            <span style="background: ${pending > 0 ? '#fff3cd' : '#e8f5e9'}; color: ${pending > 0 ? '#f39c12' : '#27ae60'}; padding: 4px 8px; border-radius: 3px; font-size: 0.8rem;">
-                                ${pending} pending, ${dispensed} dispensed
-                            </span>
+                                card.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #c41e3a 0%, #a0172e 100%); padding: 16px; border-radius: 8px 8px 0 0; color: white; margin: -15px -15px 15px -15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 4px;">PRESCRIPTION</div>
+                                <h4 style="color: white; margin: 0; font-size: 1.3rem; font-weight: 700;">${report.id}</h4>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="background: ${pending > 0 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.3)'}; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; backdrop-filter: blur(10px);">
+                                    ${pending} pending${dispensed > 0 ? ` • ${dispensed} dispensed` : ''}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">${client ? client.fullName : 'Unknown Client'}</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9;">${report.clientId}</div>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                        <p><strong>👨‍⚕️ Consultant:</strong> ${report.consultant}</p>
-                        <p><strong>📅 Created:</strong> ${new Date(report.timestamp).toLocaleDateString()}</p>
-                        <p><strong>📞 Client Phone:</strong> ${client ? client.phone : 'N/A'}</p>
-                        <p><strong>🏢 Branch:</strong> ${client ? client.branch : 'Unknown'}</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px;">               
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">👨‍⚕️</span>
+                            <div>
+                                <div style="font-size: 0.75rem; color: #666; margin-bottom: 2px;">Consultant</div>
+                                <div style="font-weight: 600; color: #2c3e50;">${report.consultant}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">📅</span>
+                            <div>
+                                <div style="font-size: 0.75rem; color: #666; margin-bottom: 2px;">Date</div>
+                                <div style="font-weight: 600; color: #2c3e50;">${new Date(report.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">📞</span>
+                            <div>
+                                <div style="font-size: 0.75rem; color: #666; margin-bottom: 2px;">Phone</div>
+                                <div style="font-weight: 600; color: #2c3e50;">${client ? client.phone : 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">🏢</span>
+                            <div>
+                                <div style="font-size: 0.75rem; color: #666; margin-bottom: 2px;">Branch</div>
+                                <div style="font-weight: 600; color: #2c3e50;">${client ? client.branch : 'Unknown'}</div>
+                            </div>
+                        </div>
                         ${client ? (client.membershipStatus === 'member' ? `
                             <p><strong>🆔 NB Number:</strong> ${client.nbNumber || 'N/A'}</p>
                             <p><strong>👤 Member ID:</strong> ${client.memberId || 'N/A'}</p>
@@ -13561,66 +13734,66 @@
                         </div>
                         
                         <!-- Price Totals -->
-                        <div style="background: #e8f4fd; padding: 15px; border-radius: 5px; margin-top: 15px; border: 2px solid #c41e3a;">
-                            <h4 style="color: #c41e3a; margin-bottom: 10px; text-align: center;">💰 PRESCRIPTION TOTALS</h4>
-                            <p style="text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 15px;">
-                                (Includes N$${consultationFee} consultation fee)
+                                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">                  
+                            <h4 style="color: white; margin-bottom: 12px; text-align: center; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">💰 Prescription Summary</h4>                                
+                            <p style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.9); margin-bottom: 18px;">    
+                                Includes N$${consultationFee} consultation fee                                     
                             </p>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
-                                <div style="text-align: center; background: white; padding: 10px; border-radius: 5px;">
-                                    <h5 style="color: #c41e3a; margin-bottom: 5px;">TOTAL</h5>
-                                    <div style="font-size: 0.8rem;">
-                                        ${clientMembershipStatus === 'member' ? `
-                                            <div><strong>DP:</strong> N$${totals.total.dp}</div>
-                                            <div><strong>BV:</strong> ${totals.total.bv}</div>
-                                        ` : `
-                                            <div><strong>CP:</strong> N$${totals.total.cp}</div>
-                                        `}
-                                    </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">      
+                                <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">                                     
+                                    <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Total</div>                       
+                                    <div style="font-size: 1rem; font-weight: 700; color: #c41e3a;">          
+                                        ${clientMembershipStatus === 'member' ? `                                    
+                                            <div>N$${totals.total.dp}</div>                     
+                                            <div style="font-size: 0.75rem; color: #27ae60; margin-top: 4px;">BV: ${totals.total.bv}</div>                       
+                                        ` : `                                 
+                                            <div>N$${totals.total.cp}</div>                     
+                                        `}                                    
+                                    </div>                                    
                                 </div>
-                                <div style="text-align: center; background: #e8f5e9; padding: 10px; border-radius: 5px;">
-                                    <h5 style="color: #27ae60; margin-bottom: 5px;">DISPENSED</h5>
-                                    <div style="font-size: 0.8rem;">
-                                        ${clientMembershipStatus === 'member' ? `
-                                            <div><strong>DP:</strong> N$${totals.dispensed.dp}</div>
-                                            <div><strong>BV:</strong> ${totals.dispensed.bv}</div>
-                                        ` : `
-                                            <div><strong>CP:</strong> N$${totals.dispensed.cp}</div>
-                                        `}
-                                    </div>
+                                <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #27ae60;">                                   
+                                    <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Dispensed</div>                   
+                                    <div style="font-size: 1rem; font-weight: 700; color: #27ae60;">          
+                                        ${clientMembershipStatus === 'member' ? `                                    
+                                            <div>N$${totals.dispensed.dp}</div>                 
+                                            <div style="font-size: 0.75rem; color: #27ae60; margin-top: 4px;">BV: ${totals.dispensed.bv}</div>                   
+                                        ` : `                                 
+                                            <div>N$${totals.dispensed.cp}</div>                 
+                                        `}                                    
+                                    </div>                                    
                                 </div>
-                                <div style="text-align: center; background: #d4edda; padding: 10px; border-radius: 5px;">
-                                    <h5 style="color: #155724; margin-bottom: 5px;">PAID</h5>
-                                    <div style="font-size: 0.8rem;">
-                                        ${clientMembershipStatus === 'member' ? `
-                                            <div><strong>DP:</strong> N$${totals.paid.dp}</div>
-                                            <div><strong>BV:</strong> ${totals.paid.bv}</div>
-                                        ` : `
-                                            <div><strong>CP:</strong> N$${totals.paid.cp}</div>
-                                        `}
-                                    </div>
+                                <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #155724;">                                   
+                                    <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Paid</div>                        
+                                    <div style="font-size: 1rem; font-weight: 700; color: #155724;">          
+                                        ${clientMembershipStatus === 'member' ? `                                    
+                                            <div>N$${totals.paid.dp}</div>                      
+                                            <div style="font-size: 0.75rem; color: #27ae60; margin-top: 4px;">BV: ${totals.paid.bv}</div>                        
+                                        ` : `                                 
+                                            <div>N$${totals.paid.cp}</div>                      
+                                        `}                                    
+                                    </div>                                    
                                 </div>
-                                <div style="text-align: center; background: #f8d7da; padding: 10px; border-radius: 5px;">
-                                    <h5 style="color: #721c24; margin-bottom: 5px;">OUTSTANDING</h5>
-                                    <div style="font-size: 0.8rem;">
-                                        ${clientMembershipStatus === 'member' ? `
-                                            <div><strong>DP:</strong> N$${totals.outstanding.dp}</div>
-                                            <div><strong>BV:</strong> ${totals.outstanding.bv}</div>
-                                        ` : `
-                                            <div><strong>CP:</strong> N$${totals.outstanding.cp}</div>
-                                        `}
-                                    </div>
+                                <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #f39c12;">                                   
+                                    <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Outstanding</div>                 
+                                    <div style="font-size: 1rem; font-weight: 700; color: ${Number(totals.outstanding[clientMembershipStatus === 'member' ? 'dp' : 'cp']) > 0 ? '#f39c12' : '#27ae60'};">          
+                                        ${clientMembershipStatus === 'member' ? `                                    
+                                            <div>N$${totals.outstanding.dp}</div>               
+                                            <div style="font-size: 0.75rem; color: #27ae60; margin-top: 4px;">BV: ${totals.outstanding.bv}</div>                 
+                                        ` : `                                 
+                                            <div>N$${totals.outstanding.cp}</div>               
+                                        `}                                    
+                                    </div>                                    
                                 </div>
-                                <div style="text-align: center; background: #fff3cd; padding: 10px; border-radius: 5px;">
-                                    <h5 style="color: #f39c12; margin-bottom: 5px;">PENDING</h5>
-                                    <div style="font-size: 0.8rem;">
-                                        ${clientMembershipStatus === 'member' ? `
-                                            <div><strong>DP:</strong> N$${totals.pending.dp}</div>
-                                            <div><strong>BV:</strong> ${totals.pending.bv}</div>
-                                        ` : `
-                                            <div><strong>CP:</strong> N$${totals.pending.cp}</div>
-                                        `}
-                                    </div>
+                                <div style="text-align: center; background: rgba(255,255,255,0.95); padding: 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #ff9800;">                                   
+                                    <div style="font-size: 0.7rem; color: #666; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Pending</div>                     
+                                    <div style="font-size: 1rem; font-weight: 700; color: #ff9800;">          
+                                        ${clientMembershipStatus === 'member' ? `                                    
+                                            <div>N$${totals.pending.dp}</div>                   
+                                            <div style="font-size: 0.75rem; color: #27ae60; margin-top: 4px;">BV: ${totals.pending.bv}</div>                     
+                                        ` : `                                 
+                                            <div>N$${totals.pending.cp}</div>                   
+                                        `}                                    
+                                    </div>                                    
                                 </div>
                             </div>
                         </div>
@@ -13633,14 +13806,14 @@
                         <p style="margin-top: 5px; white-space: pre-wrap;">${report.notes}</p>
                     </div>
                     ` : ''}
-                    <div style="text-align: center;">
-                        <button class="btn btn-info" onclick="viewPrescriptionDetails('${report.id}')">👁️ View Details</button>
-                        <button class="btn btn-warning" onclick="printPrescription('${report.id}')">🖨️ Print Full</button>
-                        <button class="btn btn-success" onclick="printThermalReceipt('${report.id}')">🧾 Thermal Receipt</button>
-                        <button class="btn" onclick="dispenseAll('${report.id}')">✅ Mark All Dispensed</button>
-                        <button class="btn btn-primary" onclick="openPaymentModal('${report.id}')">💳 Collect Payment</button>
-                        <button class="btn" onclick="viewPrescriptionPaymentHistory('${report.id}')">📜 Payment History</button>
-                        <button class="btn btn-warning" onclick="reverseLastPrescriptionPayment('${report.id}')">↩️ Reverse Last Payment</button>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding-top: 15px; border-top: 2px solid #e0e0e0; margin-top: 15px;">                         
+                        <button class="btn btn-info" onclick="viewPrescriptionDetails('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">👁️ View Details</button>                              
+                        <button class="btn btn-warning" onclick="printPrescription('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">🖨️ Print Full</button>                                   
+                        <button class="btn btn-success" onclick="printThermalReceipt('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">🧾 Thermal Receipt</button>                           
+                        ${pending > 0 ? `<button class="btn" onclick="dispenseAll('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; background: #27ae60; color: white; transition: all 0.3s;">✅ Mark All Dispensed</button>` : ''}
+                        ${totals.outstanding[clientMembershipStatus === 'member' ? 'dp' : 'cp'] > 0 ? `<button class="btn btn-primary" onclick="openPaymentModal('${report.id}')" style="min-width: 160px; padding: 12px 20px; border-radius: 6px; font-weight: 700; font-size: 1.05rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;">💳 Collect Payment</button>` : ''}
+                        <button class="btn" onclick="viewPrescriptionPaymentHistory('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">📜 Payment History</button>                            
+                        <button class="btn btn-warning" onclick="reverseLastPrescriptionPayment('${report.id}')" style="min-width: 140px; padding: 10px 16px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">↩️ Reverse Payment</button>            
                     </div>
                 `;
                 list.appendChild(card);
@@ -13879,48 +14052,60 @@ function openPaymentModal(reportId){
 
     rxPaymentContext = { reportId, memberStatus, totals, consultation, amountDue };
 
-    const summary = document.getElementById('paymentSummary');
+        const summary = document.getElementById('paymentSummary');                
     if (summary){
-        const totalVal = memberStatus === 'member' ? totals.total.dp : totals.total.cp;
-        const dispVal = memberStatus === 'member' ? totals.dispensed.dp : totals.dispensed.cp;
-        const paidVal = memberStatus === 'member' ? totals.paid.dp : totals.paid.cp;
-        const outVal = memberStatus === 'member' ? totals.outstanding.dp : totals.outstanding.cp;
+        const totalVal = memberStatus === 'member' ? totals.total.dp : totals.total.cp;                              
+        const dispVal = memberStatus === 'member' ? totals.dispensed.dp : totals.dispensed.cp;                       
+        const paidVal = memberStatus === 'member' ? totals.paid.dp : totals.paid.cp;                                 
+        const outVal = memberStatus === 'member' ? totals.outstanding.dp : totals.outstanding.cp;                    
         summary.innerHTML = `
-            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #c41e3a; padding:10px; border-radius:6px;">
-                <div style="font-size:12px; color:#555;">Total</div>
-                <div style="font-weight:700; color:#c41e3a;">${rxFormat(totalVal)}</div>
+            <div style="background:linear-gradient(135deg, #fff 0%, #f8f9fa 100%); border:2px solid #e0e0e0; border-left:4px solid #c41e3a; padding:14px; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">                           
+                <div style="font-size:0.7rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Total</div>          
+                <div style="font-weight:700; color:#c41e3a; font-size:1.2rem;">${rxFormat(totalVal)}</div>                             
             </div>
-            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #27ae60; padding:10px; border-radius:6px;">
-                <div style="font-size:12px; color:#555;">Dispensed</div>
-                <div style="font-weight:700; color:#27ae60;">${rxFormat(dispVal)}</div>
+            <div style="background:linear-gradient(135deg, #fff 0%, #f8f9fa 100%); border:2px solid #e0e0e0; border-left:4px solid #27ae60; padding:14px; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">                           
+                <div style="font-size:0.7rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Dispensed</div>      
+                <div style="font-weight:700; color:#27ae60; font-size:1.2rem;">${rxFormat(dispVal)}</div>                              
             </div>
-            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #155724; padding:10px; border-radius:6px;">
-                <div style="font-size:12px; color:#555;">Paid</div>
-                <div style="font-weight:700; color:#155724;">${rxFormat(paidVal)}</div>
+            <div style="background:linear-gradient(135deg, #fff 0%, #f8f9fa 100%); border:2px solid #e0e0e0; border-left:4px solid #155724; padding:14px; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">                           
+                <div style="font-size:0.7rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Paid</div>           
+                <div style="font-weight:700; color:#155724; font-size:1.2rem;">${rxFormat(paidVal)}</div>                              
             </div>
-            <div style="background:#fff; border:1px solid #eee; border-left:4px solid #f39c12; padding:10px; border-radius:6px;">
-                <div style="font-size:12px; color:#555;">Outstanding</div>
-                <div style="font-weight:700; color:#f39c12;">${rxFormat(outVal)}</div>
+            <div style="background:linear-gradient(135deg, #fff 0%, #f8f9fa 100%); border:2px solid #e0e0e0; border-left:4px solid #f39c12; padding:14px; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">                           
+                <div style="font-size:0.7rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Outstanding</div>    
+                <div style="font-weight:700; color:#f39c12; font-size:1.2rem;">${rxFormat(outVal)}</div>                               
             </div>`;
     }
 
     const consult = document.getElementById('paymentConsultation');
     if (consult) consult.textContent = rxFormat(consultation);
 
-    const tenderRows = document.getElementById('tenderRows');
+        const tenderRows = document.getElementById('tenderRows');                 
     if (tenderRows){
         tenderRows.innerHTML = '';
-        const row = document.createElement('div');
-        row.style.display = 'contents';
-        row.innerHTML = `
-            <select class="tender-method" onchange="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-                <option value="Cash">Cash</option>
-                <option value="Card">Card</option>
-                <option value="Mobile Money">Mobile Money</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-            </select>
-            <input class="tender-ref" placeholder="Ref (optional)" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-            <input class="tender-amount" type="number" min="0" step="0.01" value="${amountDue.toFixed(2)}" oninput="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+        const row = document.createElement('div');                            
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 150px 1fr';
+        row.style.gap = '12px';
+        row.style.marginBottom = '12px';
+                row.innerHTML = `
+            <div>
+                <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Payment Method</label>
+                <select class="tender-method" onchange="recalcPaymentTotals()" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                 
+                    <option value="Cash">💰 Cash</option>                            
+                    <option value="Card">💳 Card</option>                            
+                    <option value="Mobile Money">📱 Mobile Money</option>            
+                    <option value="Bank Transfer">🏦 Bank Transfer</option>          
+                </select>
+            </div>
+            <div>
+                <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Reference</label>
+                <input class="tender-ref" placeholder="Optional" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                         
+            </div>
+            <div>
+                <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Amount (N$)</label>
+                <input class="tender-amount" type="number" min="0" step="0.01" value="${amountDue.toFixed(2)}" oninput="recalcPaymentTotals()" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; font-weight:600; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                               
+            </div>
         `;
         tenderRows.appendChild(row);
     }
@@ -13938,19 +14123,31 @@ function closePaymentModal(){
 }
 
 function addTenderRow(){
-    const tenderRows = document.getElementById('tenderRows');
+    const tenderRows = document.getElementById('tenderRows');                 
     if (!tenderRows) return;
-    const row = document.createElement('div');
-    row.style.display = 'contents';
-    row.innerHTML = `
-        <select class="tender-method" onchange="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="Mobile Money">Mobile Money</option>
-            <option value="Bank Transfer">Bank Transfer</option>
-        </select>
-        <input class="tender-ref" placeholder="Ref (optional)" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-        <input class="tender-amount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+    const row = document.createElement('div');                                
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '1fr 150px 1fr';
+    row.style.gap = '12px';
+    row.style.marginBottom = '12px';
+        row.innerHTML = `
+        <div>
+            <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Payment Method</label>
+            <select class="tender-method" onchange="recalcPaymentTotals()" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                     
+                <option value="Cash">💰 Cash</option>                                
+                <option value="Card">💳 Card</option>                                
+                <option value="Mobile Money">📱 Mobile Money</option>                
+                <option value="Bank Transfer">🏦 Bank Transfer</option>              
+            </select>
+        </div>
+        <div>
+            <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Reference</label>
+            <input class="tender-ref" placeholder="Optional" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                             
+        </div>
+        <div>
+            <label style="display:block; font-size:0.75rem; color:#666; margin-bottom:4px; font-weight:600;">Amount (N$)</label>
+            <input class="tender-amount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:0.95rem; font-weight:600; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">                  
+        </div>
     `;
     tenderRows.appendChild(row);
     recalcPaymentTotals();
@@ -18933,7 +19130,7 @@ async function reverseLastPrescriptionPayment(reportId){
         
         // IndexedDB setup for distributors
         const dbName = 'DynapharmDB';
-        const dbVersion = 1;
+        const dbVersion = 3; // Updated to match existing database version
         const storeName = 'distributors';
         let db = null;
         
@@ -18950,10 +19147,25 @@ async function reverseLastPrescriptionPayment(reportId){
                 
                 request.onupgradeneeded = (event) => {
                     db = event.target.result;
+                    const oldVersion = event.oldVersion || 0;
+                    
+                    // Create object store if it doesn't exist
                     if (!db.objectStoreNames.contains(storeName)) {
                         const objectStore = db.createObjectStore(storeName, { keyPath: 'id' });
                         objectStore.createIndex('distributorCode', 'distributorCode', { unique: false });
                         objectStore.createIndex('distributorName', 'distributorName', { unique: false });
+                    } else {
+                        // If store exists, ensure indexes are present
+                        const transaction = event.target.transaction;
+                        const objectStore = transaction.objectStore(storeName);
+                        
+                        // Check and create indexes if they don't exist
+                        if (!objectStore.indexNames.contains('distributorCode')) {
+                            objectStore.createIndex('distributorCode', 'distributorCode', { unique: false });
+                        }
+                        if (!objectStore.indexNames.contains('distributorName')) {
+                            objectStore.createIndex('distributorName', 'distributorName', { unique: false });
+                        }
                     }
                 };
             });
@@ -19077,6 +19289,9 @@ async function reverseLastPrescriptionPayment(reportId){
             document.getElementById('distributorReferralDropdown').style.display = 'none';
             document.getElementById('customerNameDropdown').style.display = 'none';
             
+            // Reset payment method to cash (default)
+            selectWalkInPaymentMethod('cash');
+            
             // Update title
             document.getElementById('walkInSaleTitle').textContent = '👤 Walk-in Sale';
             
@@ -19088,6 +19303,41 @@ async function reverseLastPrescriptionPayment(reportId){
             
             // Show modal
             document.getElementById('walkInSaleModal').style.display = 'block';
+        }
+        
+        function selectWalkInPaymentMethod(method) {
+            // Update hidden input
+            const paymentMethodInput = document.getElementById('walkInPaymentMethod');
+            if (paymentMethodInput) {
+                paymentMethodInput.value = method;
+            }
+            
+            // Get all payment method buttons
+            const buttons = {
+                cash: document.getElementById('paymentMethodCash'),
+                card: document.getElementById('paymentMethodCard'),
+                mobile: document.getElementById('paymentMethodMobile'),
+                bank: document.getElementById('paymentMethodBank')
+            };
+            
+            // Reset all buttons to inactive state
+            Object.values(buttons).forEach(btn => {
+                if (btn) {
+                    btn.classList.remove('active');
+                    btn.style.border = '2px solid #ddd';
+                    btn.style.background = 'white';
+                    btn.style.fontWeight = 'normal';
+                }
+            });
+            
+            // Activate selected button
+            const selectedBtn = buttons[method];
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+                selectedBtn.style.border = '2px solid #27ae60';
+                selectedBtn.style.background = '#e8f5e9';
+                selectedBtn.style.fontWeight = 'bold';
+            }
         }
         
         function searchDistributorsForReferral() {
@@ -19593,13 +19843,26 @@ async function reverseLastPrescriptionPayment(reportId){
                     <div style="flex: 1;">
                         <strong>${item.name}</strong>
                         <div style="font-size: 0.9rem; color: #666;">
-                            ${priceLabel}: N$ ${pricePerUnit.toFixed(2)} × ${item.quantity} | BV: ${(item.bv * item.quantity).toFixed(0)}
+                            ${priceLabel}: N$ ${pricePerUnit.toFixed(2)}
+                        </div>
+                        <div style="font-size: 0.85rem; color: #c41e3a; margin-top: 3px;">
+                            BV: ${(item.bv * item.quantity).toFixed(0)}
                         </div>
                     </div>
-                    <div style="margin: 0 15px;">
-                        <strong>N$ ${totalPrice.toFixed(2)}</strong>
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 0 15px;">
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <button onclick="updateWalkInCartQuantity(${index}, -1)" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-weight: bold;">−</button>
+                            <input type="number" id="qty-${index}" value="${item.quantity}" min="1" 
+                                   onchange="updateWalkInCartQuantity(${index}, 0, this.value)" 
+                                   onclick="this.select()"
+                                   style="width: 50px; text-align: center; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button onclick="updateWalkInCartQuantity(${index}, 1)" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-weight: bold;">+</button>
+                        </div>
+                        <div style="text-align: right; min-width: 80px;">
+                            <strong>N$ ${totalPrice.toFixed(2)}</strong>
+                        </div>
                     </div>
-                    <button class="btn" onclick="removeFromWalkInCart(${index})" style="padding: 5px 10px;">❌</button>
+                    <button class="btn" onclick="removeFromWalkInCart(${index})" style="padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">❌</button>
                 </div>
             `;
             }).join('');
@@ -19627,6 +19890,93 @@ async function reverseLastPrescriptionPayment(reportId){
             document.getElementById('walkInDiscountAmount').textContent = `BV: ${totalBV.toFixed(0)}`;
             document.getElementById('walkInTaxAmount').textContent = `N$ 0.00`;
             document.getElementById('walkInGrandTotal').textContent = `N$ ${grandTotal.toFixed(2)}`;
+        }
+
+        function updateWalkInCartQuantity(index, delta, newValue) {
+            if (index < 0 || index >= walkInCart.length) return;
+            
+            const item = walkInCart[index];
+            
+            if (newValue !== undefined && newValue !== null) {
+                // Direct value update from input field
+                const quantity = parseInt(newValue) || 1;
+                item.quantity = Math.max(1, quantity);
+            } else if (delta !== 0) {
+                // Increment/decrement
+                item.quantity = Math.max(1, item.quantity + delta);
+            }
+            
+            // Update the input field value
+            const qtyInput = document.getElementById(`qty-${index}`);
+            if (qtyInput) {
+                qtyInput.value = item.quantity;
+            }
+            
+            // Refresh cart display
+            updateWalkInCart();
+        }
+
+        function showWalkInSaleConfirmation() {
+            const customerName = document.getElementById('walkInCustomerName').value.trim();
+            const phone = document.getElementById('walkInPhone').value.trim();
+            const email = document.getElementById('walkInEmail').value.trim();
+            const customerType = document.getElementById('walkInCustomerType').value;
+            const paymentMethod = document.getElementById('walkInPaymentMethod')?.value || 'cash';
+            
+            // Validation
+            if (!customerName || walkInCart.length === 0) {
+                alert('Please fill in customer name and add products to cart');
+                return;
+            }
+            
+            // Check distributor referral for customers
+            if (customerType === 'customer') {
+                const distributorCode = document.getElementById('distributorReferralValue').value;
+                if (!distributorCode) {
+                    alert('⚠️ Required: Please search and select a referred distributor');
+                    return;
+                }
+            }
+            
+            // Calculate totals
+            const pricePerUnit = customerType === 'distributor' ? 'dp' : 'cp';
+            const subtotal = walkInCart.reduce((sum, item) => {
+                return sum + (item[pricePerUnit] * item.quantity);
+            }, 0);
+            
+            const totalBV = walkInCart.reduce((sum, item) => {
+                return sum + (item.bv * item.quantity);
+            }, 0);
+            
+            // Build confirmation message
+            const paymentMethodLabels = {
+                'cash': '💵 Cash',
+                'card': '💳 Card',
+                'mobile': '📱 Mobile Money',
+                'bank': '🏦 Bank Transfer'
+            };
+            const paymentLabel = paymentMethodLabels[paymentMethod] || paymentMethod;
+            
+            let confirmationMessage = '📋 REVIEW & CONFIRM SALE\n\n';
+            confirmationMessage += `Customer: ${customerName}\n`;
+            if (phone) confirmationMessage += `Phone: ${phone}\n`;
+            if (email) confirmationMessage += `Email: ${email}\n`;
+            confirmationMessage += `Type: ${customerType === 'distributor' ? 'Distributor' : 'Customer'}\n`;
+            confirmationMessage += `Payment Method: ${paymentLabel}\n\n`;
+            confirmationMessage += 'Products:\n';
+            walkInCart.forEach((item, idx) => {
+                const price = customerType === 'distributor' ? item.dp : item.cp;
+                const total = price * item.quantity;
+                confirmationMessage += `  ${idx + 1}. ${item.name} x${item.quantity} = N$ ${total.toFixed(2)}\n`;
+            });
+            confirmationMessage += `\nSubtotal: N$ ${subtotal.toFixed(2)}\n`;
+            confirmationMessage += `Total BV: ${totalBV.toFixed(0)}\n`;
+            confirmationMessage += `Grand Total: N$ ${subtotal.toFixed(2)}\n\n`;
+            confirmationMessage += 'Confirm this sale?';
+            
+            if (confirm(confirmationMessage)) {
+                processWalkInPayment();
+            }
         }
 
         async function processWalkInPayment() {
@@ -19764,6 +20114,9 @@ async function reverseLastPrescriptionPayment(reportId){
             const now = new Date();
             const saleDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format for finance
             
+            // Get selected payment method
+            const paymentMethod = document.getElementById('walkInPaymentMethod')?.value || 'cash';
+            
             const sale = {
                 id: 'WALKIN-' + Date.now(),
                 clientId: clientId,
@@ -19786,7 +20139,7 @@ async function reverseLastPrescriptionPayment(reportId){
                 timestamp: now.toISOString(),
                 soldBy: currentUser ? currentUser.fullName : 'Unknown',
                 branch: currentUser ? currentUser.branch : 'unknown',
-                paymentMethod: 'cash' // Default, can be updated if payment method tracking added
+                paymentMethod: paymentMethod // Use selected payment method
             };
             
             // FEFO mandatory: deduct via barcode/batch FEFO first
@@ -19865,7 +20218,15 @@ async function reverseLastPrescriptionPayment(reportId){
             localStorage.setItem('dyna_cash_drawer', JSON.stringify(cashDrawer));
             
             // Show success message with client registration info if applicable
-            let successMessage = `✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}`;
+            const paymentMethodLabels = {
+                'cash': '💵 Cash',
+                'card': '💳 Card',
+                'mobile': '📱 Mobile Money',
+                'bank': '🏦 Bank Transfer'
+            };
+            const paymentLabel = paymentMethodLabels[paymentMethod] || paymentMethod;
+            
+            let successMessage = `✅ Sale processed successfully!\n\nTotal: N$ ${grandTotal.toFixed(2)}\nPayment Method: ${paymentLabel}`;
             if (clientReferenceNumber && !existingClient) {
                 successMessage += `\n\n📝 New client registered!\nReference: ${clientReferenceNumber}`;
             } else if (clientReferenceNumber) {
@@ -20802,6 +21163,15 @@ async function reverseLastPrescriptionPayment(reportId){
                 return diffDays >= 0 && diffDays <= 60;
             }).length;
 
+            // Get auto-generated PO suggestions from stock movements
+            let poSuggestions = null;
+            try {
+                const suggestionsData = localStorage.getItem('dyna_po_suggestions');
+                if (suggestionsData) {
+                    poSuggestions = JSON.parse(suggestionsData);
+                }
+            } catch(_) {}
+
             const bullets = [
                 `📦 ${openPOs} purchase orders still open — ensure supplier follow-ups are in place.`,
                 `🚛 ${asnQueue.length} inbound shipments registered covering ${inboundCartons} cartons.`,
@@ -20812,6 +21182,12 @@ async function reverseLastPrescriptionPayment(reportId){
                     ? `⏳ ${expiringSoon} batches expiring within 60 days — consider branch pull-through campaigns.`
                     : '✅ No batches expiring in the next 60 days.'
             ];
+
+            // Add stock movement-based suggestions
+            if (poSuggestions && poSuggestions.products && poSuggestions.products.length > 0) {
+                const suggestionText = `🔄 ${poSuggestions.products.length} product(s) identified for auto-reorder based on stock movements — click "Auto-Generate from Stock Movements" to create purchase orders.`;
+                bullets.unshift(suggestionText); // Add at the top as most important
+            }
 
             list.innerHTML = bullets.map(text => `<li>${text}</li>`).join('');
         }
@@ -26387,23 +26763,53 @@ async function reverseLastPrescriptionPayment(reportId){
         }
         
         // Product name mapping to dynapharm.net/ph format
+        // Maps internal product names to website display names
         const PRODUCT_NAME_MAPPING = {
+            // Bee Pollen products
             "BEE POLEN CAPSULE (30's)": "Bee Pollen Capsule",
             "BEE POLLEN CAPSULE (100's)": "Bee Pollen Capsule",
+            
+            // Gin Ali products
             "GINALI CAPSULE 100's": "Gin Ali Capsule",
             "GINALI CAPSULE 30's": "Gin Ali Capsule",
+            
+            // Soybean products
             "D.I. INSTANT SOYBEAN MIXTURE WITH GINGER 25g x 20'": "Instant Soybean Powder",
             "SOYBEAN POWDER 454g": "Instant Soybean Powder",
+            
+            // Yeeyangyen products
             "YEEYANGYEN TABLET 30's": "Yeeyangyen",
             "YEEYANGYEN TABLET 90's": "Yeeyangyen",
+            
+            // Sea Cucumber products
             "SEA CUCUMBER JELLY (250ml)": "Sea Cucumber Jelly",
             "SEA CUCUMBER JELLY (500ml)": "Sea Cucumber Jelly"
         };
         
+        // Product slug mapping for specific products that don't follow standard naming
+        const PRODUCT_SLUG_MAPPING = {
+            "BEE POLEN CAPSULE (30's)": "bee-pollen-capsule",
+            "BEE POLLEN CAPSULE (100's)": "bee-pollen-capsule",
+            "GINALI CAPSULE 100's": "gin-ali-capsule",
+            "GINALI CAPSULE 30's": "gin-ali-capsule",
+            "D.I. INSTANT SOYBEAN MIXTURE WITH GINGER 25g x 20'": "instant-soybean-power",
+            "SOYBEAN POWDER 454g": "instant-soybean-power",
+            "YEEYANGYEN TABLET 30's": "yeeyangyen",
+            "YEEYANGYEN TABLET 90's": "yeeyangyen",
+            "SEA CUCUMBER JELLY (250ml)": "sea-cucumber-jelly",
+            "SEA CUCUMBER JELLY (500ml)": "sea-cucumber-jelly"
+        };
+        
         // Function to convert product name to URL slug format
         function productNameToSlug(productName) {
-            // First check the mapping
+            // First check if there's a specific slug mapping
+            if (PRODUCT_SLUG_MAPPING[productName]) {
+                return PRODUCT_SLUG_MAPPING[productName];
+            }
+            
+            // Then check the name mapping
             const mappedName = PRODUCT_NAME_MAPPING[productName] || productName;
+            
             // Convert to slug format (lowercase, spaces to hyphens, remove special chars)
             return mappedName
                 .toLowerCase()
@@ -26416,19 +26822,24 @@ async function reverseLastPrescriptionPayment(reportId){
         // Function to get product image URL from dynapharm.net/ph
         function getProductImageUrl(productName) {
             const slug = productNameToSlug(productName);
-            // Try common image URL patterns from the website
-            // Format: https://dynapharm.net/ph/wp-content/uploads/YYYY/MM/product-slug.jpg
             const baseUrl = 'https://dynapharm.net/ph';
             const productUrl = `${baseUrl}/product/${slug}/`;
             
-            // Return the product page URL - images will be loaded from there
-            // For actual images, we'll use the product page's featured image
-            // Common image paths:
+            // Try multiple common WordPress/WooCommerce image URL patterns
+            // Most sites store images in: /wp-content/uploads/YYYY/MM/filename.jpg
+            // Or in a products folder: /wp-content/uploads/products/filename.jpg
+            // Or use the product slug directly
             const imageUrls = [
+                // Direct product image paths (most common)
+                `${baseUrl}/wp-content/uploads/products/${slug}.jpg`,
+                `${baseUrl}/wp-content/uploads/products/${slug}.png`,
                 `${baseUrl}/wp-content/uploads/${slug}.jpg`,
                 `${baseUrl}/wp-content/uploads/${slug}.png`,
-                `${baseUrl}/wp-content/uploads/products/${slug}.jpg`,
-                `${baseUrl}/wp-content/uploads/products/${slug}.png`
+                // WooCommerce product image path
+                `${baseUrl}/wp-content/uploads/wc-product-images/${slug}.jpg`,
+                // Try with different extensions
+                `${baseUrl}/wp-content/uploads/products/${slug}-1.jpg`,
+                `${baseUrl}/wp-content/uploads/products/${slug}-300x300.jpg`
             ];
             
             return {
@@ -26445,14 +26856,26 @@ async function reverseLastPrescriptionPayment(reportId){
                 
                 // Try to fetch the product page and extract image
                 try {
+                    // Use a proxy or CORS-enabled fetch if available
                     const response = await fetch(productUrl, { 
                         mode: 'cors',
-                        headers: { 'Accept': 'text/html' }
+                        headers: { 
+                            'Accept': 'text/html',
+                            'User-Agent': 'Mozilla/5.0'
+                        }
                     });
                     if (response.ok) {
                         const html = await response.text();
-                        // Extract featured image or product image from HTML
-                        const imgMatch = html.match(/<img[^>]+(?:class="[^"]*product[^"]*"[^>]+)?src="([^"]+)"[^>]*>/i);
+                        
+                        // Try multiple patterns to find product image
+                        // Pattern 1: WooCommerce featured image in meta tag
+                        let imgMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i);
+                        if (imgMatch && imgMatch[1]) {
+                            return imgMatch[1];
+                        }
+                        
+                        // Pattern 2: Product image in img tag with product class
+                        imgMatch = html.match(/<img[^>]+(?:class="[^"]*product[^"]*|woocommerce-product-gallery__image)[^>]+src="([^"]+)"[^>]*>/i);
                         if (imgMatch && imgMatch[1]) {
                             let imgUrl = imgMatch[1];
                             // Convert relative URLs to absolute
@@ -26463,25 +26886,24 @@ async function reverseLastPrescriptionPayment(reportId){
                             }
                             return imgUrl;
                         }
+                        
+                        // Pattern 3: Any img tag in product gallery
+                        imgMatch = html.match(/<img[^>]+src="([^"]*wp-content[^"]*uploads[^"]*)"[^>]*>/i);
+                        if (imgMatch && imgMatch[1]) {
+                            let imgUrl = imgMatch[1];
+                            if (!imgUrl.startsWith('http')) {
+                                imgUrl = imgUrl.startsWith('/') ? 'https://dynapharm.net' + imgUrl : 'https://dynapharm.net/ph/' + imgUrl;
+                            }
+                            return imgUrl;
+                        }
                     }
                 } catch (e) {
                     console.debug('Could not fetch product page:', e);
                 }
                 
-                // Fallback: try common image URL patterns
+                // Fallback: return first potential image URL
                 const { imageUrls } = getProductImageUrl(productName);
-                for (const imgUrl of imageUrls) {
-                    try {
-                        const imgResponse = await fetch(imgUrl, { method: 'HEAD', mode: 'no-cors' });
-                        // If we can't check, just return the first URL as potential
-                        return imgUrl;
-                    } catch (e) {
-                        continue;
-                    }
-                }
-                
-                // Final fallback: return null to use placeholder
-                return null;
+                return imageUrls[0] || null;
             } catch (error) {
                 console.debug('Error fetching product image:', error);
                 return null;
@@ -26538,27 +26960,41 @@ async function reverseLastPrescriptionPayment(reportId){
                 const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
                 
-                // Handle both legacy single photo and new array format
-                let productPhotos = photoMap[product.description];
-                if (!productPhotos) {
-                    productPhotos = ['https://placehold.co/200x200?text=Product'];
-                } else if (typeof productPhotos === 'string') {
-                    // Legacy format: convert single photo to array
-                    productPhotos = [productPhotos];
+                // Get display name from mapping (website format)
+                const displayName = getProductDisplayName(product.description);
+                
+                // Get product images - try stored first, then website
+                let productPhotos = getProductImage(product.description, photoMap);
+                
+                // If no stored photos or only placeholders, try to get from website
+                // But don't force load - let the browser try and fallback gracefully
+                if (!productPhotos || productPhotos.length === 0 || 
+                    (productPhotos.length === 1 && productPhotos[0] && productPhotos[0].includes('placehold.co'))) {
+                    const slug = productNameToSlug(product.description);
+                    const { imageUrls } = getProductImageUrl(product.description);
+                    // Use website image URLs from dynapharm.net/ph
+                    // Use only the most likely URL to avoid excessive 404s
+                    productPhotos = [imageUrls[0]]; // Try only the first URL, browser will handle 404
                 }
+                
                 // Ensure it's an array
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
+                
                 // Filter out invalid entries (allow objects for new variant format)
                 productPhotos = productPhotos.filter(photo => {
                     if (!photo) return false;
-                    if (typeof photo === 'string') return photo.trim().length > 0;
+                    if (typeof photo === 'string') return photo.trim().length > 0 && !photo.includes('placehold.co');
                     if (typeof photo === 'object') return !!(photo.full || photo.src || photo.w600 || photo.w300);
                     return false;
                 });
+                
+                // If still no valid photos, try direct website image paths
                 if (productPhotos.length === 0) {
-                    productPhotos = ['https://placehold.co/200x200?text=Product'];
+                    const slug = productNameToSlug(product.description);
+                    const { imageUrls } = getProductImageUrl(product.description);
+                    productPhotos = [imageUrls[0]]; // Try only first URL to reduce failed requests
                 }
                 // Limit to max 4 photos
                 if (productPhotos.length > 4) {
@@ -26575,9 +27011,10 @@ async function reverseLastPrescriptionPayment(reportId){
                                 const src = isObj ? (photo.full || photo.src || photo.w600 || photo.w300) : photo;
                                 const srcset = isObj ? `${photo.w300 || src} 300w, ${photo.w600 || src} 600w, ${photo.full || src} 1200w` : '';
                                 return `
-                                <img ${srcset ? `srcset="${srcset}"` : ''} src="${src}" alt="${product.description} - Image ${idx + 1}" 
+                                <img ${srcset ? `srcset="${srcset}"` : ''} src="${src}" alt="${displayName} - Image ${idx + 1}" 
                                      data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" referrerpolicy="no-referrer" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
-                                     onload="this.style.filter='none'; this.style.background='transparent'"
+                                     onerror="if(!this.hasAttribute('data-failed')) { this.setAttribute('data-failed', '1'); const placeholder = 'https://placehold.co/200x200?text=' + encodeURIComponent('${displayName.replace(/'/g, "\\'")}'); if(!this.src.includes('placehold.co')) { this.src = placeholder; } }"
+                                     onload="this.style.filter='none'; this.style.background='transparent'; this.removeAttribute('data-failed');"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transform: ${idx === 0 ? 'rotateY(0deg) scale(1)' : 'rotateY(90deg) scale(0.95)'}; transition: opacity 0.6s ease, transform 0.6s ease; backface-visibility: hidden; background:#f3f4f6; filter: blur(8px);">
                                 `;
                             }).join('')}
@@ -26587,7 +27024,7 @@ async function reverseLastPrescriptionPayment(reportId){
                                 </div>
                             ` : ''}
                         </div>
-                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
+                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${displayName}</h4>
                         <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
                             N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
                         </p>
@@ -26643,36 +27080,53 @@ async function reverseLastPrescriptionPayment(reportId){
             const shopProductsGrid = document.getElementById('shopProductsGrid');
             if (!shopProductsGrid) return;
             
-            const filteredProducts = products.filter(product => 
-                product.description.toLowerCase().includes(searchTerm)
-            );
+            // Filter products by search term (check both original description and display name)
+            const filteredProducts = products.filter(product => {
+                const displayName = getProductDisplayName(product.description);
+                const searchInOriginal = product.description.toLowerCase().includes(searchTerm);
+                const searchInDisplay = displayName.toLowerCase().includes(searchTerm);
+                return searchInOriginal || searchInDisplay;
+            });
             
             shopProductsGrid.innerHTML = filteredProducts.map(product => {
                 const displayPrice = effectiveType === 'distributor' ? product.dp : product.cp;
                 const priceLabel = effectiveType === 'distributor' ? 'DP' : 'CP';
                 
-                // Handle both legacy single photo and new array format
-                let productPhotos = photoMap[product.description];
-                if (!productPhotos) {
-                    productPhotos = ['https://placehold.co/200x200?text=Product'];
-                } else if (typeof productPhotos === 'string') {
-                    // Legacy format: convert single photo to array
-                    productPhotos = [productPhotos];
+                // Get display name from mapping (website format)
+                const displayName = getProductDisplayName(product.description);
+                
+                // Get product images - try stored first, then website
+                let productPhotos = getProductImage(product.description, photoMap);
+                
+                // If no stored photos or only placeholders, try to get from website
+                if (!productPhotos || productPhotos.length === 0 || 
+                    (productPhotos.length === 1 && productPhotos[0] && productPhotos[0].includes('placehold.co'))) {
+                    const slug = productNameToSlug(product.description);
+                    const { imageUrls } = getProductImageUrl(product.description);
+                    // Use only the first URL to reduce failed requests
+                    productPhotos = [imageUrls[0]];
                 }
+                
                 // Ensure it's an array
                 if (!Array.isArray(productPhotos)) {
                     productPhotos = [productPhotos];
                 }
-                // Filter out invalid entries (allow objects for new variant format)
+                
+                // Filter out invalid entries
                 productPhotos = productPhotos.filter(photo => {
                     if (!photo) return false;
-                    if (typeof photo === 'string') return photo.trim().length > 0;
+                    if (typeof photo === 'string') return photo.trim().length > 0 && !photo.includes('placehold.co');
                     if (typeof photo === 'object') return !!(photo.full || photo.src || photo.w600 || photo.w300);
                     return false;
                 });
+                
+                // If still no valid photos, try direct website image paths
                 if (productPhotos.length === 0) {
-                    productPhotos = ['https://placehold.co/200x200?text=Product'];
+                    const slug = productNameToSlug(product.description);
+                    const { imageUrls } = getProductImageUrl(product.description);
+                    productPhotos = [imageUrls[0]]; // Try only first URL to reduce failed requests
                 }
+                
                 // Limit to max 4 photos
                 if (productPhotos.length > 4) {
                     productPhotos = productPhotos.slice(0, 4);
@@ -26688,8 +27142,10 @@ async function reverseLastPrescriptionPayment(reportId){
                                 const src = isObj ? (photo.full || photo.src || photo.w600 || photo.w300) : photo;
                                 const srcset = isObj ? `${photo.w300 || src} 300w, ${photo.w600 || src} 600w, ${photo.full || src} 1200w` : '';
                                 return `
-                                <img ${srcset ? `srcset=\"${srcset}\"` : ''} src="${src}" alt="${product.description} - Image ${idx + 1}" 
+                                <img ${srcset ? `srcset=\"${srcset}\"` : ''} src="${src}" alt="${displayName} - Image ${idx + 1}" 
                                      data-index="${idx}" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"'} decoding="async" width="200" height="200" sizes="(max-width: 640px) 100vw, 600px"
+                                     onerror="if(!this.hasAttribute('data-failed')) { this.setAttribute('data-failed', '1'); const placeholder = 'https://placehold.co/200x200?text=' + encodeURIComponent('${displayName.replace(/'/g, "\\'")}'); if(!this.src.includes('placehold.co')) { this.src = placeholder; } }"
+                                     onload="this.removeAttribute('data-failed');"
                                      style="width: 100%; height: 200px; object-fit: cover; position: ${idx === 0 ? 'relative' : 'absolute'}; top: 0; left: 0; opacity: ${idx === 0 ? '1' : '0'}; transition: opacity 0.5s ease-in-out;">
                                 `;
                             }).join('')}
@@ -26699,7 +27155,7 @@ async function reverseLastPrescriptionPayment(reportId){
                                 </div>
                             ` : ''}
                         </div>
-                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${product.description}</h4>
+                        <h4 style="color: #2c3e50; margin-bottom: 5px; font-size: 1rem;">${displayName}</h4>
                         <p style="color: #c41e3a; font-size: 1.3rem; font-weight: bold; margin: 10px 0;">
                             N$${displayPrice.toFixed(2)} <span style="font-size: 0.8rem; color: #666;">(${priceLabel})</span>
                         </p>
@@ -29212,56 +29668,69 @@ This sale appears in the Dispenser Portal sales reports.
         });
     </script>
     <!-- Payment Modal -->
-    <div id="rxPaymentModal" style="display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center; background: rgba(0,0,0,0.45);">
-        <div style="background:#fff; width: 95%; max-width: 800px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow:hidden;">
-            <div style="padding: 14px 18px; background:#c41e3a; color:#fff; display:flex; align-items:center; justify-content:space-between;">
-                <div style="font-weight:700;">Collect Payment</div>
-                <button id="paymentCloseBtn" onclick="closePaymentModal()" style="background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer;">✖</button>
+        <div id="rxPaymentModal" style="display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); animation: fadeIn 0.3s ease-out;">                              
+        <div style="background:#fff; width: 95%; max-width: 900px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow:hidden; animation: slideUp 0.3s ease-out; max-height: 90vh; overflow-y: auto;">        
+            <div style="padding: 20px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; display:flex; align-items:center; justify-content:space-between; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">              
+                <div>
+                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 4px;">PAYMENT COLLECTION</div>
+                    <div style="font-weight:700; font-size: 1.3rem;">Checkout</div>
+                </div>           
+                <button id="paymentCloseBtn" onclick="closePaymentModal()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:20px; cursor:pointer; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">✖</button>                     
             </div>
-            <div style="padding: 16px;">
-                <div id="paymentSummary" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom: 12px;">
-                    <!-- dynamic totals injected here -->
+            <div style="padding: 24px;">                                      
+                <div id="paymentSummary" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom: 20px;">                       
+                    <!-- dynamic totals injected here -->                     
                 </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items:end;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">              
                     <div>
-                        <label style="display:block; font-size: 12px; color:#666; margin-bottom:6px;">Discount (N$)</label>
-                        <input id="paymentDiscount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;" />
+                        <label style="display:block; font-size: 0.85rem; color:#555; margin-bottom:8px; font-weight:600;">Discount Amount (N$)</label>                                 
+                        <input id="paymentDiscount" type="number" min="0" step="0.01" value="0" oninput="recalcPaymentTotals()" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; font-size:1rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'" />                            
                     </div>
                     <div>
-                        <label style="display:block; font-size: 12px; color:#666; margin-bottom:6px;">Consultation Fee</label>
-                        <div id="paymentConsultation" style="padding:10px; border:1px solid #ddd; border-radius:6px; background:#f8f9fa;">N$ 0.00</div>
+                        <label style="display:block; font-size: 0.85rem; color:#555; margin-bottom:8px; font-weight:600;">Consultation Fee</label>                              
+                        <div id="paymentConsultation" style="padding:12px; border:2px solid #e0e0e0; border-radius:8px; background:#f8f9fa; font-size:1rem; font-weight:600; color:#667eea;">N$ 0.00</div>     
                     </div>
                 </div>
-                <div style="margin-top: 16px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <strong>Tenders</strong>
-                        <button class="btn btn-info" onclick="addTenderRow()">➕ Add Tender</button>
+                <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px;">                               
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                        <strong style="font-size: 1rem; color: #2c3e50;">Payment Methods</strong>                              
+                        <button class="btn btn-info" onclick="addTenderRow()" style="padding: 8px 16px; border-radius: 6px; font-weight: 600;">➕ Add Payment Method</button>                 
                     </div>
-                    <div id="tenderRows" style="display:grid; grid-template-columns: 1fr 140px 1fr; gap:10px; align-items:center;">
-                        <!-- tender rows inserted here -->
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top: 16px;">
-                    <div style="background:#e8f5e9; padding:12px; border-radius:6px; text-align:center;">
-                        <div style="font-size:12px; color:#2e7d32;">Amount Due</div>
-                        <div id="amountDue" style="font-weight:700; color:#2e7d32;">N$ 0.00</div>
-                    </div>
-                    <div style="background:#fff3cd; padding:12px; border-radius:6px; text-align:center;">
-                        <div style="font-size:12px; color:#8a6d3b;">Tender Total</div>
-                        <div id="tenderTotal" style="font-weight:700; color:#8a6d3b;">N$ 0.00</div>
-                    </div>
-                    <div style="background:#d1ecf1; padding:12px; border-radius:6px; text-align:center;">
-                        <div style="font-size:12px; color:#0c5460;">Change / Balance</div>
-                        <div id="changeBalance" style="font-weight:700; color:#0c5460;">N$ 0.00</div>
+                    <div id="tenderRows" style="display:flex; flex-direction: column; gap:12px;">                         
+                        <!-- tender rows inserted here -->                    
                     </div>
                 </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px;">
-                    <button class="btn" onclick="closePaymentModal()">Cancel</button>
-                    <button class="btn btn-success" onclick="confirmPayment()">✅ Confirm Payment</button>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-top: 24px; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px;">       
+                    <div style="background:white; padding:16px; border-radius:8px; text-align:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #27ae60;">            
+                        <div style="font-size:0.75rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Amount Due</div>                                 
+                        <div id="amountDue" style="font-weight:700; color:#27ae60; font-size:1.5rem;">N$ 0.00</div>                    
+                    </div>
+                    <div style="background:white; padding:16px; border-radius:8px; text-align:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #f39c12;">            
+                        <div style="font-size:0.75rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Tender Total</div>                               
+                        <div id="tenderTotal" style="font-weight:700; color:#f39c12; font-size:1.5rem;">N$ 0.00</div>                  
+                    </div>
+                    <div style="background:white; padding:16px; border-radius:8px; text-align:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #3498db;">            
+                        <div style="font-size:0.75rem; color:#666; margin-bottom:6px; font-weight:600; text-transform:uppercase;">Change / Balance</div>                           
+                        <div id="changeBalance" style="font-weight:700; color:#3498db; font-size:1.5rem;">N$ 0.00</div>                
+                    </div>
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:28px; padding-top:20px; border-top: 2px solid #e0e0e0;">                     
+                    <button class="btn" onclick="closePaymentModal()" style="padding: 12px 24px; border-radius: 8px; font-weight: 600; background: #f8f9fa; border: 2px solid #e0e0e0; transition: all 0.2s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">Cancel</button>                                
+                    <button class="btn btn-success" onclick="confirmPayment()" style="padding: 12px 32px; border-radius: 8px; font-weight: 700; font-size: 1.05rem; background: linear-gradient(135deg, #27ae60 0%, #229954 100%); box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(39, 174, 96, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(39, 174, 96, 0.4)'">✅ Confirm Payment</button>           
                 </div>
             </div>
         </div>
     </div>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
 </body>
 <script>
     (function(){
