@@ -1,89 +1,15 @@
-import fs from 'fs';
-import path from 'path';
+/**
+ * Clients API Endpoint - PostgreSQL-based with Real-Time Sync
+ * Primary storage: PostgreSQL Database
+ * Real-time updates: WebSocket broadcasting
+ */
 
-// Minimal Upstash Redis REST helper (optional if env is set)
-async function redisGet(key) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) return null;
-    try {
-        const resp = await fetch(`${url.replace(/\/$/, '')}/get/${encodeURIComponent(key)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!resp.ok) return null;
-        const json = await resp.json();
-        // Upstash returns { result: string|null }
-        return json.result ? JSON.parse(json.result) : null;
-    } catch (_) { return null; }
-}
-
-async function redisSet(key, value) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) return false;
-    try {
-        const resp = await fetch(`${url.replace(/\/$/, '')}/set/${encodeURIComponent(key)}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: JSON.stringify(value) })
-        });
-        return resp.ok;
-    } catch (_) { return false; }
-}
-
-async function loadClients() {
-    // Prefer Redis if configured
-    const fromRedis = await redisGet('clients');
-    if (Array.isArray(fromRedis)) return fromRedis;
-    // Fallback: derive from reports file (bootstraps initial clients)
-    try {
-        const reportsFilePath = path.join(process.cwd(), 'reports_data.json');
-        if (fs.existsSync(reportsFilePath)) {
-            const reportsData = JSON.parse(fs.readFileSync(reportsFilePath, 'utf8'));
-            const clientsMap = new Map();
-            for (const report of reportsData) {
-                if (report && report.clientInfo && report.clientId) {
-                    if (!clientsMap.has(report.clientId)) {
-                        clientsMap.set(report.clientId, {
-                            id: report.clientId,
-                            fullName: report.clientInfo.fullName,
-                            email: report.clientInfo.email || '',
-                            phone: report.clientInfo.phone,
-                            nbNumber: report.clientInfo.nbNumber || '',
-                            firstVisit: report.timestamp
-                        });
-                    }
-                }
-            }
-            const clients = Array.from(clientsMap.values());
-            // Best-effort persist to Redis if available
-            try { await redisSet('clients', clients); } catch(_) {}
-            return clients;
-        }
-    } catch (e) {
-        // ignore and fall through
-    }
-    return [];
-}
-
-async function saveClientAndReturnAll(newClient) {
-    // Try Redis first
-    try {
-        const current = (await redisGet('clients')) || [];
-        current.push(newClient);
-        await redisSet('clients', current);
-        return current;
-    } catch (_) {}
-    // Fallback to in-memory (ephemeral on serverless)
-    if (!global.clients) global.clients = await loadClients();
-    global.clients.push(newClient);
-    return global.clients;
-}
+import { findById, findAll, insert, update, remove, publishRealtimeEvent } from './db.js';
 
 export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     if (req.method === 'OPTIONS') {
@@ -92,38 +18,163 @@ export default async function handler(req, res) {
     }
 
     try {
+        // GET - Fetch clients
         if (req.method === 'GET') {
-            const clients = global.clients && Array.isArray(global.clients)
-                ? global.clients
-                : await loadClients();
-            global.clients = clients;
-            res.status(200).json(clients);
-            return;
+            const { id, branch } = req.query || {};
+            
+            if (id) {
+                // Get single client by ID or reference_number
+                let client = await findById('clients', id);
+                if (!client) {
+                    // Try by reference_number
+                    const clients = await findAll('clients', { reference_number: id });
+                    if (clients.length > 0) {
+                        return res.status(200).json(clients[0]);
+                    }
+                    return res.status(404).json({ error: 'Client not found' });
+                }
+                return res.status(200).json(client);
+            }
+
+            // Get all clients with optional branch filter
+            const filters = branch ? { branch } : {};
+            const clients = await findAll('clients', filters, 'full_name ASC');
+            return res.status(200).json(clients);
         }
+
+        // POST - Create new client
         if (req.method === 'POST') {
             const body = req.body || {};
-            const newClient = {
-                // Prefer stable referenceNumber if provided by FE, fallback to timestamp id
-                id: body.referenceNumber || `CLT-${Date.now()}`,
-                ...body,
-                created_at: new Date().toISOString()
+            
+            // Generate ID if not provided
+            const clientId = body.id || body.reference_number || `CLI${Date.now()}`;
+            
+            // Check if client already exists (by reference_number or id)
+            if (body.reference_number) {
+                const existing = await findAll('clients', { reference_number: body.reference_number });
+                if (existing.length > 0) {
+                    return res.status(200).json({ 
+                        success: true, 
+                        message: 'Client already exists',
+                        client: existing[0]
+                    });
+                }
+            }
+
+            const clientData = {
+                id: clientId,
+                reference_number: body.reference_number || body.id || `REF${Date.now()}`,
+                full_name: body.fullName || body.full_name || '',
+                email: body.email || '',
+                phone: body.phone || '',
+                nb_number: body.nbNumber || body.nb_number || '',
+                branch: body.branch || null,
+                first_visit: body.firstVisit || body.first_visit || null,
             };
-            const all = await saveClientAndReturnAll(newClient);
 
-            // Best-effort: publish realtime event so portals refresh
-            try {
-                await fetch('/api/realtime_publish', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel: 'clients', event: { type: 'clients:updated', referenceNumber: newClient.id, action: 'created', ts: Date.now() } })
-                });
-            } catch (_) {}
+            const newClient = await insert('clients', clientData);
+            
+            if (!newClient) {
+                return res.status(500).json({ error: 'Failed to create client' });
+            }
 
-            res.status(201).json({ success: true, client: newClient, total: all.length });
-            return;
+            // Publish realtime event
+            await publishRealtimeEvent('clients', 'created', newClient);
+
+            return res.status(201).json({ 
+                success: true, 
+                message: 'Client created',
+                client: newClient
+            });
         }
-        res.status(405).json({ error: 'Method not allowed' });
-    } catch (e) {
-        res.status(500).json({ error: e.message || 'Internal error' });
+
+        // PUT - Update client
+        if (req.method === 'PUT') {
+            const body = req.body || {};
+            const clientId = body.id || body.reference_number;
+            
+            if (!clientId) {
+                return res.status(400).json({ error: 'Client ID or reference_number required' });
+            }
+
+            // Find client by ID or reference_number
+            let client = await findById('clients', clientId);
+            if (!client && body.reference_number) {
+                const clients = await findAll('clients', { reference_number: clientId });
+                if (clients.length > 0) client = clients[0];
+            }
+
+            if (!client) {
+                return res.status(404).json({ error: 'Client not found' });
+            }
+
+            // Prepare update data
+            const updateData = {};
+            if (body.fullName !== undefined) updateData.full_name = body.fullName;
+            if (body.full_name !== undefined) updateData.full_name = body.full_name;
+            if (body.email !== undefined) updateData.email = body.email;
+            if (body.phone !== undefined) updateData.phone = body.phone;
+            if (body.nbNumber !== undefined) updateData.nb_number = body.nbNumber;
+            if (body.nb_number !== undefined) updateData.nb_number = body.nb_number;
+            if (body.branch !== undefined) updateData.branch = body.branch;
+            if (body.firstVisit !== undefined) updateData.first_visit = body.firstVisit;
+            if (body.first_visit !== undefined) updateData.first_visit = body.first_visit;
+
+            // Check version for optimistic locking
+            if (body.version !== undefined && client.version !== body.version) {
+                return res.status(409).json({ 
+                    error: 'Conflict: Client was modified by another user',
+                    client: client,
+                    yourVersion: body.version,
+                    serverVersion: client.version
+                });
+            }
+
+            const updatedClient = await update('clients', client.id, updateData);
+            
+            if (!updatedClient) {
+                return res.status(500).json({ error: 'Failed to update client' });
+            }
+
+            // Publish realtime event
+            await publishRealtimeEvent('clients', 'updated', updatedClient);
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Client updated',
+                client: updatedClient
+            });
+        }
+
+        // DELETE - Delete client
+        if (req.method === 'DELETE') {
+            const { id } = req.query || {};
+            
+            if (!id) {
+                return res.status(400).json({ error: 'Client ID required' });
+            }
+
+            const deleted = await remove('clients', id);
+            
+            if (!deleted) {
+                return res.status(404).json({ error: 'Client not found' });
+            }
+
+            // Publish realtime event
+            await publishRealtimeEvent('clients', 'deleted', { id });
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Client deleted'
+            });
+        }
+
+        return res.status(405).json({ error: 'Method not allowed' });
+    } catch (error) {
+        console.error('Clients API error:', error);
+        return res.status(500).json({ 
+            error: error.message || 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 }

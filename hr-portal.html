@@ -33,6 +33,15 @@
         .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; border: 1px solid #e5e7eb; font-size: 12px; }
         .section { margin-top: 14px; }
         .empty { padding: 12px; border: 1px dashed #cbd5e1; border-radius: 10px; background: #fff; color: #64748b; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 10px; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+        .communication-list { max-height: 400px; overflow-y: auto; margin-bottom: 16px; }
+        .communication-message { padding: 12px; margin-bottom: 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #2563eb; }
+        .communication-message.outgoing { background: #eff6ff; border-left-color: #10b981; }
+        .communication-meta { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+        .communication-body { color: #222; }
         @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } .col-4, .col-8 { grid-column: span 12; } }
     </style>
     <script defer src="./cloud-sync.js"></script>
@@ -46,15 +55,14 @@
         </div>
 
         <div class="tabs" id="tabs">
-            <div class="tab active" data-tab="attendance" onclick="switchTab('attendance')">Attendance</div>
-            <div class="tab" data-tab="leave" onclick="switchTab('leave')">Leave</div>
-            <div class="tab" data-tab="employees" onclick="switchTab('employees')">Employees</div>
-            <div class="tab" data-tab="shifts" onclick="switchTab('shifts')">Shifts</div>
-            <div class="tab" data-tab="timesheets" onclick="switchTab('timesheets')">Timesheets</div>
-            <div class="tab" data-tab="approvals" onclick="switchTab('approvals')">Approvals</div>
-            <div class="tab" data-tab="reports" onclick="switchTab('reports')">Reports</div>
-            <div class="tab" data-tab="documents" onclick="switchTab('documents')">Documents</div>
-            <div class="tab" data-tab="data-collection" onclick="switchTab('data-collection')">Data Collection</div>
+            <div class="tab" data-tab="employees" onclick="switchTab('employees')">👤 Employee Management</div>
+            <div class="tab" data-tab="leave" onclick="switchTab('leave')">📅 Leave Management</div>
+            <div class="tab" data-tab="warnings" onclick="switchTab('warnings')">⚠️ Warnings & Disciplinary</div>
+            <div class="tab" data-tab="terminations" onclick="switchTab('terminations')">🚪 Terminations</div>
+            <div class="tab active" data-tab="attendance" onclick="switchTab('attendance')">🕐 Attendance</div>
+            <div class="tab" data-tab="performance" onclick="switchTab('performance')">📊 Performance Review</div>
+            <div class="tab" data-tab="communication" onclick="switchTab('communication')">💬 Staff Communication</div>
+            <div class="tab" data-tab="data-collection" onclick="switchTab('data-collection')">📋 Data Collection</div>
         </div>
 
         <div class="section" id="content"></div>
@@ -94,11 +102,10 @@
             if(tab==='attendance') renderAttendance();
             if(tab==='leave') renderLeave();
             if(tab==='employees') renderEmployees();
-            if(tab==='shifts') renderShifts();
-            if(tab==='timesheets') renderTimesheets();
-            if(tab==='approvals') renderApprovals();
-            if(tab==='reports') renderReports();
-            if(tab==='documents') renderDocuments();
+            if(tab==='warnings') renderWarnings();
+            if(tab==='terminations') renderTerminations();
+            if(tab==='performance') renderPerformance();
+            if(tab==='communication') renderCommunication();
             if(tab==='data-collection') renderDataCollection();
         }
 
@@ -1076,6 +1083,460 @@ ${dc.personalInfo.fullName},${dc.personalInfo.idNumber},${dc.personalInfo.dateOf
             a.href = URL.createObjectURL(blob);
             a.download = `data-collection-${emp.dataCollection.personalInfo.fullName.replace(/\s+/g,'-')}-${Date.now()}.csv`;
             a.click();
+        }
+
+        // Warnings & Disciplinary Workflow
+        async function renderWarnings(){
+            const container = document.getElementById('content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="row" style="justify-content:space-between; gap:8px;">
+                        <div class="row" style="gap:8px; flex-wrap:wrap;">
+                            <div class="field"><label>Search</label><input id="warnSearch" placeholder="Search warnings..." oninput="loadWarnings()"></div>
+                            <div class="field"><label>Type</label><select id="warnTypeFilter" onchange="loadWarnings()"><option value="">All</option><option>Verbal</option><option>Written</option><option>Final</option></select></div>
+                        </div>
+                        <div class="row" style="gap:6px;">
+                            <button class="btn warning" onclick="showIssueWarning()">⚠️ Issue Warning</button>
+                            <button class="btn" onclick="renderWarnings()">Refresh</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="section card" id="warnTable"><div class="muted">Loading...</div></div>
+            `;
+            await loadWarnings();
+        }
+
+        async function loadWarnings(){
+            try {
+                const warnings = JSON.parse(localStorage.getItem('hr_warnings') || '[]');
+                const search = (document.getElementById('warnSearch')?.value || '').toLowerCase();
+                const typeFilter = document.getElementById('warnTypeFilter')?.value || '';
+                let filtered = warnings;
+                if(search) filtered = filtered.filter(w => (w.employee||'').toLowerCase().includes(search) || (w.reason||'').toLowerCase().includes(search));
+                if(typeFilter) filtered = filtered.filter(w => w.type === typeFilter);
+                filtered.sort((a,b) => new Date(b.date||b.createdAt) - new Date(a.date||a.createdAt));
+                const rows = filtered.map(w => `
+                    <tr>
+                        <td>${w.employee||'Unknown'}</td>
+                        <td><span class="pill" style="background:${w.type==='Final'?'#ef4444':w.type==='Written'?'#f59e0b':'#10b981'};color:#fff;">${w.type}</span></td>
+                        <td>${w.date ? new Date(w.date).toLocaleDateString() : ''}</td>
+                        <td>${w.issuedBy||''}</td>
+                        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${w.reason||''}</td>
+                        <td class="row" style="gap:6px;">
+                            <button class="btn" onclick="viewWarning('${w.id}')">View</button>
+                            <button class="btn danger" onclick="deleteWarning('${w.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('warnTable').innerHTML = filtered.length ? `
+                    <div style="overflow:auto;">
+                        <table>
+                            <thead><tr><th>Employee</th><th>Type</th><th>Date</th><th>Issued By</th><th>Reason</th><th>Actions</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                ` : `<div class="empty">No warnings found.</div>`;
+            } catch(e) {
+                document.getElementById('warnTable').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function showIssueWarning(){
+            const employees = await api('/employees');
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'issueWarningModal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal('issueWarningModal')">&times;</span>
+                    <h2>⚠️ Issue Warning</h2>
+                    <form id="issueWarningForm" onsubmit="submitWarning(event)">
+                        <div class="field"><label>Employee</label><select id="warnEmployee" required><option value="">Select Employee</option>${employees.map(e=>`<option value="${e.userId}">${e.fullName} (${e.userId})</option>`).join('')}</select></div>
+                        <div class="field"><label>Warning Type</label><select id="warnType" required><option value="">Select Type</option><option>Verbal</option><option>Written</option><option>Final</option></select></div>
+                        <div class="field"><label>Date</label><input type="date" id="warnDate" value="${formatDate(new Date())}" required></div>
+                        <div class="field"><label>Issued By</label><input id="warnIssuedBy" value="${getCurrentUser()?.fullName||''}" required></div>
+                        <div class="field"><label>Reason</label><textarea id="warnReason" rows="5" required></textarea></div>
+                        <div class="field"><label>Notes</label><textarea id="warnNotes" rows="3"></textarea></div>
+                        <div class="row" style="margin-top:12px;">
+                            <button type="submit" class="btn warning">⚠️ Issue Warning</button>
+                            <button type="button" class="btn" onclick="closeModal('issueWarningModal')">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+        }
+
+        async function submitWarning(event){
+            event.preventDefault();
+            const employees = await api('/employees');
+            const empId = document.getElementById('warnEmployee').value;
+            const emp = employees.find(e => e.userId === empId);
+            const warning = {
+                id: `WARN-${Date.now()}`,
+                employee: emp ? emp.fullName : empId,
+                userId: empId,
+                type: document.getElementById('warnType').value,
+                date: document.getElementById('warnDate').value,
+                issuedBy: document.getElementById('warnIssuedBy').value,
+                reason: document.getElementById('warnReason').value,
+                notes: document.getElementById('warnNotes').value,
+                createdAt: new Date().toISOString()
+            };
+            const warnings = JSON.parse(localStorage.getItem('hr_warnings') || '[]');
+            warnings.push(warning);
+            localStorage.setItem('hr_warnings', JSON.stringify(warnings));
+            closeModal('issueWarningModal');
+            renderWarnings();
+            alert('Warning issued successfully!');
+        }
+
+        function viewWarning(id){
+            const warnings = JSON.parse(localStorage.getItem('hr_warnings') || '[]');
+            const w = warnings.find(x => x.id === id);
+            if(!w) { alert('Warning not found'); return; }
+            alert(`Warning Details:\n\nEmployee: ${w.employee}\nType: ${w.type}\nDate: ${new Date(w.date).toLocaleDateString()}\nIssued By: ${w.issuedBy}\n\nReason:\n${w.reason}\n\nNotes:\n${w.notes||'None'}`);
+        }
+
+        function deleteWarning(id){
+            if(!confirm('Delete this warning?')) return;
+            const warnings = JSON.parse(localStorage.getItem('hr_warnings') || '[]');
+            const filtered = warnings.filter(w => w.id !== id);
+            localStorage.setItem('hr_warnings', JSON.stringify(filtered));
+            renderWarnings();
+        }
+
+        // Terminations Workflow
+        async function renderTerminations(){
+            const container = document.getElementById('content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="row" style="justify-content:space-between; gap:8px;">
+                        <div class="row" style="gap:8px; flex-wrap:wrap;">
+                            <div class="field"><label>Search</label><input id="termSearch" placeholder="Search terminations..." oninput="loadTerminations()"></div>
+                            <div class="field"><label>Type</label><select id="termTypeFilter" onchange="loadTerminations()"><option value="">All</option><option>Resignation</option><option>Dismissal</option><option>Retirement</option><option>Contract End</option><option>Mutual Agreement</option></select></div>
+                        </div>
+                        <div class="row" style="gap:6px;">
+                            <button class="btn danger" onclick="showTerminateEmployee()">🚪 Record Termination</button>
+                            <button class="btn" onclick="renderTerminations()">Refresh</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="section card" id="termTable"><div class="muted">Loading...</div></div>
+            `;
+            await loadTerminations();
+        }
+
+        async function loadTerminations(){
+            try {
+                const terminations = JSON.parse(localStorage.getItem('hr_terminations') || '[]');
+                const search = (document.getElementById('termSearch')?.value || '').toLowerCase();
+                const typeFilter = document.getElementById('termTypeFilter')?.value || '';
+                let filtered = terminations;
+                if(search) filtered = filtered.filter(t => (t.employee||'').toLowerCase().includes(search) || (t.reason||'').toLowerCase().includes(search));
+                if(typeFilter) filtered = filtered.filter(t => t.type === typeFilter);
+                filtered.sort((a,b) => new Date(b.date||b.createdAt) - new Date(a.date||a.createdAt));
+                const rows = filtered.map(t => `
+                    <tr>
+                        <td>${t.employee||'Unknown'}</td>
+                        <td><span class="pill">${t.type}</span></td>
+                        <td>${t.date ? new Date(t.date).toLocaleDateString() : ''}</td>
+                        <td>${t.noticePeriod ? t.noticePeriod + ' days' : '-'}</td>
+                        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${t.reason||''}</td>
+                        <td class="row" style="gap:6px;">
+                            <button class="btn" onclick="viewTermination('${t.id}')">View</button>
+                            <button class="btn danger" onclick="deleteTermination('${t.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('termTable').innerHTML = filtered.length ? `
+                    <div style="overflow:auto;">
+                        <table>
+                            <thead><tr><th>Employee</th><th>Type</th><th>Date</th><th>Notice Period</th><th>Reason</th><th>Actions</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                ` : `<div class="empty">No terminations found.</div>`;
+            } catch(e) {
+                document.getElementById('termTable').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function showTerminateEmployee(){
+            const employees = await api('/employees');
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'terminateEmployeeModal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal('terminateEmployeeModal')">&times;</span>
+                    <h2>🚪 Record Termination</h2>
+                    <form id="terminateEmployeeForm" onsubmit="submitTermination(event)">
+                        <div class="field"><label>Employee</label><select id="termEmployee" required><option value="">Select Employee</option>${employees.map(e=>`<option value="${e.userId}">${e.fullName} (${e.userId})</option>`).join('')}</select></div>
+                        <div class="field"><label>Termination Date</label><input type="date" id="termDate" value="${formatDate(new Date())}" required></div>
+                        <div class="field"><label>Termination Type</label><select id="termType" required><option value="">Select Type</option><option>Resignation</option><option>Dismissal</option><option>Retirement</option><option>Contract End</option><option>Mutual Agreement</option></select></div>
+                        <div class="field"><label>Reason</label><textarea id="termReason" rows="5" required></textarea></div>
+                        <div class="field"><label>Notice Period (Days)</label><input type="number" id="termNoticePeriod" min="0"></div>
+                        <div class="field"><label>Notes</label><textarea id="termNotes" rows="3"></textarea></div>
+                        <div class="row" style="margin-top:12px;">
+                            <button type="submit" class="btn danger">🚪 Record Termination</button>
+                            <button type="button" class="btn" onclick="closeModal('terminateEmployeeModal')">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+        }
+
+        async function submitTermination(event){
+            event.preventDefault();
+            const employees = await api('/employees');
+            const empId = document.getElementById('termEmployee').value;
+            const emp = employees.find(e => e.userId === empId);
+            const termination = {
+                id: `TERM-${Date.now()}`,
+                employee: emp ? emp.fullName : empId,
+                userId: empId,
+                type: document.getElementById('termType').value,
+                date: document.getElementById('termDate').value,
+                reason: document.getElementById('termReason').value,
+                noticePeriod: document.getElementById('termNoticePeriod').value || null,
+                notes: document.getElementById('termNotes').value,
+                createdAt: new Date().toISOString()
+            };
+            const terminations = JSON.parse(localStorage.getItem('hr_terminations') || '[]');
+            terminations.push(termination);
+            localStorage.setItem('hr_terminations', JSON.stringify(terminations));
+            // Update employee status
+            if(emp) {
+                await api('/employees', { method:'PUT', body: JSON.stringify({ id: emp.id, employmentStatus: 'terminated' }) });
+            }
+            closeModal('terminateEmployeeModal');
+            renderTerminations();
+            alert('Termination recorded successfully!');
+        }
+
+        function viewTermination(id){
+            const terminations = JSON.parse(localStorage.getItem('hr_terminations') || '[]');
+            const t = terminations.find(x => x.id === id);
+            if(!t) { alert('Termination not found'); return; }
+            alert(`Termination Details:\n\nEmployee: ${t.employee}\nType: ${t.type}\nDate: ${new Date(t.date).toLocaleDateString()}\nNotice Period: ${t.noticePeriod || 'N/A'} days\n\nReason:\n${t.reason}\n\nNotes:\n${t.notes||'None'}`);
+        }
+
+        function deleteTermination(id){
+            if(!confirm('Delete this termination record?')) return;
+            const terminations = JSON.parse(localStorage.getItem('hr_terminations') || '[]');
+            const filtered = terminations.filter(t => t.id !== id);
+            localStorage.setItem('hr_terminations', JSON.stringify(filtered));
+            renderTerminations();
+        }
+
+        // Performance Review Workflow
+        async function renderPerformance(){
+            const container = document.getElementById('content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="row" style="justify-content:space-between; gap:8px;">
+                        <div class="row" style="gap:8px; flex-wrap:wrap;">
+                            <div class="field"><label>Search</label><input id="perfSearch" placeholder="Search performance reviews..." oninput="loadPerformanceReviews()"></div>
+                        </div>
+                        <div class="row" style="gap:6px;">
+                            <button class="btn success" onclick="showAddPerformanceReview()">➕ Add Performance Review</button>
+                            <button class="btn" onclick="renderPerformance()">Refresh</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="section card" id="perfTable"><div class="muted">Loading...</div></div>
+            `;
+            await loadPerformanceReviews();
+        }
+
+        async function loadPerformanceReviews(){
+            try {
+                const reviews = JSON.parse(localStorage.getItem('hr_performance') || '[]');
+                const search = (document.getElementById('perfSearch')?.value || '').toLowerCase();
+                let filtered = reviews;
+                if(search) filtered = filtered.filter(r => (r.employee||'').toLowerCase().includes(search) || (r.rating||'').toLowerCase().includes(search));
+                filtered.sort((a,b) => new Date(b.endDate||b.createdAt) - new Date(a.endDate||a.createdAt));
+                const rows = filtered.map(r => `
+                    <tr>
+                        <td>${r.employee||'Unknown'}</td>
+                        <td>${r.startDate ? new Date(r.startDate).toLocaleDateString() : ''} - ${r.endDate ? new Date(r.endDate).toLocaleDateString() : ''}</td>
+                        <td><span class="pill" style="background:${r.rating==='Excellent'?'#10b981':r.rating==='Good'?'#2563eb':r.rating==='Average'?'#f59e0b':r.rating==='Below Average'?'#f97316':'#ef4444'};color:#fff;">${r.rating}</span></td>
+                        <td>${r.reviewedBy||''}</td>
+                        <td class="row" style="gap:6px;">
+                            <button class="btn" onclick="viewPerformanceReview('${r.id}')">View</button>
+                            <button class="btn danger" onclick="deletePerformanceReview('${r.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+                document.getElementById('perfTable').innerHTML = filtered.length ? `
+                    <div style="overflow:auto;">
+                        <table>
+                            <thead><tr><th>Employee</th><th>Review Period</th><th>Rating</th><th>Reviewed By</th><th>Actions</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                ` : `<div class="empty">No performance reviews found.</div>`;
+            } catch(e) {
+                document.getElementById('perfTable').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function showAddPerformanceReview(){
+            const employees = await api('/employees');
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'addPerformanceReviewModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:700px;">
+                    <span class="close" onclick="closeModal('addPerformanceReviewModal')">&times;</span>
+                    <h2>📊 Add Performance Review</h2>
+                    <form id="addPerformanceReviewForm" onsubmit="submitPerformanceReview(event)">
+                        <div class="field"><label>Employee</label><select id="perfEmployee" required><option value="">Select Employee</option>${employees.map(e=>`<option value="${e.userId}">${e.fullName} (${e.userId})</option>`).join('')}</select></div>
+                        <div class="grid">
+                            <div class="col-6 field"><label>Review Period Start</label><input type="date" id="perfStartDate" required></div>
+                            <div class="col-6 field"><label>Review Period End</label><input type="date" id="perfEndDate" required></div>
+                        </div>
+                        <div class="field"><label>Reviewed By</label><input id="perfReviewedBy" value="${getCurrentUser()?.fullName||''}" required></div>
+                        <div class="field"><label>Overall Rating</label><select id="perfRating" required><option value="">Select Rating</option><option>Excellent</option><option>Good</option><option>Average</option><option>Below Average</option><option>Unsatisfactory</option></select></div>
+                        <div class="field"><label>Strengths</label><textarea id="perfStrengths" rows="4"></textarea></div>
+                        <div class="field"><label>Areas for Improvement</label><textarea id="perfImprovements" rows="4"></textarea></div>
+                        <div class="field"><label>Goals for Next Period</label><textarea id="perfGoals" rows="4"></textarea></div>
+                        <div class="field"><label>Comments</label><textarea id="perfComments" rows="4"></textarea></div>
+                        <div class="row" style="margin-top:12px;">
+                            <button type="submit" class="btn success">💾 Save Review</button>
+                            <button type="button" class="btn" onclick="closeModal('addPerformanceReviewModal')">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+        }
+
+        async function submitPerformanceReview(event){
+            event.preventDefault();
+            const employees = await api('/employees');
+            const empId = document.getElementById('perfEmployee').value;
+            const emp = employees.find(e => e.userId === empId);
+            const review = {
+                id: `PERF-${Date.now()}`,
+                employee: emp ? emp.fullName : empId,
+                userId: empId,
+                startDate: document.getElementById('perfStartDate').value,
+                endDate: document.getElementById('perfEndDate').value,
+                reviewedBy: document.getElementById('perfReviewedBy').value,
+                rating: document.getElementById('perfRating').value,
+                strengths: document.getElementById('perfStrengths').value,
+                improvements: document.getElementById('perfImprovements').value,
+                goals: document.getElementById('perfGoals').value,
+                comments: document.getElementById('perfComments').value,
+                createdAt: new Date().toISOString()
+            };
+            const reviews = JSON.parse(localStorage.getItem('hr_performance') || '[]');
+            reviews.push(review);
+            localStorage.setItem('hr_performance', JSON.stringify(reviews));
+            closeModal('addPerformanceReviewModal');
+            renderPerformance();
+            alert('Performance review saved successfully!');
+        }
+
+        function viewPerformanceReview(id){
+            const reviews = JSON.parse(localStorage.getItem('hr_performance') || '[]');
+            const r = reviews.find(x => x.id === id);
+            if(!r) { alert('Review not found'); return; }
+            alert(`Performance Review:\n\nEmployee: ${r.employee}\nPeriod: ${new Date(r.startDate).toLocaleDateString()} - ${new Date(r.endDate).toLocaleDateString()}\nRating: ${r.rating}\nReviewed By: ${r.reviewedBy}\n\nStrengths:\n${r.strengths||'None'}\n\nAreas for Improvement:\n${r.improvements||'None'}\n\nGoals:\n${r.goals||'None'}\n\nComments:\n${r.comments||'None'}`);
+        }
+
+        function deletePerformanceReview(id){
+            if(!confirm('Delete this performance review?')) return;
+            const reviews = JSON.parse(localStorage.getItem('hr_performance') || '[]');
+            const filtered = reviews.filter(r => r.id !== id);
+            localStorage.setItem('hr_performance', JSON.stringify(filtered));
+            renderPerformance();
+        }
+
+        // Staff Communication Workflow
+        async function renderCommunication(){
+            const container = document.getElementById('content');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="title" style="font-size:18px; margin-bottom:16px;">💬 Staff Communication</div>
+                    <p class="muted" style="margin-bottom:16px;">Send HR updates to branch staff and review their replies.</p>
+                    <div id="communicationList" class="communication-list"><div class="muted">Loading...</div></div>
+                    <form id="communicationForm" onsubmit="submitCommunication(event)">
+                        <div class="field">
+                            <label>Message</label>
+                            <textarea id="communicationMessage" rows="4" placeholder="Share policy changes, approvals or notices..." required></textarea>
+                        </div>
+                        <div class="row" style="gap:8px; margin-top:12px;">
+                            <button type="submit" class="btn success">Send to Staff</button>
+                            <button type="button" class="btn" onclick="clearCommunication()">Clear</button>
+                            <button type="button" class="btn" onclick="renderCommunication()">Refresh</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            await loadCommunications();
+        }
+
+        async function loadCommunications(){
+            try {
+                const communications = JSON.parse(localStorage.getItem('hr_communications') || '[]');
+                communications.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                const html = communications.map(c => `
+                    <div class="communication-message ${c.from === 'hr' ? 'outgoing' : ''}">
+                        <div class="communication-meta">
+                            <span>${c.from === 'hr' ? '👤 HR' : '👤 Staff'}</span>
+                            <span style="margin-left:8px;">${new Date(c.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div class="communication-body">${escapeHTML(c.message)}</div>
+                    </div>
+                `).join('');
+                document.getElementById('communicationList').innerHTML = html || '<div class="empty">No communications yet.</div>';
+            } catch(e) {
+                document.getElementById('communicationList').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function submitCommunication(event){
+            event.preventDefault();
+            const message = document.getElementById('communicationMessage').value.trim();
+            if(!message) { alert('Enter a message'); return; }
+            const communication = {
+                id: `COMM-${Date.now()}`,
+                from: 'hr',
+                fromName: getCurrentUser()?.fullName || 'HR',
+                message: message,
+                createdAt: new Date().toISOString()
+            };
+            const communications = JSON.parse(localStorage.getItem('hr_communications') || '[]');
+            communications.push(communication);
+            localStorage.setItem('hr_communications', JSON.stringify(communications));
+            document.getElementById('communicationMessage').value = '';
+            renderCommunication();
+            alert('Message sent to staff!');
+        }
+
+        function clearCommunication(){
+            document.getElementById('communicationMessage').value = '';
+        }
+
+        function escapeHTML(str){
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function closeModal(modalId){
+            const modal = document.getElementById(modalId);
+            if(modal) {
+                modal.style.display = 'none';
+                if(modal.parentNode) modal.parentNode.removeChild(modal);
+            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {

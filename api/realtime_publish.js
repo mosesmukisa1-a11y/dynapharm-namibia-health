@@ -1,37 +1,63 @@
-export default async function handler(req, res) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+/**
+ * Realtime Event Publishing Helper
+ * Publishes database changes to the realtime gateway for WebSocket broadcasting
+ */
 
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) {
-        res.status(501).json({ error: 'Realtime not configured' });
-        return;
-    }
+// Get realtime gateway URL from environment or use default
+const REALTIME_GATEWAY_URL = 
+    (typeof process !== 'undefined' && process.env?.REALTIME_GATEWAY_URL) 
+    || 'http://localhost:8080';
 
-    if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-
+/**
+ * Publish a real-time event to notify all connected clients
+ */
+export async function publishRealtimeEvent(resource, action, data, branchId = null) {
     try {
-        const { channel = 'reports', event = {} } = req.body || {};
-        const endpoint = `${url.replace(/\/$/, '')}/publish/${encodeURIComponent(channel)}`;
-        const payload = typeof event === 'string' ? event : JSON.stringify(event);
-        const upstream = await fetch(endpoint, {
+        const event = {
+            type: `${resource}:${action}`,
+            resource,
+            action,
+            data,
+            branchId,
+            timestamp: Date.now(),
+        };
+
+        const response = await fetch(`${REALTIME_GATEWAY_URL}/publish`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ data: payload })
+            body: JSON.stringify({ event }),
         });
-        const text = await upstream.text();
-        if (!upstream.ok) throw new Error(text);
-        res.status(200).json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message || 'Publish failed' });
+
+        if (!response.ok) {
+            console.warn(`Failed to publish realtime event: ${response.statusText}`);
+        }
+
+        return { success: response.ok };
+    } catch (error) {
+        // Don't fail the main operation if realtime publish fails
+        console.error('Error publishing realtime event:', error);
+        return { success: false, error: error.message };
     }
 }
 
+/**
+ * Publish multiple events in batch
+ */
+export async function publishBatchEvents(events) {
+    try {
+        const response = await fetch(`${REALTIME_GATEWAY_URL}/publish`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ events }),
+        });
 
+        return { success: response.ok };
+    } catch (error) {
+        console.error('Error publishing batch events:', error);
+        return { success: false, error: error.message };
+    }
+}
